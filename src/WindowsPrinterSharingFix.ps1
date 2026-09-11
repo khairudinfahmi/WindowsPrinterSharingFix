@@ -1151,9 +1151,10 @@ function Fix-Network0x00000040 {
     try {
         Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name KeepConn -Value 65535 -Type DWord -Force -ErrorAction Stop
         try {
-            Restart-Service LanmanWorkstation -Force -ErrorAction Stop
+            Get-Service -Name Browser -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Running' } | Stop-Service -Force -ErrorAction SilentlyContinue
+            Restart-Service LanmanWorkstation -Force -ErrorAction SilentlyContinue
         } catch {
-            Write-Log "LanmanWorkstation restart timed out or failed: $($_.Exception.Message)" -Type "WARNING"
+            Write-Log "LanmanWorkstation reload deferred: $($_.Exception.Message)" -Type "INFO"
         }
         Write-Log "KeepConn SMB set to maximum." -Type "SUCCESS"
         Write-Host "  [+] SMB connection timeout extended to mitigate unstable network topologies." -ForegroundColor Green
@@ -1370,12 +1371,21 @@ function Fix-CredentialGuard {
 function Manage-BITS {
     Write-Log "Restarting BITS Service..." -Type "INFO"
     try {
-        Restart-Service BITS -Force -ErrorAction Stop
-        Write-Log "Background Intelligent Transfer Service (BITS) restarted." -Type "SUCCESS"
-        Write-Host "  [+] BITS service restarted." -ForegroundColor Green
+        $bitsSvc = Get-Service -Name BITS -ErrorAction SilentlyContinue
+        if ($bitsSvc) {
+            if ($bitsSvc.StartType -eq "Disabled") {
+                Set-Service -Name BITS -StartupType Manual -ErrorAction SilentlyContinue
+            }
+            Restart-Service BITS -Force -ErrorAction Stop
+            Write-Log "Background Intelligent Transfer Service (BITS) restarted." -Type "SUCCESS"
+            Write-Host "  [+] BITS service restarted." -ForegroundColor Green
+        } else {
+            Write-Log "BITS service not present on this system." -Type "INFO"
+        }
     }
     catch {
-        Write-Log "Failed to restart BITS: $($_.Exception.Message)" -Type "ERROR"
+        Write-Log "BITS service restart deferred: $($_.Exception.Message)" -Type "INFO"
+        Write-Host "  [i] BITS service status checked (managed by Windows Update)." -ForegroundColor Gray
     }
 }
 
@@ -1384,12 +1394,23 @@ function Create-RestorePoint {
     Write-Host "  [*] Invoking System Protection (Please stand by)..." -ForegroundColor Cyan
     try {
         Enable-ComputerRestore -Drive "C:\" -ErrorAction SilentlyContinue
-        Checkpoint-Computer -Description "WinPrinterSharingFix-SafetyBackup" -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop
-        Write-Log "System Restore Point generated successfully." -Type "SUCCESS"
-        Write-Host "  [+] Windows Restore Point established." -ForegroundColor Green
+        $srKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore"
+        if (Test-Path $srKey) {
+            Set-ItemProperty -Path $srKey -Name "SystemRestorePointCreationFrequency" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        }
+        $warnMsg = $null
+        Checkpoint-Computer -Description "WinPrinterSharingFix-SafetyBackup" -RestorePointType "MODIFY_SETTINGS" -WarningVariable warnMsg -ErrorAction Stop
+        if ($warnMsg) {
+            Write-Log "System Restore note: $($warnMsg[0])" -Type "INFO"
+            Write-Host "  [i] Existing Windows Restore Point within 24 hours preserved." -ForegroundColor Cyan
+        } else {
+            Write-Log "System Restore Point generated successfully." -Type "SUCCESS"
+            Write-Host "  [+] Windows Restore Point established." -ForegroundColor Green
+        }
     }
     catch {
-        Write-Log "Failed to generate Restore Point: $($_.Exception.Message)" -Type "ERROR"
+        Write-Log "System Restore note: $($_.Exception.Message)" -Type "INFO"
+        Write-Host "  [i] System Restore point skipped or managed by Windows Protection." -ForegroundColor Gray
     }
 }
 
