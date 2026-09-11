@@ -15,108 +15,93 @@ Windows updates often break network printing with cryptic errors. This tool fixe
 
 ---
 
-## 89 Repair Options
+## Struktur Menu & Kategori Perbaikan (8 Kategori Utama Berbahasa Manusia)
 
-### Column 1: Core & Network [01-30]
-| # | Feature |
-|---|---|
-| 01 | Patch Error 0x0000011b (RpcAuthnLevelPrivacy) |
-| 02 | Bypass Error 0x00000709 / 0x7c (Point and Print) |
-| 03 | Bypass Error 0x00000bc4 (No Printers Found) |
-| 04 | Fix Error 0x80070035 (Automate Network Services) |
-| 05 | Disable Client-Side Rendering (Error 0x6d1) |
-| 06 | Fix Error 0x80070005 (Reset Spooler ACL) |
-| 07 | Fix Error 0x00000040 (Network Unavailable) |
-| 08 | Fix Error 0x00000002 (CopyFilesPolicy) |
-| 09 | Fix Error 0x0000007e (RPC Bitness Mismatch) |
-| 10 | Complete Network Reset (DNS, Winsock, NetBIOS) |
-| 11 | Force Network Profile to Private |
-| 12 | Force Disable Password Protected Sharing |
-| 13 | Enable RPC via Named Pipes & TCP |
-| 14 | Configure Firewall File & Printer Sharing |
-| 15 | SMB 1.0 Legacy Protocol Management (ON/OFF) |
-| 16 | Disable SMB Signing (Fix Win 11 NAS Access) |
-| 17 | Force Modern SMB2/SMB3 Topology |
-| 18 | Prioritize SMB in Network Provider Order |
-| 19 | Disable IPv6 Stack |
-| 20 | Enable mDNS & LLMNR (Discovery Protocols) |
-| 21 | Configure WSD Firewall Rules (Port 3702) |
-| 22 | Enable IPP & Mopria Sharing Foundation |
-| 23 | Resolve Hyper-V/WSL Virtual Network Conflicts |
-| 24 | Install Legacy LPR/LPD Protocols |
-| 25 | Remote Network Printer Discovery |
-| 26 | WSD to Standard TCP/IP Port Converter |
-| 27 | Network Socket Re-init (Selective Purge) |
-| 28 | Rescue Network Profile (Auto Watchdog) |
-| 29 | Manually Inject Standard TCP/IP Port |
-| 30 | Force Initialize WSD Print Device |
+Aplikasi kini dirancang ramah pengguna dengan struktur menu dan submenu yang bersih, komunikatif, dan mudah dipahami oleh staf kantor maupun teknisi IT. Tidak ada lagi tampilan berjejal 180 kolom.
 
-### Column 2: Spooler, Drivers & Policies [31-59]
-| # | Feature |
-|---|---|
-| 31 | Hard Reset Print Spooler (Purge Queue) |
-| 32 | Re-initialize RPC & DCOM Services |
-| 33 | Remote Target Spooler Restart |
-| 34 | Configure Spooler Auto-Restart on Crash |
-| 35 | Purge Stale Spooler Dependencies |
-| 36 | Deploy Spooler Watchdog (5-Min Audit) |
-| 37 | Force Purge Print Queue (.shd/.spl) |
-| 38 | Spooler Dependency Registry Reset |
-| 39 | Driver Management (Print Server Properties) |
-| 40 | Disable Print Driver Isolation |
-| 41 | Universal Print Class Driver V4 Fix |
-| 42 | Toggle PCL vs. PostScript Driver Mode |
-| 43 | Orphaned Driver Sweeper (pnputil) |
-| 44 | Bypass 'Driver is currently in use' |
-| 45 | Ghost USB Port & Copy Eliminator |
-| 46 | Force Remove Ghost Printers |
-| 47 | Fix Microsoft Edge / UWP Printing |
-| 48 | Reinstall Microsoft Print to PDF/XPS |
-| 49 | Browser Print Sandbox Fix (Chromium) |
-| 50 | Force Permanent Default Printer |
-| 51 | Force-Set Default Printer (Reg Bypass) |
-| 52 | Fix RDP Printer Terminal Services |
-| 53 | Auto-Sanitize Printer Share Name |
-| 54 | Downgrade LSA Protection (Legacy Auth) |
-| 55 | Bypass Smart App Control (SAC) |
-| 56 | Bypass Advanced ServerList Point & Print |
-| 57 | Bypass UAC Admin Network TokenFilter |
-| 58 | Force NTLMv2 Response Compliance |
-| 59 | Manage Windows Protected Print (WPP) |
+> [!TIP]
+> **Dukungan Pintasan Langsung (*Direct Shortcuts*):**
+> Anda tetap bisa mengetik langsung kode modul klasik (seperti `84` untuk ALLFIX, `83` untuk Extreme Path, `64` untuk Backup Registri, `86` untuk Pemetaan Port UNC, `31` untuk Spooler Reset, dll.) langsung dari Menu Utama tanpa harus membuka submenu terlebih dahulu!
 
-### Column 3: Diagnostics & Automation [60-89]
-| # | Feature |
-|---|---|
-| 60 | Inject Credentials into Vault Permanently |
-| 61 | Purge Stale Credentials from Vault |
-| 62 | Bypass Credential Guard (Strict NTLM) |
-| 63 | Cross-User Credential Mapping |
-| 64 | Pre-execution Registry Backup (Spooler) |
-| 65 | Rollback Registry from Backup |
-| 66 | Generate System Restore Point (Security) |
-| 67 | System File Checker & DISM Restoration |
-| 68 | Restart BITS (Background Transfer) |
-| 69 | Windows Update & Blocker Management |
-| 70 | Launch Native Windows Troubleshooter |
-| 71 | Force Printer Online Status |
-| 72 | Launch Services.msc |
-| 73 | Detect OS Version & Build Architecture |
-| 74 | Ping & Port 445/135 Diagnostics |
-| 75 | View Execution Logs |
-| 76 | Audit Last 20 Print Service Error Logs |
-| 77 | System Diagnostics Audit |
-| 78 | PrintService Event Log Parser (Top 5) |
-| 79 | Generate HTML Diagnostic Report |
-| 80 | Detect GPO Intervention (Policy Scan) |
-| 81 | PrintBRM (Backup/Restore Migration) |
-| 82 | Enable SMB Guest Access & Drop Anonymous Blocks |
-| **83** | **EXTREME PATH (WIN 11 24H2/25H2/26H2+ & ARM64)** |
-| **84** | **ALLFIX (50 AUTOMATED FIXES)** |
-| **85** | **SILENT ALLFIX & REBOOT (ZERO-PROMPT)** |
-| 86 | Map Local Port to UNC Path (Bypass 0x00000709) |
-| 87 | Remove Injected Local Port (UNC) |
-| 88 | Reboot System |
-| 89 | EXIT SCRIPT |
+### 1. Solusi Cepat & Otomatis (ALLFIX & Windows 11 Terbaru)
+* **[1] ALLFIX - 50 Perbaikan Otomatis Sekaligus** (Modul 84) — *Rekomendasi Utama: perbaikan menyeluruh yang menyelesaikan hampir seluruh masalah printer sharing kantor.*
+* **[2] Solusi Khusus Windows 11 Versi Terbaru (24H2/25H2/26H2 & ARM64)** (Modul 83) — *Mengatasi proteksi ketat RPC over Named Pipes, SMB Signing, dan kebijakan driver baru Windows 11.*
+* **[3] Silent ALLFIX (Otomatis + Langsung Reboot)** (Modul 85) — *Mode cepat untuk teknisi tanpa konfirmasi interaktif.*
+* **[4] Kelola Pembaruan Windows & Blokir Update Perusak Printer** (Modul 69) — *Jeda update 35 hari atau cegah update Windows mereset setelan sharing.*
+
+### 2. Perbaikan Berdasarkan Kode Error Spesifik
+* **[1] Error 0x0000011b** — Atasi pemblokiran otentikasi RPC (RpcAuthnLevelPrivacy) (Modul 01)
+* **[2] Error 0x00000709 / 0x7c** — Atasi pembatasan Point and Print & sambungan RPC (Modul 02)
+* **[3] Error 0x00000bc4** — Printer jaringan tidak ditemukan padahal LAN normal (Modul 03)
+* **[4] Error 0x80070035** — Jalur jaringan tidak ditemukan / nyalakan servis penemuan (Modul 04)
+* **[5] Error 0x000006d1** — Matikan Client-Side Rendering (CSR) (Modul 05)
+* **[6] Error 0x80070005** — Akses ditolak ke folder antrean cetak / reset izin Spooler (Modul 06)
+* **[7] Error 0x00000040** — Nama jaringan tidak tersedia lagi / KeepConn & NetBIOS (Modul 07)
+* **[8] Error 0x00000002** — Gagal menyalin berkas driver dari komputer host (Modul 08)
+* **[9] Error 0x0000007e** — Ketidakcocokan arsitektur driver 32-bit & 64-bit (Modul 09)
+
+### 3. Pengaturan Jaringan, Berbagi (SMB) & Firewall
+* **[1] Ubah Profil Jaringan ke Private** — Wajib agar printer sharing dapat dideteksi (Modul 11)
+* **[2] Buka Akses Berbagi Tanpa Password** — Menggabungkan akun tamu (Guest) & matikan sandi sharing (Modul 12 & 82)
+* **[3] Matikan Wajib SMB Signing** — Atasi Windows 11 gagal konek ke printer atau NAS kantor (Modul 16)
+* **[4] Kelola Protokol SMB** — Aktifkan SMB2/SMB3 modern & pengaturan opsional SMB 1.0 (Modul 15 & 17)
+* **[5] Buka Port Firewall** — Mengaktifkan aturan berbagi berkas, printer, dan port WSD (Modul 14 & 21)
+* **[6] Penemuan Perangkat Otomatis** — Mengaktifkan resolusi mDNS, LLMNR, dan WSD Discovery (Modul 20 & 30)
+* **[7] Prioritas Jaringan & Konflik Virtual** — Mengatur urutan provider dan atasi switch Hyper-V/WSL (Modul 18 & 23)
+* **[8] Reset Total Jaringan & Sockets** — Flush DNS, Winsock, NetBIOS, dan pembersihan sesi port menggantung (Modul 10 & 27)
+* **[9] Matikan Protokol IPv6** — Digunakan jika jaringan kantor murni IPv4 (Modul 19)
+* **[10] Fondasi Berbagi IPP / Mopria & Legacy LPR** — Standar cetak internet dan antrean Unix (Modul 22 & 24)
+
+### 4. Layanan Print Spooler & Antrean Cetak
+* **[1] Reset Bersih Spooler & Hapus Antrean Macet** — Menghentikan spooler, membuang file .spl/.shd, dan restart layanan (Modul 31 & 37)
+* **[2] Konfigurasi Pemulihan Otomatis Saat Crash** — Otomatis restart spooler jika mendadak mati (Modul 34)
+* **[3] Pasang Watchdog Spooler Otomatis** — Tugas terjadwal yang memeriksa spooler tiap 5 menit (Modul 36)
+* **[4] Perbaiki Dependensi Registri Spooler** — Menyetel ulang RPCSS & HTTP ke bawaan pabrik (Modul 35 & 38)
+* **[5] Restart Layanan Sistem RPC & DCOM** — Mengatasi pesan 'RPC server unavailable' (Modul 32)
+* **[6] Restart Spooler Komputer Lain (Remote)** — Restart spooler server via PowerShell jarak jauh (Modul 33)
+
+### 5. Pengelolaan Driver & Pembersihan Printer
+* **[1] Hentikan Paksa Driver Mengunci** — Hentikan splwow64 & isolasi agar driver bisa dihapus (Modul 44)
+* **[2] Matikan Isolasi Driver Printer** — Mencegah driver pihak ketiga crash terpisah (Modul 40)
+* **[3] Bersihkan Driver Usang (Driver Sweeper)** — Hapus paket driver lama via pnputil (Modul 43)
+* **[4] Hapus Printer Hantu & Duplikat USB** — Bersihkan copy 1, copy 2, dan port USB mati (Modul 45 & 46)
+* **[5] Driver Universal V4 & Mode Render** — Perbaiki Driver V4 dan ganti mode PCL / PostScript (Modul 41 & 42)
+* **[6] Perbaiki Cetak Browser & Aplikasi UWP** — Atasi dialog cetak Chrome/Edge dan aplikasi Windows hang (Modul 47 & 49)
+* **[7] Pasang Ulang Printer Bawaan Windows** — Mengembalikan Microsoft Print to PDF & XPS (Modul 48)
+* **[8] Kunci Printer Default Permanen** — Mencegah printer default berganti sendiri (Modul 50 & 51)
+* **[9] Rapikan Nama Share Printer** — Hapus spasi dan simbol terlarang dari nama share (Modul 53)
+* **[10] Buka Print Server Properties** — Kelola driver terpasang melalui antarmuka resmi Windows (Modul 39)
+
+### 6. Kredensial, Hak Akses & Keamanan Windows
+* **[1] Simpan Kredensial Printer ke Vault** — Simpan username & password printer permanen di Windows (Modul 60)
+* **[2] Bersihkan Kredensial Usang dari Vault** — Hapus sandi usang yang tersimpan di Credential Manager (Modul 61)
+* **[3] Terapkan Kredensial ke Semua Pengguna** — Pasang login printer ke seluruh akun di PC ini (Modul 63)
+* **[4] Bypass Filter Token UAC Administrator** — Atasi penolakan remote administrasi Workgroup (Modul 57)
+* **[5] Selaraskan Otentikasi NTLMv2** — Standarisasi level respon NTLMv2 (Modul 58)
+* **[6] Longgarkan Proteksi Keamanan Ketat** — Bypass pembatasan LSA Protection, SAC, dan Credential Guard (Modul 54, 55, 62)
+* **[7] Kelola Windows Protected Print (WPP)** — Matikan pemaksaan driver Mopria di Windows 11 (Modul 59)
+* **[8] Bypass Point and Print (Elevation Override)** — Hilangkan error 'Do you trust this printer?' (Modul 56)
+* **[9] Perbaiki Printer Remote Desktop (RDP)** — Mengaktifkan pengalihan printer lokal pada sesi RDP (Modul 52)
+
+### 7. Pemetaan Port & Sambungan Manual (UNC / TCP-IP)
+* **[1] Petakan Port Lokal ke Jalur UNC** — Solusi paling ampuh bypass 0x00000709 langsung ke `\\SERVER\PRINTER` (Modul 86)
+* **[2] Hapus Pemetaan Port Lokal UNC** — Menghapus port UNC yang sudah tidak digunakan (Modul 87)
+* **[3] Ubah Port WSD ke Standar TCP/IP** — Mengubah port printer WSD yang sering offline ke IP stabil (Modul 26)
+* **[4] Tambah Port Standar TCP/IP Manual** — Menambahkan port printer IP baru via WMI (Modul 29)
+* **[5] Pindai Printer di Komputer Target** — Menemukan printer aktif yang di-share di komputer tujuan (Modul 25)
+
+### 8. Cadangan (Backup), Diagnostik & Pemulihan Sistem
+* **[1] Cadangkan Registri Printer & Jaringan** — Ekspor registri penting sebelum perbaikan (Modul 64)
+* **[2] Pulihkan Registri dari Cadangan** — Kembalikan setelan registri jika terjadi kendala (Modul 65)
+* **[3] Buat System Restore Point** — Titik pemulihan sistem Windows menyeluruh (Modul 66)
+* **[4] Periksa File Sistem (SFC & DISM)** — Memperbaiki kerusakan file sistem operasi Windows (Modul 67)
+* **[5] Tes Koneksi Ping & Port (445/135)** — Uji jangkauan jaringan dan firewall komputer printer (Modul 74)
+* **[6] Analisis Log Error Layanan Cetak** — Baca dan telaah 20 error log cetak terbaru (Modul 76 & 78)
+* **[7] Buat Laporan Diagnostik Interaktif (HTML)** — Ekspor seluruh hasil diagnosa ke file web HTML (Modul 79)
+* **[8] Pindai Kebijakan Domain / GPO** — Deteksi apakah pengaturan printer ditimpa oleh Group Policy (Modul 80)
+* **[9] Migrasi Printer Lengkap (PrintBRM)** — Backup dan restore konfigurasi printer antar-PC (Modul 81)
+* **[10] Paksa Status Printer Menjadi Online** — Memulihkan printer yang macet di status offline (Modul 71)
+* **[11] Buka Services.msc & Catatan Log** — Buka manajer layanan Windows atau file log eksekusi (Modul 72 & 75)
 
 ---
 
@@ -200,26 +185,34 @@ Pre-compiled binaries are available in the **[Releases](../../releases)** tab:
 
 ---
 
-## Interactive Console Interface
+## Tampilan Antarmuka Console Baru (UI Friendly & Rapi)
 
 ```text
- USER: admin | COMPUTERNAME: OFFICE-PC | OS: WINDOWS 11 PRO 26100 64BIT | Windows Printer Sharing Fix v2.3.2
- =======================================================================================================
+======================================================================================
+   WINDOWS PRINTER SHARING FIX  |  Solusi Berbagi Printer Windows
+   Versi: 2.3.2  |  Sistem: WINDOWS 11 PRO 26100 64-BIT
+   Komputer: PC-KANTOR-01  |  Pengguna: Administrator
+======================================================================================
 
- CORE FIXES & NETWORK SERVICES              SPOOLER, DRIVERS & POLICIES              DIAGNOSTICS & AUTOMATION
+  PILIH KATEGORI PERBAIKAN:
 
- [01] Patch Error 0x0000011b                 [31] Hard Reset Print Spooler             [60] Inject Credentials into Vault
- [02] Bypass Error 0x00000709                [32] Re-initialize RPC & DCOM             [61] Purge Stale Credentials
- ...                                         ...                                       ...
- [30] Force Initialize WSD Print Device      [59] Manage Windows Protected Print       [84] ALLFIX (50 AUTOMATED STEPS)
-                                                                                        [85] SILENT ALLFIX & REBOOT
- -----------------------------------------------------------------------------------------------------------
- :   NOTE:                                                                              :
- :   [84] ALLFIX (50 Steps) | [83] EXTREME PATH (Win11) | [85] SILENT ALLFIX           :
- :   [?] HELP | [? 7] INFO | [? all] HTML | TIP: If 'Check Printer Name' error, use Option [86] :
- -----------------------------------------------------------------------------------------------------------
+  [1] Solusi Cepat & Otomatis (ALLFIX & Windows 11 Terbaru)  <-- REKOMENDASI UTAMA
+  [2] Perbaikan Kode Error Spesifik (0x11b, 0x709, 0xbc4, 0x040, dll.)
+  [3] Pengaturan Jaringan, Berbagi (SMB) & Firewall
+  [4] Layanan Print Spooler & Pembersihan Antrean Cetak
+  [5] Pengelolaan Driver & Pembersihan Printer Hantu/USB
+  [6] Kredensial, Hak Akses & Keamanan Windows (Vault, LSA, UAC)
+  [7] Pemetaan Port & Sambungan Manual (UNC Port Map & TCP/IP)
+  [8] Cadangan (Backup), Diagnostik & Pemulihan Sistem
 
-Type option: _
+  [9] Panduan & Bantuan Penggunaan
+  [0] Keluar dari Aplikasi
+
+--------------------------------------------------------------------------------------
+  [Tips Pintasan]: Ketik nomor menu (1-9) atau ketik langsung kode modul klasik
+                   seperti 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC Port).
+--------------------------------------------------------------------------------------
+Pilih nomor menu: _
 ```
 
 ---

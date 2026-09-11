@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Windows Printer Sharing Fix - v2.3.2
@@ -2339,48 +2339,49 @@ function Remove-LocalPortUNC {
     }
 }
 
+
 function AllFix-Core {
     cls
-    Write-Host "`n  ==================================================================================================="
-    Write-Host "         EXECUTE ALLFIX (50 AUTOMATED FIXES)"
-    Write-Host "  ===================================================================================================`n"
-    Write-Log "RUN ALLFIX (SILENT=$script:silentNuke)" -Type "INFO"
+    Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
+    Write-Host "                    MENJALANKAN ALLFIX (50 PERBAIKAN OTOMATIS SEKALIGUS)" -ForegroundColor Yellow
+    Write-Host "  ===================================================================================================`n" -ForegroundColor Cyan
+    Write-Log "MENJALANKAN ALLFIX (Mode Senyap=$script:silentNuke)" -Type "INFO"
 
-    Write-Host "  [*] [1/50] Detecting OS..." -ForegroundColor Cyan
-    Write-Host "  $script:productName Build $script:buildNumber"
+    Write-Host "  [*] [1/50] Mendeteksi Sistem Operasi..." -ForegroundColor Cyan
+    Write-Host "      $script:productName Build $script:buildNumber" -ForegroundColor Gray
 
-    Write-Host "  [*] [2/50] Securing Registry (Backup)... (Menu 64)" -ForegroundColor Cyan
+    Write-Host "  [*] [2/50] Mengamankan Cadangan Registri (Backup)..." -ForegroundColor Cyan
     Backup-Registry
 
-    Write-Host "  [*] [3/50] Flushing GPO cache (before registry changes)..." -ForegroundColor Cyan
+    Write-Host "  [*] [3/50] Memperbarui Cache Kebijakan Sistem (gpupdate)..." -ForegroundColor Cyan
     try { $LASTEXITCODE = 0; gpupdate /force > $null 2>&1 } catch {}
 
-    Write-Host "  [*] [4/50] Auditing RPC & DCOM... (Menu 32)" -ForegroundColor Cyan
+    Write-Host "  [*] [4/50] Memeriksa & Mengaktifkan Layanan RPC & DCOM..." -ForegroundColor Cyan
     Check-RPC
 
-    Write-Host "  [*] [5/50] Patching Error 0x0000011b... (Menu 01)" -ForegroundColor Cyan
+    Write-Host "  [*] [5/50] Memperbaiki Error 0x0000011b (RpcAuthnLevelPrivacy)..." -ForegroundColor Cyan
     Fix-RpcAuthn0x0000011b
 
-    Write-Host "  [*] [6/50] Deep Fix 0x00000709 (Multi-Layer RPC)... (Menu 02)" -ForegroundColor Cyan
+    Write-Host "  [*] [6/50] Memperbaiki Error 0x00000709 (Jalur RPC & Point and Print)..." -ForegroundColor Cyan
     Fix-Deep0x00000709
 
-    Write-Host "  [*] [7/50] KB5089549 Driver Policy & HKCU Permission Fix..." -ForegroundColor Cyan
+    Write-Host "  [*] [7/50] Menyelaraskan Kebijakan Driver & Izin Registri HKCU..." -ForegroundColor Cyan
     Fix-CrossSignedDriverPolicy
     Fix-HKCU-PrinterKeyPerms
 
-    Write-Host "  [*] [8/50] Bypassing Error 0x00000bc4... (Menu 03)" -ForegroundColor Cyan
+    Write-Host "  [*] [8/50] Mengatasi Error 0x00000bc4 (Printer Jaringan Tidak Ditemukan)..." -ForegroundColor Cyan
     Fix-Discovery0x00000bc4
 
-    Write-Host "  [*] [9/50] Fixing Error 0x00000040 (KeepConn)... (Menu 07)" -ForegroundColor Cyan
+    Write-Host "  [*] [9/50] Memperbaiki Error 0x00000040 (KeepConn & Nama Jaringan)..." -ForegroundColor Cyan
     Fix-Network0x00000040
 
-    Write-Host "  [*] [10/50] Fixing Error 0x00000002 (CopyFilesPolicy)... (Menu 08)" -ForegroundColor Cyan
+    Write-Host "  [*] [10/50] Mengatasi Error 0x00000002 (Kebijakan Salin Berkas Driver)..." -ForegroundColor Cyan
     Fix-DriverCopy0x00000002
 
-    Write-Host "  [*] [11/50] Fixing Error 0x0000007e (RPC Auth)... (Menu 09)" -ForegroundColor Cyan
+    Write-Host "  [*] [11/50] Mengatasi Error 0x0000007e (Bitness Driver 32/64-bit)..." -ForegroundColor Cyan
     Fix-RpcBitness0x0000007e
 
-    Write-Host "  [*] [12/50] Injecting DnsOnWire, StrictName & UAC Bypass... (Menu 57)" -ForegroundColor Cyan
+    Write-Host "  [*] [12/50] Mengaktifkan Nama Jaringan & Bypass Filter Token UAC..." -ForegroundColor Cyan
     try {
         Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name DnsOnWire -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
         Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name DisableStrictNameChecking -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
@@ -2388,184 +2389,185 @@ function AllFix-Core {
     catch {}
     Fix-UACTokenFilter
 
-    Write-Host "  [*] [13/50] Disabling SMB Signing Requirement & Mutual Auth... (Menu 16)" -ForegroundColor Cyan
+    Write-Host "  [*] [13/50] Mematikan Wajib SMB Signing (Fix Windows 11 Gagal Konek)..." -ForegroundColor Cyan
     Fix-SMBSigning
 
-    Write-Host "  [*] [14/50] Ensuring SMB2/SMB3 Compatibility & Provider Order... (Menu 17 & 18)" -ForegroundColor Cyan
+    Write-Host "  [*] [14/50] Memastikan Kompatibilitas Modern SMB2/SMB3 & Urutan Provider..." -ForegroundColor Cyan
     Fix-ModernSMB
     Fix-ProviderOrder
 
-    Write-Host "  [*] [15/50] Enforcing Named Pipes & TCP... (Menu 13)" -ForegroundColor Cyan
+    Write-Host "  [*] [15/50] Mengaktifkan RPC via Named Pipes & TCP..." -ForegroundColor Cyan
     Fix-NamedPipes
 
-    Write-Host "  [*] [16/50] Disabling Client-Side Rendering... (Menu 05)" -ForegroundColor Cyan
+    Write-Host "  [*] [16/50] Mematikan Client-Side Rendering (CSR)..." -ForegroundColor Cyan
     Fix-CSR
 
-    Write-Host "  [*] [17/50] Disabling Driver Isolation... (Menu 40)" -ForegroundColor Cyan
+    Write-Host "  [*] [17/50] Mematikan Isolasi Driver Printer..." -ForegroundColor Cyan
     try {
         Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force
     }
     catch {}
 
-    Write-Host "  [*] [18/50] Starting Network Discovery, mDNS, NetBIOS & WSD Services... (Menu 20 & 04)" -ForegroundColor Cyan
+    Write-Host "  [*] [18/50] Mengaktifkan Layanan Penemuan Jaringan (mDNS, WSD, NetBIOS)..." -ForegroundColor Cyan
     Fix-mDNS
     Fix-NetworkServices
 
-    Write-Host "  [*] [19/50] Configuring Firewall & Opening UDP Pathways... (Menu 14 & 21)" -ForegroundColor Cyan
+    Write-Host "  [*] [19/50] Membuka Akses Firewall untuk Printer & Berbagi Berkas..." -ForegroundColor Cyan
     Open-Firewall
     Fix-WSDFirewall
 
-    Write-Host "  [*] [20/50] Opening SMB Guest Access (Client & Server)... (Menu 82)" -ForegroundColor Cyan
+    Write-Host "  [*] [20/50] Membuka Akses SMB Guest & Anonymous..." -ForegroundColor Cyan
     Enable-SMBGuest
 
-    Write-Host "  [*] [21/50] Disabling Password Protected Network Sharing... (Menu 12)" -ForegroundColor Cyan
+    Write-Host "  [*] [21/50] Mematikan Berbagi Berproteksi Password..." -ForegroundColor Cyan
     Disable-PasswordSharing
 
-    Write-Host "  [*] [22/50] Downgrading LSA Protection & Enforcing NTLMv2... (Menu 54, 58 & 62)" -ForegroundColor Cyan
+    Write-Host "  [*] [22/50] Menyelaraskan Proteksi LSA, Otentikasi NTLMv2 & Credential Guard..." -ForegroundColor Cyan
     Fix-LSAProtection
     Fix-NTLMv2
     Fix-CredentialGuard
 
-    Write-Host "  [*] [23/50] Bypassing Smart App Control (SAC)... (Menu 55)" -ForegroundColor Cyan
+    Write-Host "  [*] [23/50] Mengatasi Pembatasan Smart App Control (SAC)..." -ForegroundColor Cyan
     Fix-SAC
 
-    Write-Host "  [*] [24/50] Initializing IPP & Mopria Print Sharing... (Menu 22)" -ForegroundColor Cyan
+    Write-Host "  [*] [24/50] Menyiapkan Fondasi Berbagi IPP & Mopria..." -ForegroundColor Cyan
     Fix-IPPSharing
 
-    Write-Host "  [*] [25/50] Disabling WPP (Allowing legacy network printing)... (Menu 59)" -ForegroundColor Cyan
+    Write-Host "  [*] [25/50] Menonaktifkan WPP untuk Mengizinkan Driver Jaringan..." -ForegroundColor Cyan
     try {
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP" -Name Enabled -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
     }
     catch {}
 
-    Write-Host "  [*] [26/50] Fixing RDP & LPD Protocols... (Menu 52 & 24)" -ForegroundColor Cyan
+    Write-Host "  [*] [26/50] Menyesuaikan Protokol Printer RDP & LPD..." -ForegroundColor Cyan
     Fix-RDPPrinter
     Manage-LPR
 
-    Write-Host "  [*] [27/50] Forcing network to Private Mode... (Menu 11)" -ForegroundColor Cyan
+    Write-Host "  [*] [27/50] Mengubah Kategori Jaringan ke Mode Private..." -ForegroundColor Cyan
     Set-NetworkPrivate
 
-    Write-Host "  [*] [28/50] Deprioritizing Virtual Adapters (Hyper-V)... (Menu 23)" -ForegroundColor Cyan
+    Write-Host "  [*] [28/50] Menyesuaikan Prioritas Adaptor Jaringan Virtual Hyper-V..." -ForegroundColor Cyan
     Fix-HyperVConflict
 
-    Write-Host "  [*] [29/50] Flushing DNS & Winsock... (Menu 10)" -ForegroundColor Cyan
+    Write-Host "  [*] [29/50] Membersihkan Cache DNS & Winsock Jaringan..." -ForegroundColor Cyan
     Reset-Network
 
-    Write-Host "  [*] [30/50] Terminating Spooler..." -ForegroundColor Cyan
+    Write-Host "  [*] [30/50] Menghentikan Sementara Layanan Spooler..." -ForegroundColor Cyan
     Stop-Service spooler -Force -ErrorAction SilentlyContinue
 
-    Write-Host "  [*] [31/50] Injecting Auto-Restart Recovery into Spooler... (Menu 34)" -ForegroundColor Cyan
+    Write-Host "  [*] [31/50] Mengatur Pemulihan Otomatis Spooler Saat Crash..." -ForegroundColor Cyan
     Set-SpoolerRecovery
 
-    Write-Host "  [*] [32/50] Purging Spooler Dependencies (http & RPCSS)... (Menu 35)" -ForegroundColor Cyan
+    Write-Host "  [*] [32/50] Membersihkan Dependensi Layanan Spooler (http & RPCSS)..." -ForegroundColor Cyan
     Reset-SpoolerDependency
 
-    Write-Host "  [*] [33/50] Resetting PRINTERS Folder Permissions... (Menu 06)" -ForegroundColor Cyan
+    Write-Host "  [*] [33/50] Mereset Hak Akses Folder Antrean Cetak PRINTERS..." -ForegroundColor Cyan
     Reset-SpoolerPerm
 
-    Write-Host "  [*] [34/50] Purging stale print queues & Splwow64... (Menu 31)" -ForegroundColor Cyan
+    Write-Host "  [*] [34/50] Membersihkan Antrean Spooler yang Menumpuk..." -ForegroundColor Cyan
     Reset-Spooler
 
-    Write-Host "  [*] [35/50] Bypassing AppContainer UWP/Edge Loopback... (Menu 47)" -ForegroundColor Cyan
+    Write-Host "  [*] [35/50] Menyesuaikan Izin Loopback Aplikasi Windows & Edge..." -ForegroundColor Cyan
     Fix-UWPPrinting
 
-    Write-Host "  [*] [36/50] Applying Advanced Point & Print & PrintNightmare Bypasses... (Menu 56)" -ForegroundColor Cyan
+    Write-Host "  [*] [36/50] Menerapkan Override Kebijakan Point and Print..." -ForegroundColor Cyan
     Fix-AdvancedPointAndPrint
 
-    Write-Host "  [*] [37/50] Deploying Spooler Watchdog Task... (Menu 36)" -ForegroundColor Cyan
+    Write-Host "  [*] [37/50] Memasang Tugas Pemantau Spooler Otomatis (Watchdog)..." -ForegroundColor Cyan
     Set-SpoolerWatchdog
 
-    Write-Host "  [*] [38/50] Restarting BITS Service... (Menu 68)" -ForegroundColor Cyan
+    Write-Host "  [*] [38/50] Merestart Layanan Transfer Berkas Latar Belakang (BITS)..." -ForegroundColor Cyan
     Manage-BITS
 
-    Write-Host "  [*] [39/50] Restarting Spooler (validation)..." -ForegroundColor Cyan
+    Write-Host "  [*] [39/50] Memastikan Layanan Spooler Berjalan Normal..." -ForegroundColor Cyan
     if ((Get-Service spooler).Status -ne 'Running') { Start-Service spooler -ErrorAction SilentlyContinue }
-    Write-Host "  [+] Spooler validated operational." -ForegroundColor Green
+    Write-Host "  [+] Layanan Spooler aktif dan terverifikasi normal." -ForegroundColor Green
 
-    Write-Host "  [*] [40/50] Purging Kerberos Login Cache..." -ForegroundColor Cyan
+    Write-Host "  [*] [40/50] Membersihkan Tiket Otentikasi Kerberos..." -ForegroundColor Cyan
     try { $LASTEXITCODE = 0; klist purge > $null 2>&1 } catch {}
 
-    Write-Host "  [*] [41/50] Restarting WdiSystemHost Service..." -ForegroundColor Cyan
+    Write-Host "  [*] [41/50] Merestart Layanan Diagnostik Sistem (WdiSystemHost)..." -ForegroundColor Cyan
     try { Restart-Service WdiSystemHost -Force -ErrorAction SilentlyContinue } catch {}
 
-    Write-Host "  [*] [42/50] Registering mDNS (Multicast)..." -ForegroundColor Cyan
+    Write-Host "  [*] [42/50] Mendaftarkan Ulang DNS Multicast..." -ForegroundColor Cyan
     try { $LASTEXITCODE = 0; ipconfig /registerdns > $null 2>&1 } catch {}
 
-    Write-Host "  [*] [43/50] Generating Restore Point... (Menu 66)" -ForegroundColor Cyan
+    Write-Host "  [*] [43/50] Membuat Titik Pemulihan Sistem (Restore Point)..." -ForegroundColor Cyan
     Create-RestorePoint
 
-    Write-Host "  [*] [44/50] Scanning V4 Print Class Drivers... (Menu 41)" -ForegroundColor Cyan
+    Write-Host "  [*] [44/50] Memeriksa & Mengoptimalkan Driver Printer Kelas V4..." -ForegroundColor Cyan
     Fix-V4ClassDriver
 
-    Write-Host "  [*] [45/50] Rescuing Network Profile (Force Private)... (Menu 28)" -ForegroundColor Cyan
+    Write-Host "  [*] [45/50] Mengamankan Profil Jaringan ke Mode Private..." -ForegroundColor Cyan
     $profiles = Get-NetConnectionProfile -ErrorAction SilentlyContinue
     $profiles | Where-Object { $_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -ErrorAction SilentlyContinue
 
-    Write-Host "  [*] [46/50] Force Purging print queue files... (Menu 37)" -ForegroundColor Cyan
+    Write-Host "  [*] [46/50] Menghapus Bersih Berkas Antrean Cetak yang Rusak..." -ForegroundColor Cyan
     Nuke-PrintQueue
 
-    Write-Host "  [*] [47/50] Resetting Spooler Dependencies (Registry)... (Menu 38)" -ForegroundColor Cyan
+    Write-Host "  [*] [47/50] Menyetel Ulang Dependensi Registri Spooler..." -ForegroundColor Cyan
     Reset-SpoolerDependencyRegistry
 
-    Write-Host "  [*] [48/50] Sanitizing Printer Share Names... (Menu 53)" -ForegroundColor Cyan
+    Write-Host "  [*] [48/50] Merapikan Nama Share Printer dari Karakter Ilegal..." -ForegroundColor Cyan
     Sanitize-PrinterShareName
 
-    Write-Host "  [*] [49/50] Deploying Post-Patch-Tuesday Auto-Reapply Task..." -ForegroundColor Cyan
+    Write-Host "  [*] [49/50] Memasang Tugas Pemulihan Otomatis Paska Update Windows..." -ForegroundColor Cyan
     Set-PostPatchTuesdayTask
 
-    Write-Host "  [*] [50/50] Parsing PrintService Event Log & Final Spooler Validation... (Menu 78)" -ForegroundColor Cyan
+    Write-Host "  [*] [50/50] Menganalisis Log Peristiwa Cetak & Validasi Akhir Spooler..." -ForegroundColor Cyan
     Parse-PrintEventLog
     if ((Get-Service spooler).Status -ne 'Running') { Start-Service spooler -ErrorAction SilentlyContinue }
-    Write-Host "  [+] Spooler validated operational." -ForegroundColor Green
+    Write-Host "  [+] Seluruh validasi selesai. Layanan Spooler berjalan sempurna." -ForegroundColor Green
 
-    Write-Log "ALLFIX CONCLUDED" -Type "SUCCESS"
+    Write-Log "ALLFIX SELESAI" -Type "SUCCESS"
 
     if ($script:silentNuke) {
-        Write-Host "`n  ==================================================================================================="
-        Write-Host "    [+] SILENT ALLFIX COMPLETED! REBOOTING IN 3 SECONDS..."
-        Write-Host "  ===================================================================================================`n"
+        Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
+        Write-Host "    [+] ALLFIX SELESAI! KOMPUTER AKAN MERESTART DALAM 3 DETIK..." -ForegroundColor Green
+        Write-Host "  ===================================================================================================`n" -ForegroundColor Cyan
         Start-Sleep -Seconds 3
         Restart-Computer -Force
     }
 
-    Write-Host "`n  ==================================================================================================="
-    Write-Host "  [!] DOMAIN INFO: If host is AD-joined, verify 'Access this computer from network' in secpol.msc" -ForegroundColor Yellow
-    Write-Host "  [!] STILL DENIED? TIP: If connection still fails, please use Option [60] or Bypass [86]." -ForegroundColor Green
+    Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
+    Write-Host "  [i] INFO DOMAIN: Jika komputer ini tergabung dalam Domain Active Directory," -ForegroundColor Yellow
+    Write-Host "      pastikan hak 'Access this computer from network' diatur di secpol.msc." -ForegroundColor Yellow
+    Write-Host "  [i] MASIH TIDAK BISA KONEK? Gunakan Simpan Kredensial [Menu 6 -> 1] atau Pemetaan Port UNC [Menu 7 -> 1]." -ForegroundColor Green
 
-    $checkError = Read-Host "   [?] View execution error logs? (Y/N)"
-    if ($checkError -eq 'Y') {
-        Write-Host "`n   --- ERROR SCAN RESULTS ---" -ForegroundColor Cyan
+    $checkError = Read-Host "   [?] Tampilkan catatan error eksekusi jika ada? (Y/N)"
+    if ($checkError -match '^[yY]') {
+        Write-Host "`n   --- HASIL PEMINDAIAN ERROR ---" -ForegroundColor Cyan
         $errors = Select-String -Path $script:logFile -Pattern " - ERROR - " -SimpleMatch
         if ($errors) {
             $errors.Line | ForEach-Object { Write-Host $_ -ForegroundColor Red }
         }
         else {
-            Write-Host "   [+] No errors found in the log." -ForegroundColor Green
+            Write-Host "   [+] Tidak ada error tercatat di dalam file log." -ForegroundColor Green
         }
-        Write-Host "   --------------------`n"
+        Write-Host "   ------------------------------`n"
     }
 
-    $allFixRestart = Read-Host "   [?] Execute immediate system reboot? (Y/N)"
-    if ($allFixRestart -eq 'Y') {
-        Write-Host "  [*] Proceeding, rebooting in 5 seconds..." -ForegroundColor Cyan
+    $allFixRestart = Read-Host "   [?] Restart komputer sekarang untuk menerapkan seluruh perubahan? (Y/N)"
+    if ($allFixRestart -match '^[yY]') {
+        Write-Host "  [*] Mempersiapkan restart dalam 5 detik..." -ForegroundColor Cyan
         Restart-Computer -Force
     }
     else {
-        Write-Host "  [*] Reboot manually to apply all changes." -ForegroundColor Cyan
+        Write-Host "  [*] Silakan restart komputer secara manual saat santai agar seluruh perbaikan aktif." -ForegroundColor Cyan
     }
 }
 
 function Extreme-25H2 {
     cls
-    Write-Host "`n  ==================================================================================================="
-    Write-Host "        EXTREME PATH FOR WIN 11 25H2 / 24H2 / 26H2+ / ARM64"
-    Write-Host "  ==================================================================================================="
-    Write-Host "  [*] This path applies deep fixes for Windows 11 systems with strict security policies."
-    Write-Host "  [*] Running all fixes automatically..." -ForegroundColor Cyan
+    Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
+    Write-Host "        SOLUSI KOMPREHENSIF WINDOWS 11 VERSI TERBARU (24H2 / 25H2 / 26H2+ & ARM64)" -ForegroundColor Yellow
+    Write-Host "  ===================================================================================================" -ForegroundColor Cyan
+    Write-Host "  [*] Menerapkan penyesuaian menyeluruh untuk sistem Windows 11 dengan kebijakan keamanan ketat." -ForegroundColor Gray
+    Write-Host "  [*] Menjalankan seluruh rangkaian perbaikan secara otomatis..." -ForegroundColor Cyan
 
-    Write-Log "Run Extreme Fix 25H2/26H2" -Type "INFO"
+    Write-Log "Menjalankan Solusi Khusus Windows 11 24H2/25H2/26H2" -Type "INFO"
 
-    Write-Host "  [*] Flushing GPO cache before applying fixes..." -ForegroundColor Cyan
+    Write-Host "  [*] Menyegarkan cache Group Policy sebelum perbaikan..." -ForegroundColor Cyan
     try { $LASTEXITCODE = 0; gpupdate /force > $null 2>&1 } catch {}
 
     Fix-Deep0x00000709
@@ -2614,36 +2616,36 @@ function Extreme-25H2 {
     }
     catch {}
 
-    Write-Log "Extreme Path concluded!" -Type "SUCCESS"
-    Write-Host "  [+] Extreme security configuration changes complete. System reboot is recommended." -ForegroundColor Green
+    Write-Log "Solusi Komprehensif Windows 11 Selesai!" -Type "SUCCESS"
+    Write-Host "  [+] Konfigurasi keamanan Windows 11 berhasil disesuaikan. Disarankan merestart komputer." -ForegroundColor Green
 
-    $extremeRestart = Read-Host "`n   [?] Execute immediate system reboot now? (Y/N)"
-    if ($extremeRestart -eq 'Y') { Restart-Computer -Force }
+    $extremeRestart = Read-Host "`n   [?] Restart komputer sekarang? (Y/N)"
+    if ($extremeRestart -match '^[yY]') { Restart-Computer -Force }
 }
 
 function Restart-PC {
-    Write-Host "`n  [*] System rebooting in 5 seconds..." -ForegroundColor Yellow
+    Write-Host "`n  [*] Komputer akan merestart dalam 5 detik..." -ForegroundColor Yellow
     Start-Sleep -Seconds 5
     Restart-Computer -Force
 }
 
 function Detect-Win {
-    Write-Host "`n  ======================================================================"
-    Write-Host "                 WINDOWS & ARCHITECTURE DETECTION"
-    Write-Host "  ======================================================================"
-    Write-Host "  [+] OS Version : $script:productName" -ForegroundColor Green
-    Write-Host "  [+] OS Build   : $script:buildNumber" -ForegroundColor Green
+    Write-Host "`n  ======================================================================" -ForegroundColor Cyan
+    Write-Host "             DETEKSI VERSI & ARSITEKTUR WINDOWS" -ForegroundColor Yellow
+    Write-Host "  ======================================================================" -ForegroundColor Cyan
+    Write-Host "  [+] Versi OS      : $script:productName" -ForegroundColor Green
+    Write-Host "  [+] Build OS      : $script:buildNumber" -ForegroundColor Green
     if ($script:isARM64) {
-        Write-Host "  [+] Architecture  : ARM64 (Snapdragon / Apple M Series VM)" -ForegroundColor Yellow
+        Write-Host "  [+] Arsitektur    : ARM64 (Snapdragon / VM Apple Silicon)" -ForegroundColor Yellow
     }
     else {
-        Write-Host "  [+] Architecture  : AMD64 / x64" -ForegroundColor Cyan
+        Write-Host "  [+] Arsitektur    : AMD64 / x64 (64-Bit)" -ForegroundColor Cyan
     }
     if ($script:isServer) {
-        Write-Host "  [+] Edition       : Windows Server Edition" -ForegroundColor Yellow
+        Write-Host "  [+] Edisi         : Windows Server Edition" -ForegroundColor Yellow
     }
     else {
-        Write-Host "  [+] Edition       : Client (Home/Pro/Enterprise)" -ForegroundColor Cyan
+        Write-Host "  [+] Edisi         : Windows Client (Home / Pro / Enterprise)" -ForegroundColor Cyan
     }
 }
 
@@ -2651,150 +2653,134 @@ function Show-Help {
     param([string]$Topic = "")
 
     $helpData = @{
-        '1'  = @("Patch Error 0x0000011b (RpcAuthnLevelPrivacy)", "Disables the RpcAuthnLevelPrivacyEnabled registry key so RPC authentication does not block sharing connections.", "Most common error following Windows 10/11 cumulative updates.")
-        '2'  = @("Deep Fix 0x00000709 (Multi-Layer RPC & Kerberos)", "Applies multi-layered fixes: RPC Named Pipes, Kerberos bypass, HKCU cleanup, and legacy overrides.", "Persistent 0x00000709 error in Windows 11 that survives standard fixes. MUST run on HOST too.")
-        '3'  = @("Bypass Error 0x00000bc4 (No Printers Found)", "Forces RPC to use Named Pipe Protocol so printers can be discovered.", "Windows reports 'No printers were found' despite network availability.")
-        '4'  = @("Fix Error 0x00000035 (Automate Network Services)", "Automates startup for fdPHost, FDResPub, SSDPSRV, upnphost services.", "Target PC is not showing up on the network; 'The network path was not found'.")
-        '5'  = @("Disable Client-Side Rendering (Error 0x000006d1)", "Enables DisableClientSideRendering in the registry.", "Print job fails due to client-side driver rendering issues.")
-        '6'  = @("Fix Error 0x80070005 (Reset Spooler ACL)", "Resets Spool\Printers directory ACL to default using icacls.", "'Access Denied' (0x80070005) error during print operations.")
-        '7'  = @("Fix Error 0x00000040 (Network Unavailable)", "Repairs PrintProcessor and Ports registry nodes.", "Error 'Network is unavailable' during printer access.")
-        '8'  = @("Fix Error 0x00000002 (CopyFilesPolicy)", "Configures CopyFilesPolicy allowing driver ingestion.", "Error cloning printer driver from host server.")
-        '9'  = @("Fix Error 0x0000007e (RPC Bitness Mismatch)", "Forces registry compliance for cross-architecture drivers.", "32-bit vs 64-bit architecture mismatch.")
-        '10' = @("Complete Network Reset (DNS, Winsock, NetBIOS)", "Flushes DNS, releases/renews IP, resets Winsock & NetBIOS.", "Unstable network connection, RTO, or severe latency.")
-        '11' = @("Force Network Profile to Private", "Overrides all connection profiles to Private state.", "Sharing blocked because network profile is set to Public.")
-        '12' = @("Force Disable Password Protected Sharing", "Modifies LSA registry: limitblankpassworduse=0, everyoneincludesanonymous=1.", "Credential prompt appears despite no password being configured.")
-        '13' = @("Enable RPC via Named Pipes & TCP", "Forces RPC communication through Named Pipes and TCP protocols.", "Printer connection error due to RPC endpoint blocking.")
-        '14' = @("Configure Firewall File & Printer Sharing", "Enables 'File and Printer Sharing' and 'Network Discovery' rules in Firewall.", "Host invisible on network, sharing heavily blocked.")
-        '15' = @("SMB 1.0 Legacy Protocol Management (ON/OFF)", "Enables or disables SMB 1.0 protocol based on user input.", "Need to connect to legacy hardware (Win XP/7). WARNING: Ransomware risk!")
-        '16' = @("Disable SMB Signing (Fix Win 11 NAS Access)", "Disables RequireSecuritySignature for SMB client and server.", "Unable to access NAS or legacy hosts from Win 11 24H2+.")
-        '17' = @("Force Modern SMB2/SMB3 Topology", "Ensures SMB2/SMB3 are active, explicitly disables SMB1.", "Transitioning to modern secure protocols.")
-        '18' = @("Prioritize SMB in Network Provider Order", "Prioritizes LanmanWorkstation in the provider list.", "SMB connections suffering extreme latency.")
-        '19' = @("Disable IPv6 Stack", "Disables IPv6 via registry and netsh interfaces.", "IPv6 causing network routing issues in pure IPv4 networks.")
-        '20' = @("Enable mDNS & LLMNR (Discovery Protocols)", "Enables Multicast DNS and LLMNR protocols.", "Printers undetectable via hostname resolution.")
-        '21' = @("Configure WSD Firewall Rules (Port 3702)", "Opens UDP port 3702 for WSD discovery in firewall.", "Web Services Discovery blocked by firewall.")
-        '22' = @("Enable IPP & Mopria Sharing Foundation", "Enables Windows IPP and Mopria Foundation features.", "Modern printers utilizing IPP protocols.")
-        '23' = @("Resolve Hyper-V/WSL Virtual Network Conflicts", "Disables printer bindings on virtual adapters.", "Hyper-V/WSL virtual switches disrupting LAN topology.")
-        '24' = @("Install Legacy LPR/LPD Protocols", "Enables Windows LPR Port Monitor & LPD Service features.", "Need to connect via legacy LPR (Line Printer Remote).")
-        '25' = @("Remote Network Printer Discovery", "Scans and enumerates all shared printers on the target.", "Unknown shared printers on target host.")
-        '26' = @("WSD to Standard TCP/IP Port Converter", "Detects WSD ports and migrates printers to stable Standard TCP/IP ports.", "Intermittent printer disappearance or offline status due to WSD discovery failure.")
-        '27' = @("Network Socket Re-init (Selective Purge)", "Restarts SMB Client/Server services and clears stuck port 445/135 connections.", "Stale network connections blocking printer access after IP changes or VPN.")
-        '28' = @("Rescue Network Profile (Auto Watchdog)", "Forces all Public network profiles to Private and optionally deploys a watchdog task.", "Network profile resetting to Public after reboot, blocking printer sharing.")
-        '29' = @("Manually Inject Standard TCP/IP Port", "Injects TCP/IP port via WMI scripting.", "Need to manually add an IP printer port.")
-        '30' = @("Force Initialize WSD Print Device", "Initializes WSDPrintDevice service for Web Services Discovery.", "WSD network printers remain undetected.")
-        '31' = @("Hard Reset Print Spooler (Purge Queue)", "Stops spooler, forcefully deletes queue files in Spool\Printers, restarts spooler.", "Print queue is completely frozen, spooler hangs.")
-        '32' = @("Re-initialize RPC & DCOM Services", "Verifies and restarts RpcSs and DcomLaunch services.", "RPC or DCOM services terminated/crashed; 'RPC server unavailable'.")
-        '33' = @("Remote Target Spooler Restart", "Executes remote spooler reset via PowerShell WinRM/DCOM.", "Remote spooler frozen without physical access.", "Requires Administrative privileges on target host.")
-        '34' = @("Configure Spooler Auto-Restart on Crash", "Configures recovery action: auto-restart upon crash via sc.exe.", "Spooler highly unstable, requiring self-healing mechanisms.")
-        '35' = @("Purge Stale Spooler Dependencies", "Resets DependOnService spooler parameters to default (RPCSS, http).", "Spooler inactive despite operational RPC services.")
-        '36' = @("Deploy Spooler Watchdog (5-Minute Audit)", "Deploys a scheduled task auditing the spooler every 5 minutes.", "High-uptime print server environments requiring constant availability.")
-        '37' = @("Force Purge Print Queue (.shd/.spl)", "Terminates all print processes and purges corrupt .shd/.spl spool files.", "Standard cancellation methods fail to clear the queue completely.")
-        '38' = @("Spooler Dependency Registry Reset", "Resets Spooler's DependOnService registry to factory defaults (RPCSS, http) directly via HK_LOCAL_MACHINE.", "Spooler won't start even after a reboot.")
-        '39' = @("Driver Management (Print Server Properties)", "Launches Print Server Properties GUI to manage installed drivers.", "Printer utilizing incorrect driver or duplicate driver instances.")
-        '40' = @("Disable Print Driver Isolation", "Disables IsolationPolicy in the registry.", "Spooler crashing concurrently with specific drivers.")
-        '41' = @("Universal Print Class Driver V4 Fix", "Scans V4 drivers for corrupted PrintConfig.dll and triggers DriverStore re-registration.", "V4 printers suddenly stop working or print gibberish.")
-        '42' = @("Toggle PCL vs. PostScript Driver Mode", "Switches a printer's driver between PCL and PostScript rendering modes.", "Printer spits out pages of random characters.")
-        '43' = @("Orphaned Driver Sweeper (pnputil)", "Scans DriverStore for orphaned printer OEM INF packages and force-deletes them.", "Unable to install new driver due to conflicts with old invisible drivers.")
-        '44' = @("Bypass 'Driver is currently in use'", "Force-kills PrintIsolationHost, splwow64, and pipeline processes to release driver handles.", "Windows refuses to let you delete a driver.")
-        '45' = @("Ghost USB Port & Copy Eliminator", "Detects and removes duplicate/ghost printer copies and dead USB ports.", "You plugged the printer into a different USB port and it created a ghost copy.")
-        '46' = @("Force Remove Ghost Printers", "Forces printer removal via command line (printui).", "Ghost or corrupted printers refusing standard uninstallation.")
-        '47' = @("Fix Microsoft Edge / UWP Printing", "Re-registers UWP printing components and loopback exemptions.", "Printing fails from Edge/UWP apps but succeeds from Notepad.")
-        '48' = @("Reinstall Microsoft Print to PDF/XPS", "Re-initializes native Windows PDF & XPS printing features.", "Native virtual printers missing or generating errors.")
-        '49' = @("Browser Print Sandbox Fix (Chromium)", "Clears browser print cache and fixes loopback exemptions for print dialogs.", "Can print from Word but not from Chrome.")
-        '50' = @("Force Permanent Default Printer", "Disables auto-manage and forcibly sets default via WMI.", "Windows dynamically mutating default printer based on network location.")
-        '51' = @("Force-Set Default Printer (Registry Bypass)", "Bypasses Windows auto-manage and sets default printer via direct HKCU registry write.", "Cannot set default printer through normal settings app.")
-        '52' = @("Fix RDP Printer Terminal Services", "Enables printer redirection in RDP Terminal Services registry.", "Authenticating via RDP but local printers fail to map.")
-        '53' = @("Auto-Sanitize Printer Share Name", "Scans shared printers and replaces illegal characters in share names with underscores.", "Clients cannot connect to a printer shared with a long or complex name.")
-        '54' = @("Downgrade LSA Protection (Legacy Auth)", "Disables RunAsPPL in LSA registry.", "Share login failures due to strict Win 11 LSA protection.")
-        '55' = @("Bypass Smart App Control (SAC)", "Sets VerifiedAndReputablePolicyState to Off.", "Windows 11 SAC actively blocking driver installers.")
-        '56' = @("Bypass Advanced ServerList Point & Print (PrintNightmare Bypass)", "Injects PrintNightmare bypasses (Elevation Override) and ServerList wildcard (*) into registry.", "Throws 'Check Printer Name' or 'Access Denied' generic errors during driver download.", "Required for Windows 11 Build 22621+")
-        '57' = @("Bypass UAC Admin Network TokenFilter", "Configures LocalAccountTokenFilterPolicy = 1.", "Remote administration to workgroup hosts failing due to UAC filtering.")
-        '58' = @("Force NTLMv2 Response Compliance", "Configures LmCompatibilityLevel strictly to NTLMv2 (Level 3).", "'Access Denied' when authenticating against different OS versions or network storage (NAS).")
-        '59' = @("Manage Windows Protected Print (WPP)", "Disables Windows Protected Print feature.", "Printer driver incompatible with WPP isolation.")
-        '60' = @("Inject Windows Credentials into Vault Permanently", "Injects username/password directly into Windows Credential Manager.", "To bypass manual authentication upon each access.")
-        '61' = @("Purge Stale Credentials from Windows Vault", "Purges invalid or outdated credentials from the vault via cmdkey.", "Host password was changed but local machine retains stale cache.")
-        '62' = @("Bypass Credential Guard (Strict NTLM Block)", "Disables LsaCfgFlags Credential Guard registry node.", "Enterprise/Pro environments with Credential Guard enabled.")
-        '63' = @("Cross-User Credential Mapping", "Injects a logon RunOnce credential task into ALL user profiles via NTUSER.DAT registry load.", "Setting up a shared PC with multiple local accounts.")
-        '64' = @("Pre-execution Registry Backup (Spooler & Network)", "Exports Print, Printers Policy, and LanmanWorkstation registry trees to C:\WindowsPrinterSharingFixBackup.", "Recommended before applying other fixes.", "Always run this first!")
-        '65' = @("Rollback Registry from Backup", "Imports .reg files from the backup directory.", "If things get worse after applying fixes.", "Only functional if [64] Backup was previously executed.")
-        '66' = @("Generate System Restore Point (Security)", "Generates a System Restore Point for full OS rollback.", "Prior to executing major system-level architectural changes.")
-        '67' = @("System File Checker & DISM Restoration", "Executes SFC /scannow and DISM RestoreHealth.", "Frequent BSODs, anomalous errors, or post-malware cleanup.", "This process may take 10-30 minutes!")
-        '68' = @("Restart BITS (Background Transfer Service)", "Restarts Background Intelligent Transfer Service.", "Drivers failing to download automatically.")
-        '69' = @("Windows Update & Blocker Management", "Provides tools to uninstall updates, pause updates, permanently disable update services (blocking fix reverts), or restore update defaults.", "Prevent Windows from re-enabling restricted protocols or breaking printer sharing.")
-        '70' = @("Launch Native Windows Troubleshooter", "Executes native Windows Printer Troubleshooter (msdt).", "Initial diagnostic step before manual intervention.")
-        '71' = @("Force Printer Online Status", "Forces the printer's WorkOffline state to false via WMI/CIM.", "Printer status stuck on 'Offline' or grayed out.")
-        '72' = @("Launch Services.msc", "Launches the Services.msc MMC snap-in.", "Manual verification of Print Spooler operational status.")
-        '73' = @("Detect OS Version & Build Architecture", "Displays OS version, build number, and specific recommendations.", "Before choosing a specific fix to ensure compatibility.")
-        '74' = @("Ping & Port 445/135 Diagnostics", "ICMP Ping + port scanning for SMB (445) and RPC (135).", "First step in testing network connection and firewall status.")
-        '75' = @("View Execution Logs", "Launches log management interface (Notepad).", "Post-repair auditing and verification.")
-        '76' = @("Audit Last 20 Print Service Error Logs", "Parses the last 20 error events from the System Event Log.", "Investigating root causes of print issues.")
-        '77' = @("System Diagnostics Audit", "Audits Spooler state, SMB, Firewall, and network topologies.", "Checking the overall health of the system before deploying fixes.")
-        '78' = @("PrintService Event Log Parser (Top 5)", "Parses the 5 most recent Error/Warning events with automated resolution suggestions.", "Mystery printing issues with no obvious error code.")
-        '79' = @("Generate HTML Diagnostic Report", "Compiles execution logs into an interactive HTML file.", "For IT documentation or administrative reporting to superiors.")
-        '80' = @("Detect GPO Intervention (Policy Scan)", "Scans registry and gpresult for Group Policy overrides affecting printers.", "Fixes work temporarily but break again after gpupdate or reboot.")
-        '81' = @("PrintBRM (Backup/Restore Migration)", "Executes full backup or restoration of printer topologies via PrintBrm.exe.", "Deploying printers to multiple workstations or migrating to new hardware.")
-        '82' = @("Enable SMB Guest Access & Drop Anonymous Blocks", "Enables AllowInsecureGuestAuth in LanmanWorkstation registry.", "For password-less sharing in local networks.")
-        '83' = @("EXTREME PATH (WIN 11 24H2/25H2/26H2+ & ARM64 SPECIFIC)", "Aggressive fix combination: DnsOnWire, StrictNameChecking, NTLM level, SMB Signing, Kerberos purge, etc.", "Standard fixes didn't work on latest Win 11.", "Built specifically for Build 26000 and above.")
-        '84' = @("EXECUTE ALLFIX (50 AUTOMATED FIXES)", "Executes 50 automated fixes sequentially.", "PRIMARY RECOMMENDATION - the recommended fix for most general cases.", "REBOOT SYSTEM upon completion for best results.")
-        '85' = @("SILENT ALLFIX & REBOOT (ZERO-PROMPT)", "Executes all 50 steps + automated reboot silently.", "Emergency situations requiring immediate unattended fixes.", "SYSTEM WILL AUTOMATICALLY REBOOT! Save all critical work prior!")
-        '86' = @("Map Local Port to UNC Path (Bypass 0x00000709)", "Attempts standard port creation, then falls back to a Direct Registry Injection bypass if blocked.", "When standard sharing fails and the system entirely blocks 'Add-PrinterPort' commands.")
-        '87' = @("Remove Injected Local Port (UNC)", "Attempts standard port removal, then falls back to a Registry Purge if blocked.", "When a mapped port is no longer needed or was misconfigured.")
-        '88' = @("Reboot System", "Executes an immediate system reboot.", "Always execute after running any major fixes.")
-        '89' = @("EXIT SCRIPT", "Exits the tool.", "When troubleshooting is complete.")
+        '1'  = @("Perbaiki Error 0x0000011b (RpcAuthnLevelPrivacy)", "Mematikan kebijakan registri RpcAuthnLevelPrivacyEnabled agar otentikasi RPC tidak memblokir koneksi printer sharing.", "Sering terjadi setelah update rutin Windows 10/11.")
+        '2'  = @("Perbaiki Error 0x00000709 (Point and Print / Jalur RPC)", "Menerapkan perbaikan bertingkat: Named Pipes RPC, bypass otentikasi, pembersihan HKCU, dan override Point and Print.", "Error persisten 0x00000709 saat menyambung printer sharing di Windows 11. Perlu dijalankan juga di PC Server/Host.")
+        '3'  = @("Bypass Error 0x00000bc4 (Printer Tidak Ditemukan)", "Memaksa protokol RPC menggunakan Named Pipes agar printer sharing dapat ditemukan.", "Muncul pesan 'No printers were found' padahal jaringan normal.")
+        '4'  = @("Perbaiki Error 0x80070035 (Jalur Jaringan Tidak Ditemukan)", "Mengotomatiskan layanan fdPHost, FDResPub, SSDPSRV, dan upnphost agar PC terdeteksi di Network.", "Komputer target tidak muncul di jaringan atau muncul error 'The network path was not found'.")
+        '5'  = @("Matikan Client-Side Rendering (Error 0x000006d1)", "Mengaktifkan DisableClientSideRendering di registri agar proses rendering ditangani oleh server.", "Pekerjaan cetak gagal karena masalah rendering driver di sisi client.")
+        '6'  = @("Perbaiki Error 0x80070005 (Reset Izin ACL Spooler)", "Mereset hak akses direktori Spool\Printers ke standar menggunakan icacls dengan SID S-1-1-0 (Semua Pengguna).", "Muncul error 'Access Denied' saat mencetak.")
+        '7'  = @("Perbaiki Error 0x00000040 (Jaringan Tidak Tersedia / KeepConn)", "Memperbaiki registri PrintProcessor dan Ports agar koneksi sharing tetap terjaga.", "Muncul pesan error 'Network is unavailable' saat mengakses printer.")
+        '8'  = @("Perbaiki Error 0x00000002 (Kebijakan Salin Driver / CopyFilesPolicy)", "Mengatur CopyFilesPolicy agar client diizinkan mengunduh dan menyalin driver dari komputer host.", "Gagal mengkloning berkas driver printer dari server.")
+        '9'  = @("Perbaiki Error 0x0000007e (Ketidakcocokan Bitness Driver RPC)", "Menyelaraskan registri untuk komunikasi lintas arsitektur 32-bit dan 64-bit.", "Ketidakcocokan versi driver 32-bit vs 64-bit antar-komputer.")
+        '10' = @("Reset Total Jaringan (DNS, Winsock, NetBIOS)", "Membersihkan cache DNS, melepas & memperbarui IP, serta mereset Winsock dan NetBIOS.", "Koneksi jaringan tidak stabil, latency tinggi, atau IP nyangkut.")
+        '11' = @("Ubah Profil Jaringan ke Private", "Mengubah seluruh profil adaptor jaringan menjadi Private.", "Sharing terblokir karena Windows menganggap jaringan sebagai Public.")
+        '12' = @("Matikan Berbagi Berproteksi Password", "Mengatur registri LSA (limitblankpassworduse=0, everyoneincludesanonymous=1).", "Selalu meminta username/password padahal sharing sudah dibuka tanpa sandi.")
+        '13' = @("Aktifkan RPC via Named Pipes & TCP", "Memaksa komunikasi RPC printer melalui Named Pipes dan TCP.", "Koneksi printer gagal karena pemblokiran endpoint RPC.")
+        '14' = @("Buka Port Firewall untuk Berbagi Berkas & Printer", "Mengaktifkan aturan 'File and Printer Sharing' dan 'Network Discovery' pada Windows Firewall.", "Komputer tidak terdeteksi atau koneksi sharing terblokir firewall.")
+        '15' = @("Kelola Protokol Warisan SMB 1.0 (ON/OFF)", "Mengaktifkan atau mematikan fitur opsional SMB 1.0.", "Dibutuhkan jika menghubungkan ke perangkat atau OS jadul (Win XP/7).")
+        '16' = @("Matikan Wajib SMB Signing (Fix Windows 11 Gagal Konek)", "Mematikan RequireSecuritySignature pada klien dan server SMB.", "Windows 11 24H2+ gagal mengakses printer sharing atau NAS kantor.")
+        '17' = @("Pastikan Topologi Modern SMB2/SMB3 Aktif", "Memastikan protokol aman SMB2 dan SMB3 berjalan optimal.", "Menjaga stabilitas dan kecepatan transfer data sharing.")
+        '18' = @("Prioritaskan SMB dalam Urutan Provider Jaringan", "Menempatkan LanmanWorkstation di urutan teratas provider jaringan.", "Koneksi sharing terasa sangat lambat atau loading lama.")
+        '19' = @("Matikan Tumpukan Protokol IPv6", "Menonaktifkan IPv6 via registri dan konfigurasi adaptor netsh.", "Routing IPv6 mengganggu pencarian perangkat di LAN kantor yang murni IPv4.")
+        '20' = @("Aktifkan Protokol Penemuan mDNS & LLMNR", "Mengaktifkan resolusi nama Multicast DNS dan LLMNR.", "Printer tidak dapat ditemukan menggunakan nama komputer / hostname.")
+        '21' = @("Buka Port Firewall WSD (Port UDP 3702)", "Membuka port 3702 pada firewall khusus protokol Web Services Discovery.", "Penemuan printer WSD terhalang oleh firewall.")
+        '22' = @("Pasang Fondasi Berbagi IPP & Mopria", "Mengaktifkan fitur Windows Internet Printing Protocol dan standar Mopria.", "Dibutuhkan oleh printer jaringan generasi modern berbasis IPP.")
+        '23' = @("Atasi Konflik Adaptor Virtual Hyper-V / WSL", "Mematikan binding printer sharing pada switch virtual internal.", "Switch virtual Hyper-V/WSL mengacaukan rute deteksi printer LAN.")
+        '24' = @("Pasang Fitur Protokol Legacy LPR/LPD", "Mengaktifkan monitor port LPR dan layanan cetak LPD bawaan Windows.", "Diperlukan untuk printer jaringan lama berbasis antrean Unix/LPR.")
+        '25' = @("Pindai & Temukan Printer Aktif di Komputer Target", "Memindai dan mendaftarkan seluruh printer yang sedang di-share pada PC target.", "Mencari nama share printer yang tepat pada komputer tujuan.")
+        '26' = @("Ubah Port Printer dari WSD ke Standar TCP/IP", "Mendeteksi printer berport WSD dan memindahkannya ke port IP stabil.", "Printer sering hilang atau tiba-tiba offline karena bug penemuan WSD.")
+        '27' = @("Bersihkan Soket Koneksi Jaringan yang Nyangkut", "Merestart layanan workstation/server dan membersihkan sesi port 445/135 yang menggantung.", "Koneksi printer terblokir setelah perubahan IP atau disconnect VPN.")
+        '28' = @("Penjaga Profil Jaringan Otomatis (Rescue Network Profile)", "Memastikan status jaringan tetap Private dan memasang watchdog pencegah kembali ke Public.", "Profil jaringan sering otomatis berubah menjadi Public setelah restart.")
+        '29' = @("Tambah Port Printer Standar TCP/IP Secara Manual", "Membuat port TCP/IP baru menggunakan skrip WMI.", "Menghubungkan printer jaringan melalui alamat IP statis.")
+        '30' = @("Aktifkan Layanan WSD Print Device", "Menjalankan layanan WSDPrintDevice untuk penemuan printer berbasis web services.", "Printer jaringan WSD tidak muncul di daftar pencarian.")
+        '31' = @("Reset Layanan Spooler & Bersihkan Antrean Cetak", "Menghentikan spooler, menghapus antrean macet di folder PRINTERS, dan menyalakan kembali.", "Antrean cetak macet total dan dokumen tidak mau keluar.")
+        '32' = @("Restart Layanan Sistem RPC & DCOM", "Memeriksa dan merestart layanan inti RpcSs dan DcomLaunch.", "Muncul pesan error 'RPC server is unavailable'.")
+        '33' = @("Restart Spooler Komputer Lain dari Jarak Jauh (Remote)", "Mengeksekusi perintah restart spooler pada komputer remote via PowerShell WinRM/DCOM.", "Spooler di komputer server printer hang tanpa harus datang langsung ke lokasi.")
+        '34' = @("Atur Pemulihan Otomatis Spooler Saat Terjadi Crash", "Mengonfigurasi layanan agar otomatis restart saat mengalami kegagalan tak terduga.", "Layanan spooler sering mati mendadak saat mencetak dokumen tertentu.")
+        '35' = @("Bersihkan Dependensi Usang Layanan Spooler", "Mengembalikan parameter DependOnService ke standar aman (RPCSS, http).", "Layanan Spooler tidak mau start padahal RPC berjalan normal.")
+        '36' = @("Pasang Pemantau Spooler Otomatis (Watchdog Tiap 5 Menit)", "Mendaftarkan tugas terjadwal untuk memeriksa dan menyalakan spooler jika mendadak mati.", "Menjamin ketersediaan pencetakan di PC server kantor tanpa downtime.")
+        '37' = @("Hapus Bersih Berkas Antrean Cetak yang Rusak (.shd/.spl)", "Menghentikan paksa proses cetak dan membuang file spooler yang mengunci.", "Dokumen macet di antrean dan tidak bisa di-cancel secara normal.")
+        '38' = @("Reset Registri Dependensi Spooler ke Bawaan Pabrik", "Mereset kunci DependOnService langsung di registry HKLM.", "Spooler tetap mogok jalan bahkan setelah komputer direstart.")
+        '39' = @("Buka Manajemen Driver Windows (Print Server Properties)", "Membuka jendela GUI Properti Server Cetak untuk mengelola driver terpasang.", "Memeriksa, menambah, atau menghapus driver printer sistem.")
+        '40' = @("Matikan Isolasi Driver Printer", "Menonaktifkan IsolationPolicy agar driver berjalan di proses spooler utama.", "Mengatasi spooler crash mendadak akibat konflik isolasi driver pihak ketiga.")
+        '41' = @("Perbaiki Driver Printer Kelas Universal V4", "Memindai file PrintConfig.dll yang korup dan mendaftarkan ulang DriverStore.", "Printer berdriver V4 tiba-tiba tidak bisa mencetak atau menghasilkan teks acak.")
+        '42' = @("Ganti Mode Render Driver (PCL vs PostScript)", "Mengubah mode penerjemahan cetak antara PCL dan PostScript.", "Printer mengeluarkan kertas terus-menerus dengan karakter simbol aneh.")
+        '43' = @("Bersihkan Driver Usang & Rusak dari Sistem (Driver Sweeper)", "Memindai DriverStore via pnputil dan menghapus paket driver printer yang tertinggal.", "Gagal menginstal driver baru karena terbentur sisa driver lama.")
+        '44' = @("Hentikan Paksa Proses Driver yang Mengunci ('Driver is in use')", "Menghentikan paksa PrintIsolationHost, splwow64, dan pipeline agar file driver terlepas.", "Windows menolak menghapus driver karena dianggap masih digunakan.")
+        '45' = @("Hapus Printer Hantu & Duplikat Port USB (Ghost Copy)", "Mendeteksi dan membersihkan salinan printer ganda (Copy 1, Copy 2) dan port USB mati.", "Printer dicolok ke port USB berbeda lalu membuat printer baru yang membingungkan.")
+        '46' = @("Hapus Instalasi Printer Bermasalah Secara Paksa", "Menghapus printer yang membandel via antarmuka baris perintah printui.", "Printer rusak yang menolak dihapus melalui menu Settings/Control Panel.")
+        '47' = @("Perbaiki Masalah Cetak Aplikasi Windows & Edge (UWP)", "Mendaftarkan ulang komponen cetak modern dan memberikan pengecualian loopback.", "Bisa mencetak dari Notepad/Word, tapi gagal saat mencetak dari Edge atau aplikasi Windows.")
+        '48' = @("Pasang Ulang Printer Bawaan (Microsoft Print to PDF / XPS)", "Menginisialisasi ulang fitur pencetakan PDF dan XPS virtual bawaan Windows.", "Pilihan 'Microsoft Print to PDF' hilang dari daftar printer.")
+        '49' = @("Perbaiki Masalah Cetak Browser (Chrome / Edge Sandbox)", "Membersihkan cache dialog cetak dan menyesuaikan izin sandbox browser.", "Bisa mencetak dari aplikasi biasa, tapi dialog print di Google Chrome hang.")
+        '50' = @("Kunci Printer Default Permanen", "Mematikan fitur Windows yang mengubah printer default secara otomatis berdasarkan lokasi.", "Printer default sering berubah sendiri tanpa izin.")
+        '51' = @("Paksa Setel Printer Default via Registri", "Menetapkan printer default langsung melalui kunci registri pengguna saat ini (HKCU).", "Gagal menetapkan printer default melalui menu Settings Windows.")
+        '52' = @("Perbaiki Pengalihan Printer pada Remote Desktop (RDP)", "Mengaktifkan pengalihan printer lokal pada registri Terminal Services RDP.", "Saat login ke RDP, printer kantor lokal tidak muncul di sesi remote.")
+        '53' = @("Rapikan Nama Share Printer dari Karakter Ilegal", "Memindai nama share printer dan mengganti spasi atau simbol terlarang dengan tanda hubung.", "Komputer lain gagal terhubung karena nama printer share terlalu panjang atau berkarakter aneh.")
+        '54' = @("Longgarkan Proteksi Keamanan LSA (Legacy Auth)", "Menonaktifkan RunAsPPL pada registri LSA agar otentikasi sharing lawas diizinkan.", "Gagal login sharing printer akibat proteksi LSA Windows 11 yang terlalu ketat.")
+        '55' = @("Bypass Blokir Driver oleh Smart App Control (SAC)", "Menyesuaikan kebijakan VerifiedAndReputablePolicyState.", "Windows 11 memblokir penginstalan driver printer pihak ketiga.")
+        '56' = @("Bypass Pembatasan Driver Point and Print (Elevation Override)", "Menerapkan wildcard (*) pada ServerList dan melewati proteksi PrintNightmare.", "Muncul pesan 'Check Printer Name' atau 'Access Denied' saat mengunduh driver dari host.")
+        '57' = @("Bypass Pembatasan Token Jaringan UAC Administrator", "Mengatur LocalAccountTokenFilterPolicy = 1 di registri.", "Akses remote administrasi printer antar-komputer Workgroup gagal karena filter UAC.")
+        '58' = @("Selaraskan Respon Otentikasi NTLMv2", "Mengatur LmCompatibilityLevel secara tepat ke level NTLMv2.", "Pesan 'Access Denied' saat login antar-versi Windows atau NAS yang berbeda.")
+        '59' = @("Kelola Windows Protected Print / WPP (Mode Proteksi Driver)", "Menonaktifkan fitur WPP Windows 11 yang melarang driver v3 pihak ketiga.", "Printer tidak bisa diinstal karena Windows 11 memaksa driver standar Mopria saja.")
+        '60' = @("Simpan Kredensial Printer ke Windows Vault Permanen", "Menyimpan username dan password komputer target langsung ke Windows Credential Manager.", "Menghilangkan keharusan mengetik password setiap kali komputer dinyalakan.")
+        '61' = @("Bersihkan Kredensial Usang dari Windows Vault", "Menghapus data login komputer target yang tersimpan lama di vault via cmdkey.", "Password di komputer host sudah diganti tetapi komputer client masih memakai sandi lama.")
+        '62' = @("Bypass Pemblokiran NTLM oleh Credential Guard", "Menyesuaikan flag LsaCfgFlags pada registri Credential Guard.", "Lingkungan kerja yang mengaktifkan Credential Guard sehingga NTLM diblokir.")
+        '63' = @("Terapkan Kredensial Login ke Semua Profil Pengguna", "Memasang tugas RunOnce ke seluruh profil pengguna Windows via pemuatan NTUSER.DAT.", "PC kantor yang digunakan bergantian oleh banyak user lokal (multi-user).")
+        '64' = @("Cadangkan Registri Printer & Jaringan (Backup Registry)", "Mengekspor cabang registri Print, Policies, dan Jaringan ke C:\WindowsPrinterSharingFixBackup.", "SANGAT DISARANKAN dijalankan pertama kali sebelum melakukan perbaikan apapun!")
+        '65' = @("Pulihkan Registri dari Cadangan (Rollback Registry)", "Mengimpor kembali berkas .reg cadangan yang pernah dibuat sebelumnya.", "Mengembalikan pengaturan sistem jika terjadi masalah setelah perbaikan.")
+        '66' = @("Buat Titik Pemulihan Sistem (System Restore Point)", "Membuat System Restore Point Windows untuk perlindungan menyeluruh sistem.", "Langkah pengamanan sebelum melakukan perubahan besar pada sistem operasi.")
+        '67' = @("Pindai & Perbaiki Kerusakan Berkas Sistem (SFC & DISM)", "Menjalankan sfc /scannow dan DISM RestoreHealth untuk memperbaiki file Windows yang rusak.", "Sistem sering error aneh, blue screen, atau mengalami kerusakan file sistem.")
+        '68' = @("Restart Layanan Transfer Berkas Latar Belakang (BITS)", "Merestart Background Intelligent Transfer Service.", "Driver printer gagal terunduh secara otomatis dari jaringan.")
+        '69' = @("Kelola Pembaruan Windows & Blokir Update Perusak Printer", "Alat untuk menjeda update, mencopot patch bermasalah, atau mencegah update mereset setting.", "Mencegah Windows Update merusak kembali setelan sharing printer yang sudah normal.")
+        '70' = @("Jalankan Troubleshooter Printer Bawaan Windows", "Membuka alat pemecah masalah cetak resmi Windows (msdt).", "Langkah pemeriksaan diagnostik awal bawaan sistem.")
+        '71' = @("Paksa Status Printer Menjadi 'Online'", "Mengubah status WorkOffline printer menjadi false melalui WMI/CIM.", "Printer nyangkut dalam kondisi 'Offline' padahal kabel dan daya sudah menyala.")
+        '72' = @("Buka Jendela Layanan Windows (Services.msc)", "Membuka konsol manajemen Services Windows.", "Melihat status layanan sistem seperti Spooler, RPC, dan Workstation secara langsung.")
+        '73' = @("Deteksi Versi & Arsitektur Windows", "Menampilkan edisi OS, nomor build, serta arsitektur processor (x64 / ARM64).", "Memastikan kompatibilitas modul dengan versi Windows yang digunakan.")
+        '74' = @("Uji Ping & Pindai Port Jaringan Printer (Port 445/135)", "Melakukan tes ping ICMP serta mengecek keterbukaan port SMB (445) dan RPC (135).", "Memastikan apakah komputer printer dapat dijangkau melalui jaringan.")
+        '75' = @("Buka Catatan Log Eksekusi Tool (Log Manager)", "Membuka file log riwayat perbaikan menggunakan Notepad.", "Melihat detail setiap tindakan yang telah dilakukan oleh aplikasi ini.")
+        '76' = @("Audit 20 Log Error Terakhir Layanan Cetak", "Membaca 20 pesan error terbaru dari System Event Log Windows.", "Mencari petunjuk akar masalah kegagalan pencetakan dokumen.")
+        '77' = @("Audit Ringkas Kesehatan Sistem (System Diagnostics)", "Memeriksa status Spooler, SMB, Firewall, dan konfigurasi jaringan.", "Melihat gambaran umum kondisi sistem sebelum perbaikan.")
+        '78' = @("Analisis Event Log Layanan Print (Top 5 Error)", "Menganalisis 5 error log cetak terbaru dan memberikan saran solusi yang tepat.", "Masalah pencetakan misterius yang tidak memunculkan kode error di layar.")
+        '79' = @("Buat Laporan Diagnostik Interaktif (File HTML)", "Menyusun seluruh informasi sistem dan riwayat perbaikan ke dalam format web HTML.", "Bahan dokumentasi tim IT kantor atau laporan ke atasan.")
+        '80' = @("Pindai Intervensi Kebijakan Domain / GPO", "Memindai registri dan gpresult untuk mendeteksi kebijakan domain yang menimpa setelan.", "Perbaikan bekerja sementara tetapi rusak kembali setelah komputer direstart.")
+        '81' = @("Cadangkan / Migrasikan Konfigurasi Printer (PrintBRM)", "Mengekspor atau memulihkan konfigurasi seluruh printer menggunakan PrintBrm.exe.", "Memindahkan instalasi printer ke komputer baru secara praktis.")
+        '82' = @("Buka Akses Tamu SMB & Hilangkan Blokir Anonymous", "Mengatur AllowInsecureGuestAuth di registri LanmanWorkstation.", "Mengizinkan akses printer sharing tanpa login password di jaringan lokal.")
+        '83' = @("Solusi Khusus Windows 11 Versi Terbaru (24H2 / 25H2 / 26H2 & ARM64)", "Kombinasi perbaikan untuk kebijakan ketat Windows 11 (SMB signing, guest access, RPC Named Pipes, bypass driver blocklist).", "Gunakan jika Windows 11 Build 26000 ke atas masih menolak koneksi printer.")
+        '84' = @("ALLFIX - Jalankan 50 Perbaikan Otomatis Sekaligus", "Menjalankan 50 langkah perbaikan sistem, registri, RPC, SMB, firewall, dan spooler secara berurutan.", "REKOMENDASI UTAMA - solusi paling praktis untuk hampir semua masalah printer kantor.")
+        '85' = @("Silent ALLFIX (Perbaikan Otomatis + Langsung Restart)", "Menjalankan seluruh 50 perbaikan secara otomatis tanpa prompt lalu merestart komputer.", "Khusus situasi darurat atau penanganan massal oleh teknisi tanpa konfirmasi manual.")
+        '86' = @("Petakan Port Lokal ke Jalur UNC (Bypass Ampuh 0x00000709)", "Membuat port lokal baru yang langsung diarahkan ke path printer host (contoh: \\\\SERVER\\PRINTER).", "Solusi terbaik jika Windows menolak menghubungkan printer sharing melalui cara biasa.")
+        '87' = @("Hapus Pemetaan Port Lokal UNC yang Pernah Dibuat", "Menghapus port lokal yang sebelumnya pernah dibuat oleh opsi [86].", "Membersihkan port pemetaan yang sudah tidak terpakai atau salah ketik.")
+        '88' = @("Restart Komputer", "Merestart komputer saat ini secara langsung.", "Sangat disarankan setelah melakukan perbaikan agar seluruh perubahan sistem aktif.")
+        '89' = @("Keluar dari Aplikasi", "Menutup dan keluar dari alat perbaikan ini.", "Selesai menggunakan aplikasi.")
     }
 
     if ($Topic -eq "" -or $Topic.ToLower() -eq "menu" -or $Topic.ToLower() -eq "help") {
         cls
         Write-Host ""
         Write-Host "  ======================================================================================" -ForegroundColor Cyan
-        Write-Host "      USER GUIDE: Windows Printer Sharing Fix - @KHAIRUDINFAHMI" -ForegroundColor Green
+        Write-Host "      PANDUAN PENGGUNAAN: Windows Printer Sharing Fix - @KHAIRUDINFAHMI" -ForegroundColor Green
         Write-Host "  ======================================================================================" -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "  HOW TO USE:" -ForegroundColor Yellow
-        Write-Host "    - Enter feature number (1-89) and press ENTER"
-        Write-Host "    - Both '7' and '07' are valid"
-        Write-Host "    - Input '?' to display this guide"
-        Write-Host "    - Input '? 7' for detailed explanation of feature 7"
-        Write-Host "    - Input '? all' to open complete HTML documentation"
+        Write-Host "  CARA MENGGUNAKAN APLIKASI:" -ForegroundColor Yellow
+        Write-Host "    - Pilih nomor kategori (1 - 8) untuk membuka submenu perbaikan terarah."
+        Write-Host "    - Anda juga bisa langsung mengetik kode modul klasik (misal: '84', '83', '64', '86')."
+        Write-Host "    - Ketik '?' untuk melihat panduan ini kapan saja."
+        Write-Host "    - Ketik '? <nomor>' (contoh: '? 84' atau '? 86') untuk melihat fungsi modul tersebut."
+        Write-Host "    - Ketik '? all' untuk membuka dokumentasi lengkap dalam format HTML di browser."
         Write-Host ""
-        Write-Host "  BEGINNER WORKFLOW (Standard Execution):" -ForegroundColor Yellow
-        Write-Host "    1. Execute [64] Backup Registry (MANDATORY)" -ForegroundColor White
-        Write-Host "    2. Execute [84] ALLFIX (50 automated steps)" -ForegroundColor White
-        Write-Host "    3. Reboot System" -ForegroundColor White
-        Write-Host "    4. Verify printer sharing access" -ForegroundColor White
+        Write-Host "  LANGKAH REKOMENDASI UNTUK PENGGUNA KANTOR (Solusi Standar):" -ForegroundColor Yellow
+        Write-Host "    1. Jalankan Cadangkan Registri [Menu 8 -> 1 atau ketik 64] (Sangat Disarankan)" -ForegroundColor White
+        Write-Host "    2. Jalankan ALLFIX [Menu 1 -> 1 atau ketik 84] (Menjalankan 50 perbaikan otomatis)" -ForegroundColor White
+        Write-Host "    3. Restart komputer Anda [Menu 0 atau ketik 88]" -ForegroundColor White
+        Write-Host "    4. Coba sambungkan kembali printer di jaringan." -ForegroundColor White
         Write-Host ""
-        Write-Host "  WIN 11 24H2+ WORKFLOW (Build 26000+):" -ForegroundColor Yellow
-        Write-Host "    1. Execute [64] Backup Registry" -ForegroundColor White
-        Write-Host "    2. Execute [83] Extreme Path" -ForegroundColor White
-        Write-Host "    3. Reboot System" -ForegroundColor White
+        Write-Host "  LANGKAH UNTUK WINDOWS 11 24H2 / 25H2 / 26H2+ (Build 26000 ke atas):" -ForegroundColor Yellow
+        Write-Host "    1. Jalankan Cadangkan Registri [Menu 8 -> 1 atau ketik 64]" -ForegroundColor White
+        Write-Host "    2. Jalankan Solusi Khusus Windows 11 [Menu 1 -> 2 atau ketik 83]" -ForegroundColor White
+        Write-Host "    3. Restart komputer Anda." -ForegroundColor White
         Write-Host ""
-        Write-Host "  EMERGENCY PROTOCOL (Quick Automated):" -ForegroundColor Yellow
-        Write-Host "    - Execute [85] Silent AllFix (WARNING: Auto-reboots!)" -ForegroundColor White
-        Write-Host ""
-        Write-Host "  FEATURE CATEGORIES:" -ForegroundColor Yellow
-        Write-Host "    [01-09] Error Code Fixes (0x0000011b, 0x00000709, 0x00000bc4, 0x00000035, 0x000006d1, 0x00000040, 0x00000002, 0x0000007e)" -ForegroundColor Cyan
-        Write-Host "    [10-30] Network & Sharing Configuration (DNS, SMB, Firewall, WSD, IPP)" -ForegroundColor Cyan
-        Write-Host "    [31-38] Spooler Management (Reset, RPC, Recovery, Watchdog, Purge)" -ForegroundColor Cyan
-        Write-Host "    [39-53] Drivers & Printing (Isolation, V4, PCL, Ghost, PDF, RDP)" -ForegroundColor Cyan
-        Write-Host "    [54-59] Security & Policy (LSA, SAC, UAC, NTLMv2, WPP)" -ForegroundColor Cyan
-        Write-Host "    [60-69] Credentials & System (Vault, Backup, SFC, BITS, KB)" -ForegroundColor Cyan
-        Write-Host "    [70-81] Diagnostics & Utilities (Troubleshooter, Logs, GPO, BRM)" -ForegroundColor Green
-        Write-Host "    [82-89] Special Operations (Extreme, AllFix, Local UNC, Purge UNC, Silent AllFix)" -ForegroundColor Green
-
-        Write-Host ""
-        Write-Host "  QUICK TROUBLESHOOTING:" -ForegroundColor Yellow
-        Write-Host "    - Continuous password prompts?     -> Execute [12], [60], [82]" -ForegroundColor White
-        Write-Host "    - 'Access Denied' (Persistent)?     -> Use [60] to inject Target IP & Credentials." -ForegroundColor White
-        Write-Host "    - 'Check Printer Name' generic error? -> Execute [56] or [86]" -ForegroundColor White
-        Write-Host "    - Printer Offline despite powered on? -> Execute [71]" -ForegroundColor White
-        Write-Host "    - Host invisible in network?       -> Execute [04], [11], [14]" -ForegroundColor White
-        Write-Host "    - Failed to print from Edge/UWP?   -> Execute [47]" -ForegroundColor White
-        Write-Host "    - Need to rollback all changes?    -> Execute [65]" -ForegroundColor White
+        Write-Host "  PANDUAN CEPAT BERDASARKAN KELUHAN:" -ForegroundColor Yellow
+        Write-Host "    - Selalu minta password padahal tanpa password? -> Jalankan Menu 3 -> 2 (atau ketik 12 & 82)" -ForegroundColor White
+        Write-Host "    - Muncul error 'Access Denied' / Akses Ditolak?  -> Simpan Kredensial via Menu 6 -> 1 (ketik 60)" -ForegroundColor White
+        Write-Host "    - Muncul error 'Check Printer Name' / 0x709?    -> Gunakan Pemetaan Port UNC via Menu 7 -> 1 (ketik 86)" -ForegroundColor White
+        Write-Host "    - Printer offline terus padahal kabel menyala?  -> Paksa Online via Menu 8 -> 10 (ketik 71)" -ForegroundColor White
+        Write-Host "    - Komputer printer tidak muncul di Network?     -> Jalankan Menu 3 -> 1 & Menu 3 -> 5" -ForegroundColor White
+        Write-Host "    - Ingin mengembalikan setelan seperti semula?   -> Jalankan Rollback via Menu 8 -> 2 (ketik 65)" -ForegroundColor White
         Write-Host ""
         Write-Host "  ======================================================================================" -ForegroundColor Cyan
     }
     elseif ($Topic.ToLower() -eq "all") {
         $docPath = $null
-
         try {
             $exeDir = Split-Path ([System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName) -Parent
             $searchPaths = @(
@@ -2825,13 +2811,13 @@ function Show-Help {
             catch {}
         }
         if ($docPath -and (Test-Path $docPath)) {
-            Write-Host "  [*] Opening complete HTML documentation..." -ForegroundColor Cyan
+            Write-Host "  [*] Membuka dokumentasi lengkap HTML di browser..." -ForegroundColor Cyan
             $fileUrl = "file:///" + $docPath.Replace("\", "/") + "?all"
             Start-Process $fileUrl
         }
         else {
-            Write-Host "  [-] File documentation.html not detected in installation directory." -ForegroundColor Red
-            Write-Host "  [!] Use '?' for quick guide or '? <number>' for feature details." -ForegroundColor Yellow
+            Write-Host "  [-] File documentation.html tidak ditemukan pada direktori instalasi." -ForegroundColor Red
+            Write-Host "  [!] Gunakan '?' untuk bantuan ringkas atau '? <nomor>' untuk info fitur spesifik." -ForegroundColor Yellow
         }
     }
     else {
@@ -2840,253 +2826,497 @@ function Show-Help {
             $h = $helpData[$num]
             Write-Host ""
             Write-Host "  ======================================================================================" -ForegroundColor Cyan
-            Write-Host "      HELP: FEATURE [$Topic]" -ForegroundColor Green
+            Write-Host "      INFORMASI MODUL [$Topic]" -ForegroundColor Green
             Write-Host "  ======================================================================================" -ForegroundColor Cyan
             Write-Host ""
-            Write-Host "  NAME     : $($h[0])" -ForegroundColor Yellow
+            Write-Host "  NAMA MODUL : $($h[0])" -ForegroundColor Yellow
             Write-Host ""
-            Write-Host "  FUNCTION : $($h[1])" -ForegroundColor White
+            Write-Host "  FUNGSI     : $($h[1])" -ForegroundColor White
             Write-Host ""
             if ($h[2] -ne "") {
-                Write-Host "  TRIGGER  : $($h[2])" -ForegroundColor Cyan
+                Write-Host "  PENGGUNAAN : $($h[2])" -ForegroundColor Cyan
             }
             Write-Host ""
             Write-Host "  ======================================================================================" -ForegroundColor Cyan
         }
         else {
-            Write-Host "  [-] Feature number '$Topic' not found. Enter 1-89." -ForegroundColor Red
+            Write-Host "  [-] Nomor modul '$Topic' tidak ditemukan. Masukkan angka 1-89." -ForegroundColor Red
         }
     }
 }
 
-function Show-Menu {
+function Pause-User {
+    Write-Host ""
+    Write-Host "  [>] Tekan ENTER untuk kembali..." -ForegroundColor Yellow
+    [void][System.Console]::ReadLine()
+}
+
+function Show-Header {
+    param([string]$SubTitle = "")
     cls
     $winName = "$script:productName $script:buildNumber".ToUpper()
     if ($script:isARM64) { $winName += " ARM64" }
-    elseif ([Environment]::Is64BitOperatingSystem) { $winName += " 64BIT" }
-    else { $winName += " 32BIT" }
+    elseif ([Environment]::Is64BitOperatingSystem) { $winName += " 64-BIT" }
+    else { $winName += " 32-BIT" }
 
-    Write-Host " USER: " -NoNewline
-    Write-Host "$env:USERNAME " -ForegroundColor Green -NoNewline
-    Write-Host "| COMPUTERNAME: " -NoNewline
-    Write-Host "$env:COMPUTERNAME " -ForegroundColor Green -NoNewline
-    Write-Host "| OS: " -NoNewline
-    Write-Host "$winName " -ForegroundColor Blue -NoNewline
-    Write-Host "| Windows Printer Sharing Fix v2.3.2" -ForegroundColor Green
+    $line = "=" * 86
+    Write-Host $line -ForegroundColor Cyan
+    Write-Host "   WINDOWS PRINTER SHARING FIX  |  Solusi Berbagi Printer Windows" -ForegroundColor Green
+    Write-Host "   Versi: $script:version  |  Sistem: $winName" -ForegroundColor Cyan
+    Write-Host "   Komputer: $env:COMPUTERNAME  |  Pengguna: $env:USERNAME" -ForegroundColor Gray
+    if ($SubTitle) {
+        Write-Host "   Kategori: $SubTitle" -ForegroundColor Yellow
+    }
+    Write-Host $line -ForegroundColor Cyan
+}
 
-    Write-Host " TIME ZONE: " -NoNewline
-    Write-Host "$(Get-TimeZone | Select-Object -ExpandProperty Id) | $(Get-Date -Format 'HH.mm.ss')" -ForegroundColor Red
-    Write-Host " AUTHOR: @KHAIRUDINFAHMI (2026)" -ForegroundColor Magenta
-    Write-Host ("=" * 175) -ForegroundColor DarkGray
+function Show-Submenu1 {
+    do {
+        Show-Header -SubTitle "1. Solusi Cepat & Otomatis"
+        Write-Host ""
+        Write-Host "  [1] ALLFIX - Jalankan 50 Perbaikan Otomatis Sekaligus" -ForegroundColor Green
+        Write-Host "      (Solusi paling ampuh untuk hampir seluruh masalah sharing printer kantor)" -ForegroundColor Gray
+        Write-Host "  [2] Solusi Khusus Windows 11 Versi Terbaru (24H2 / 25H2 / 26H2 & ARM64)" -ForegroundColor Yellow
+        Write-Host "      (Bypass proteksi RPC, SMB Signing, dan kebijakan baru Windows 11)" -ForegroundColor Gray
+        Write-Host "  [3] Silent ALLFIX (Perbaikan Otomatis + Langsung Reboot Otomatis)" -ForegroundColor Red
+        Write-Host "      (Cocok untuk teknisi/unattended - PERINGATAN: PC langsung restart!)" -ForegroundColor Gray
+        Write-Host "  [4] Kelola Pembaruan Windows & Blokir Update Perusak Printer" -ForegroundColor White
+        Write-Host "      (Jeda update 35 hari, hapus update bermasalah, atau cegah update reset setting)" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host ("-" * 86) -ForegroundColor Cyan
+        Write-Host "Pilih nomor [1-4] atau B: " -NoNewline -ForegroundColor Yellow
+        $sub = Read-Host
+        if ($null -eq $sub) { continue }
+        $sub = $sub.Trim()
+        if ($sub -match '^(b|0|back|kembali)$') { return }
+        switch ($sub) {
+            '1'  { AllFix-Core; Pause-User }
+            '2'  { Extreme-25H2; Pause-User }
+            '3'  { $script:silentNuke = $true; AllFix-Core }
+            '4'  { Manage-WindowsUpdate; Pause-User }
+            '84' { AllFix-Core; Pause-User }
+            '83' { Extreme-25H2; Pause-User }
+            '85' { $script:silentNuke = $true; AllFix-Core }
+            '69' { Manage-WindowsUpdate; Pause-User }
+            default { Write-Host "  [-] Pilihan tidak valid. Silakan pilih 1-4 atau B." -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
+        }
+    } while ($true)
+}
 
+function Show-Submenu2 {
+    do {
+        Show-Header -SubTitle "2. Perbaikan Berdasarkan Kode Error"
+        Write-Host ""
+        Write-Host "  [1] Error 0x0000011b - Atasi Pemblokiran Otentikasi RPC (RpcAuthnLevelPrivacy)" -ForegroundColor White
+        Write-Host "  [2] Error 0x00000709 / 0x7c - Gagal Sambung Printer Sharing (Point and Print / RPC)" -ForegroundColor White
+        Write-Host "  [3] Error 0x00000bc4 - Printer Jaringan Tidak Ditemukan (No Printers Found)" -ForegroundColor White
+        Write-Host "  [4] Error 0x80070035 - Jalur Jaringan Tidak Ditemukan (Nyalakan Servis Jaringan)" -ForegroundColor White
+        Write-Host "  [5] Error 0x000006d1 - Matikan Client-Side Rendering (CSR)" -ForegroundColor White
+        Write-Host "  [6] Error 0x80070005 - Akses Ditolak ke Folder Spooler (Reset Izin ACL Universal)" -ForegroundColor White
+        Write-Host "  [7] Error 0x00000040 - Nama Jaringan Tidak Tersedia Lagi (KeepConn & NetBIOS)" -ForegroundColor White
+        Write-Host "  [8] Error 0x00000002 - Gagal Menyalin Berkas Driver dari Host (CopyFilesPolicy)" -ForegroundColor White
+        Write-Host "  [9] Error 0x0000007e - Ketidakcocokan Arsitektur Driver 32-bit & 64-bit" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host ("-" * 86) -ForegroundColor Cyan
+        Write-Host "Pilih nomor error [1-9] atau B: " -NoNewline -ForegroundColor Yellow
+        $sub = Read-Host
+        if ($null -eq $sub) { continue }
+        $sub = $sub.Trim()
+        if ($sub -match '^(b|0|back|kembali)$') { return }
+        switch ($sub) {
+            '1' { Fix-RpcAuthn0x0000011b; Pause-User }
+            '2' { Fix-Deep0x00000709; Pause-User }
+            '3' { Fix-Discovery0x00000bc4; Pause-User }
+            '4' { Fix-NetworkServices; Pause-User }
+            '5' { Fix-CSR; Pause-User }
+            '6' { Reset-SpoolerPerm; Pause-User }
+            '7' { Fix-Network0x00000040; Pause-User }
+            '8' { Fix-DriverCopy0x00000002; Pause-User }
+            '9' { Fix-RpcBitness0x0000007e; Pause-User }
+            default { Write-Host "  [-] Pilihan tidak valid. Silakan pilih 1-9 atau B." -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
+        }
+    } while ($true)
+}
+
+function Show-Submenu3 {
+    do {
+        Show-Header -SubTitle "3. Jaringan, Berbagi (SMB) & Firewall"
+        Write-Host ""
+        Write-Host "  [1] Ubah Profil Jaringan ke Private (Wajib agar Sharing Printer Aktif)" -ForegroundColor White
+        Write-Host "  [2] Buka Akses Berbagi Tanpa Password (Guest Access & Anonymous Sharing)" -ForegroundColor Green
+        Write-Host "      (Menggabungkan izin akun tamu dan mematikan proteksi password sharing)" -ForegroundColor Gray
+        Write-Host "  [3] Matikan Wajib SMB Signing (Fix Windows 11 Gagal Konek ke Printer/NAS)" -ForegroundColor White
+        Write-Host "  [4] Kelola Protokol SMB (Aktifkan SMB2/SMB3 Modern & Pengaturan SMB 1.0)" -ForegroundColor White
+        Write-Host "  [5] Buka Port Firewall untuk Berbagi Berkas & Printer (Termasuk Port WSD 3702)" -ForegroundColor White
+        Write-Host "  [6] Aktifkan Penemuan Perangkat Otomatis (mDNS, LLMNR, dan WSD Discovery)" -ForegroundColor White
+        Write-Host "  [7] Atur Prioritas Protokol Jaringan & Atasi Konflik Virtual Hyper-V/WSL" -ForegroundColor White
+        Write-Host "  [8] Reset Total Jaringan & Sockets (Winsock, Flush DNS, NetBIOS & Port Purge)" -ForegroundColor White
+        Write-Host "  [9] Matikan Protokol IPv6 (Gunakan jika LAN Kantor Murni IPv4)" -ForegroundColor White
+        Write-Host "  [10] Pasang Fondasi Berbagi IPP / Mopria & Protokol Legacy LPR/LPD" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host ("-" * 86) -ForegroundColor Cyan
+        Write-Host "Pilih nomor [1-10] atau B: " -NoNewline -ForegroundColor Yellow
+        $sub = Read-Host
+        if ($null -eq $sub) { continue }
+        $sub = $sub.Trim()
+        if ($sub -match '^(b|0|back|kembali)$') { return }
+        switch ($sub) {
+            '1' { Set-NetworkPrivate; Pause-User }
+            '2' {
+                Write-Host "`n  [*] Menerapkan akses berbagi tanpa sandi & izin Guest..." -ForegroundColor Cyan
+                Disable-PasswordSharing
+                Enable-SMBGuest
+                Pause-User
+            }
+            '3' { Fix-SMBSigning; Pause-User }
+            '4' {
+                Fix-ModernSMB
+                Manage-SMB1
+                Pause-User
+            }
+            '5' {
+                Open-Firewall
+                Fix-WSDFirewall
+                Pause-User
+            }
+            '6' {
+                Fix-mDNS
+                Start-Service WSDPrintDevice -ErrorAction SilentlyContinue
+                Write-Host "  [+] Penemuan Perangkat Cetak WSD Diaktifkan." -ForegroundColor Green
+                Pause-User
+            }
+            '7' {
+                Fix-ProviderOrder
+                Fix-HyperVConflict
+                Pause-User
+            }
+            '8' {
+                Reset-Network
+                Reset-NetworkSockets
+                Pause-User
+            }
+            '9' { Disable-IPv6; Pause-User }
+            '10' {
+                Fix-IPPSharing
+                Manage-LPR
+                Pause-User
+            }
+            default { Write-Host "  [-] Pilihan tidak valid." -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
+        }
+    } while ($true)
+}
+
+function Show-Submenu4 {
+    do {
+        Show-Header -SubTitle "4. Layanan Print Spooler & Antrean Cetak"
+        Write-Host ""
+        Write-Host "  [1] Reset Bersih Spooler & Hapus Berkas Antrean Cetak yang Nyangkut" -ForegroundColor Green
+        Write-Host "      (Hentikan spooler, bersihkan antrean .spl/.shd, dan restart layanan)" -ForegroundColor Gray
+        Write-Host "  [2] Konfigurasi Pemulihan Otomatis Spooler Saat Crash (Auto-Restart)" -ForegroundColor White
+        Write-Host "  [3] Pasang Pemantau Spooler Otomatis (Watchdog Cek Tiap 5 Menit)" -ForegroundColor White
+        Write-Host "  [4] Perbaiki & Reset Dependensi Registri Spooler (RPCSS & HTTP)" -ForegroundColor White
+        Write-Host "  [5] Restart Layanan Sistem RPC & DCOM" -ForegroundColor White
+        Write-Host "  [6] Restart Layanan Spooler di Komputer Jarak Jauh (Remote Spooler)" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host ("-" * 86) -ForegroundColor Cyan
+        Write-Host "Pilih nomor [1-6] atau B: " -NoNewline -ForegroundColor Yellow
+        $sub = Read-Host
+        if ($null -eq $sub) { continue }
+        $sub = $sub.Trim()
+        if ($sub -match '^(b|0|back|kembali)$') { return }
+        switch ($sub) {
+            '1' {
+                Nuke-PrintQueue
+                Reset-Spooler
+                Pause-User
+            }
+            '2' { Set-SpoolerRecovery; Pause-User }
+            '3' { Set-SpoolerWatchdog; Pause-User }
+            '4' {
+                Reset-SpoolerDependency
+                Reset-SpoolerDependencyRegistry
+                Pause-User
+            }
+            '5' { Check-RPC; Pause-User }
+            '6' { Remote-SpoolerReset; Pause-User }
+            default { Write-Host "  [-] Pilihan tidak valid." -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
+        }
+    } while ($true)
+}
+
+function Show-Submenu5 {
+    do {
+        Show-Header -SubTitle "5. Pengelolaan Driver & Pembersihan Printer"
+        Write-Host ""
+        Write-Host "  [1] Hentikan Paksa Proses Driver yang Mengunci ('Driver is in use')" -ForegroundColor White
+        Write-Host "  [2] Matikan Isolasi Driver Printer (Cegah Driver Crash Terpisah)" -ForegroundColor White
+        Write-Host "  [3] Bersihkan Driver Usang / Rusak dari Sistem (Driver Sweeper via pnputil)" -ForegroundColor White
+        Write-Host "  [4] Hapus Printer Hantu & Duplikat Port USB (Ghost Copy 1, Copy 2)" -ForegroundColor White
+        Write-Host "  [5] Perbaiki Driver Kelas Universal V4 & Ganti Mode PCL / PostScript" -ForegroundColor White
+        Write-Host "  [6] Perbaiki Masalah Cetak Browser (Chrome/Edge Sandbox & Aplikasi UWP)" -ForegroundColor White
+        Write-Host "  [7] Pasang Ulang Printer Bawaan Windows (Microsoft Print to PDF / XPS)" -ForegroundColor White
+        Write-Host "  [8] Kunci Printer Default Permanen (Cegah Berubah Otomatis)" -ForegroundColor White
+        Write-Host "  [9] Bersihkan Nama Share Printer dari Spasi & Karakter Terlarang" -ForegroundColor White
+        Write-Host "  [10] Buka Properti Server Cetak Windows (Print Server Properties)" -ForegroundColor White
+        Write-Host "  [11] Hapus Instalasi Printer Tertentu Secara Manual" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host ("-" * 86) -ForegroundColor Cyan
+        Write-Host "Pilih nomor [1-11] atau B: " -NoNewline -ForegroundColor Yellow
+        $sub = Read-Host
+        if ($null -eq $sub) { continue }
+        $sub = $sub.Trim()
+        if ($sub -match '^(b|0|back|kembali)$') { return }
+        switch ($sub) {
+            '1' { Force-KillDriverProcess; Pause-User }
+            '2' {
+                Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force
+                Write-Host "  [+] Isolasi Driver Dinonaktifkan." -ForegroundColor Green
+                Pause-User
+            }
+            '3' { Sweep-OrphanedDrivers; Pause-User }
+            '4' { Remove-GhostUSBPrinters; Pause-User }
+            '5' {
+                Fix-V4ClassDriver
+                Switch-DriverMode
+                Pause-User
+            }
+            '6' {
+                Fix-UWPPrinting
+                Fix-BrowserPrintSandbox
+                Pause-User
+            }
+            '7' { Fix-PrintToPDF; Pause-User }
+            '8' {
+                Manage-DefaultPrinter
+                Force-DefaultPrinterRegistry
+                Pause-User
+            }
+            '9' { Sanitize-PrinterShareName; Pause-User }
+            '10' { Manage-Drivers; Pause-User }
+            '11' { Uninstall-Printer; Pause-User }
+            default { Write-Host "  [-] Pilihan tidak valid." -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
+        }
+    } while ($true)
+}
+
+function Show-Submenu6 {
+    do {
+        Show-Header -SubTitle "6. Kredensial, Hak Akses & Keamanan"
+        Write-Host ""
+        Write-Host "  [1] Simpan Kredensial (User & Password) Printer ke Windows Vault Permanen" -ForegroundColor White
+        Write-Host "  [2] Bersihkan Kredensial Printer yang Usang atau Gagal dari Windows Vault" -ForegroundColor White
+        Write-Host "  [3] Terapkan Kredensial Login ke Semua Profil Pengguna di Komputer Ini" -ForegroundColor White
+        Write-Host "  [4] Bypass Filter Token UAC Administrator untuk Jaringan Workgroup" -ForegroundColor White
+        Write-Host "  [5] Selaraskan Respon Otentikasi NTLMv2 (LmCompatibilityLevel)" -ForegroundColor White
+        Write-Host "  [6] Longgarkan Proteksi Keamanan Ketat (LSA Protection, Smart App Control, Credential Guard)" -ForegroundColor White
+        Write-Host "  [7] Kelola Windows Protected Print / WPP (Mode Proteksi Driver Win 11)" -ForegroundColor White
+        Write-Host "  [8] Bypass Pembatasan Driver Point and Print (Elevation Override)" -ForegroundColor White
+        Write-Host "  [9] Perbaiki Masalah Berbagi Printer pada Sambungan Remote Desktop (RDP)" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host ("-" * 86) -ForegroundColor Cyan
+        Write-Host "Pilih nomor [1-9] atau B: " -NoNewline -ForegroundColor Yellow
+        $sub = Read-Host
+        if ($null -eq $sub) { continue }
+        $sub = $sub.Trim()
+        if ($sub -match '^(b|0|back|kembali)$') { return }
+        switch ($sub) {
+            '1' { Add-Credential; Pause-User }
+            '2' { Clean-Credential; Pause-User }
+            '3' { Inject-CrossUserCredentials; Pause-User }
+            '4' { Fix-UACTokenFilter; Pause-User }
+            '5' { Fix-NTLMv2; Pause-User }
+            '6' {
+                Fix-LSAProtection
+                Fix-SAC
+                Fix-CredentialGuard
+                Pause-User
+            }
+            '7' { Manage-WPP; Pause-User }
+            '8' { Fix-AdvancedPointAndPrint; Pause-User }
+            '9' { Fix-RDPPrinter; Pause-User }
+            default { Write-Host "  [-] Pilihan tidak valid." -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
+        }
+    } while ($true)
+}
+
+function Show-Submenu7 {
+    do {
+        Show-Header -SubTitle "7. Pemetaan Port & Sambungan Manual"
+        Write-Host ""
+        Write-Host "  [1] Petakan Port Lokal ke Jalur Share UNC (Solusi Ampuh Bypass 0x00000709)" -ForegroundColor Green
+        Write-Host "      (Contoh: menghubungkan port lokal langsung ke \\NAMA-SERVER\PRINTER)" -ForegroundColor Gray
+        Write-Host "  [2] Hapus Pemetaan Port Lokal UNC yang Pernah Dibuat" -ForegroundColor White
+        Write-Host "  [3] Ubah Port Printer dari WSD Menjadi Standar TCP/IP Stabil" -ForegroundColor White
+        Write-Host "  [4] Tambah Port Printer Standar TCP/IP Secara Manual" -ForegroundColor White
+        Write-Host "  [5] Pindai & Temukan Printer yang Aktif di Jaringan Komputer Target" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host ("-" * 86) -ForegroundColor Cyan
+        Write-Host "Pilih nomor [1-5] atau B: " -NoNewline -ForegroundColor Yellow
+        $sub = Read-Host
+        if ($null -eq $sub) { continue }
+        $sub = $sub.Trim()
+        if ($sub -match '^(b|0|back|kembali)$') { return }
+        switch ($sub) {
+            '1' { Map-LocalPortUNC; Pause-User }
+            '2' { Remove-LocalPortUNC; Pause-User }
+            '3' { Convert-WSDtoTCPIP; Pause-User }
+            '4' { Manage-TCPPort; Pause-User }
+            '5' { Scan-RemotePrinter; Pause-User }
+            default { Write-Host "  [-] Pilihan tidak valid." -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
+        }
+    } while ($true)
+}
+
+function Show-Submenu8 {
+    do {
+        Show-Header -SubTitle "8. Cadangan, Diagnostik & Pemulihan"
+        Write-Host ""
+        Write-Host "  [1] Cadangkan Registri Printer & Jaringan (Backup Registry Sebelum Perbaikan)" -ForegroundColor Green
+        Write-Host "  [2] Pulihkan Registri dari Cadangan Sebelumnya (Rollback Registry)" -ForegroundColor White
+        Write-Host "  [3] Buat Titik Pemulihan Sistem Windows (System Restore Point)" -ForegroundColor White
+        Write-Host "  [4] Pindai & Perbaiki Kerusakan File Sistem Windows (SFC /scannow & DISM)" -ForegroundColor White
+        Write-Host "  [5] Uji Koneksi & Pindai Port Jaringan Printer (Ping & Port 135/445)" -ForegroundColor White
+        Write-Host "  [6] Audit & Analisis Log Error Layanan Print Windows (Event Log Parser)" -ForegroundColor White
+        Write-Host "  [7] Buat Laporan Diagnostik Interaktif (File HTML Lengkap)" -ForegroundColor White
+        Write-Host "  [8] Pindai Intervensi Kebijakan Domain / GPO yang Mengunci Pengaturan" -ForegroundColor White
+        Write-Host "  [9] Cadangkan / Migrasikan Seluruh Printer ke Komputer Lain (PrintBRM)" -ForegroundColor White
+        Write-Host "  [10] Paksa Status Printer Menjadi 'Online' (Jika Nyangkut Status Offline)" -ForegroundColor White
+        Write-Host "  [11] Buka Jendela Layanan Windows (Services.msc)" -ForegroundColor White
+        Write-Host "  [12] Buka Catatan Log Eksekusi Perbaikan (Log Manager)" -ForegroundColor White
+        Write-Host "  [13] Audit Ringkas Kesehatan Sistem (System Diagnostics Audit)" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host ("-" * 86) -ForegroundColor Cyan
+        Write-Host "Pilih nomor [1-13] atau B: " -NoNewline -ForegroundColor Yellow
+        $sub = Read-Host
+        if ($null -eq $sub) { continue }
+        $sub = $sub.Trim()
+        if ($sub -match '^(b|0|back|kembali)$') { return }
+        switch ($sub) {
+            '1' { Backup-Registry; Pause-User }
+            '2' { Rollback-Registry; Pause-User }
+            '3' { Create-RestorePoint; Pause-User }
+            '4' { Run-SfcDism; Pause-User }
+            '5' { Test-Connectivity; Pause-User }
+            '6' {
+                Scan-PrintEventLog
+                Parse-PrintEventLog
+                Pause-User
+            }
+            '7' { Generate-HtmlLog; Pause-User }
+            '8' { Detect-GPOIntervention; Pause-User }
+            '9' { Print-Migration; Pause-User }
+            '10' { Force-PrinterOnline; Pause-User }
+            '11' { Open-Services; Pause-User }
+            '12' { Log-Manager; Pause-User }
+            '13' { Run-QuickDiagnostics; Pause-User }
+            default { Write-Host "  [-] Pilihan tidak valid." -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
+        }
+    } while ($true)
+}
+
+function Show-Submenu9 {
+    do {
+        Show-Header -SubTitle "9. Panduan & Bantuan Penggunaan"
+        Write-Host ""
+        Write-Host "  [1] Tampilkan Panduan Singkat & Langkah Alur Perbaikan Kantor" -ForegroundColor White
+        Write-Host "  [2] Buka Dokumentasi Lengkap Offline (File HTML)" -ForegroundColor White
+        Write-Host "  [3] Deteksi Versi & Arsitektur Windows Saat Ini" -ForegroundColor White
+        Write-Host "  [4] Jalankan Troubleshooter Bawaan Windows (msdt)" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host ("-" * 86) -ForegroundColor Cyan
+        Write-Host "Pilih nomor [1-4] atau B: " -NoNewline -ForegroundColor Yellow
+        $sub = Read-Host
+        if ($null -eq $sub) { continue }
+        $sub = $sub.Trim()
+        if ($sub -match '^(b|0|back|kembali)$') { return }
+        switch ($sub) {
+            '1' { Show-Help -Topic "menu"; Pause-User }
+            '2' { Show-Help -Topic "all"; Pause-User }
+            '3' { Detect-Win; Pause-User }
+            '4' { Start-Troubleshooter; Pause-User }
+            default { Write-Host "  [-] Pilihan tidak valid." -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
+        }
+    } while ($true)
+}
+
+function Show-MainMenu {
     try {
         $rawUI = $Host.UI.RawUI
         $bufSize = $rawUI.BufferSize
-        if ($bufSize.Width -lt 180) {
-            $bufSize.Width = 180
+        if ($bufSize.Width -lt 88) {
+            $bufSize.Width = 88
             $rawUI.BufferSize = $bufSize
         }
         $winSize = $rawUI.WindowSize
-        if ($winSize.Width -lt 180) {
-            $winSize.Width = 180
+        if ($winSize.Width -lt 88) {
+            $winSize.Width = 88
             $rawUI.WindowSize = $winSize
         }
     } catch {}
 
-    $cw1 = 62
-    $cw2 = 55
-    $cw3 = 58
-    $totalW = $cw1 + $cw2 + $cw3
-
-    Write-Host (" CORE FIXES & NETWORK SERVICES".PadRight($cw1)) -ForegroundColor Cyan -NoNewline
-    Write-Host (" SPOOLER, DRIVERS & POLICIES".PadRight($cw2)) -ForegroundColor Cyan -NoNewline
-    Write-Host " DIAGNOSTICS & AUTOMATION" -ForegroundColor Cyan
-
-    $col1 = @(
-        "[01] Patch Error 0x0000011b (RpcAuthnLevelPrivacy)",
-        "[02] Deep Fix 0x00000709 (Multi-Layer RPC & Kerberos)",
-        "[03] Bypass Error 0x00000bc4 (No Printers Found)",
-        "[04] Fix Error 0x80070035 (Automate Network Services)",
-        "[05] Disable Client-Side Rendering (Error 0x000006d1)",
-        "[06] Fix Error 0x80070005 (Reset Spooler ACL)",
-        "[07] Fix Error 0x00000040 (Network Unavailable)",
-        "[08] Fix Error 0x00000002 (CopyFilesPolicy)",
-        "[09] Fix Error 0x0000007e (RPC Bitness Mismatch)",
-        "[10] Complete Network Reset (DNS, Winsock, NetBIOS)",
-        "[11] Force Network Profile to Private",
-        "[12] Force Disable Password Protected Sharing",
-        "[13] Enable RPC via Named Pipes & TCP",
-        "[14] Configure Firewall File & Printer Sharing",
-        "[15] SMB 1.0 Legacy Protocol Management (ON/OFF)",
-        "[16] Disable SMB Signing (Fix Win 11 NAS Access)",
-        "[17] Force Modern SMB2/SMB3 Topology",
-        "[18] Prioritize SMB in Network Provider Order",
-        "[19] Disable IPv6 Stack",
-        "[20] Enable mDNS & LLMNR (Discovery Protocols)",
-        "[21] Configure WSD Firewall Rules (Port 3702)",
-        "[22] Enable IPP & Mopria Sharing Foundation",
-        "[23] Resolve Hyper-V/WSL Virtual Network Conflicts",
-        "[24] Install Legacy LPR/LPD Protocols",
-        "[25] Remote Network Printer Discovery",
-        "[26] WSD to Standard TCP/IP Port Converter",
-        "[27] Network Socket Re-init (Selective Purge)",
-        "[28] Rescue Network Profile (Auto Watchdog)",
-        "[29] Manually Inject Standard TCP/IP Port",
-        "[30] Force Initialize WSD Print Device"
-    )
-
-    $col2 = @(
-        "[31] Hard Reset Print Spooler (Purge Queue)",
-        "[32] Re-initialize RPC & DCOM Services",
-        "[33] Remote Target Spooler Restart",
-        "[34] Configure Spooler Auto-Restart on Crash",
-        "[35] Purge Stale Spooler Dependencies",
-        "[36] Deploy Spooler Watchdog (5-Min Audit)",
-        "[37] Force Purge Print Queue (.shd/.spl)",
-        "[38] Spooler Dependency Registry Reset",
-        "[39] Driver Management (Print Server Props)",
-        "[40] Disable Print Driver Isolation",
-        "[41] Universal Print Class Driver V4 Fix",
-        "[42] Toggle PCL vs. PostScript Driver Mode",
-        "[43] Orphaned Driver Sweeper (pnputil)",
-        "[44] Bypass 'Driver is currently in use'",
-        "[45] Ghost USB Port & Copy Eliminator",
-        "[46] Force Remove Ghost Printers",
-        "[47] Fix Microsoft Edge / UWP Printing",
-        "[48] Reinstall Microsoft Print to PDF/XPS",
-        "[49] Browser Print Sandbox Fix (Chromium)",
-        "[50] Force Permanent Default Printer",
-        "[51] Force-Set Default Printer (Reg Bypass)",
-        "[52] Fix RDP Printer Terminal Services",
-        "[53] Auto-Sanitize Printer Share Name",
-        "[54] Downgrade LSA Protection (Legacy Auth)",
-        "[55] Bypass Smart App Control (SAC)",
-        "[56] Bypass Advanced ServerList Point & Print",
-        "[57] Bypass UAC Admin Network TokenFilter",
-        "[58] Force NTLMv2 Response Compliance",
-        "[59] Manage Windows Protected Print (WPP)"
-    )
-
-    $col3 = @(
-        "[60] Inject Credentials into Vault Permanently",
-        "[61] Purge Stale Credentials from Vault",
-        "[62] Bypass Credential Guard (Strict NTLM)",
-        "[63] Cross-User Credential Mapping",
-        "[64] Pre-execution Registry Backup (Spooler)",
-        "[65] Rollback Registry from Backup",
-        "[66] Generate System Restore Point (Security)",
-        "[67] System File Checker & DISM Restoration",
-        "[68] Restart BITS (Background Transfer)",
-        "[69] Windows Update & Blocker Management",
-        "[70] Launch Native Windows Troubleshooter",
-        "[71] Force Printer Online Status",
-        "[72] Launch Services.msc",
-        "[73] Detect OS Version & Build Architecture",
-        "[74] Ping & Port 445/135 Diagnostics",
-        "[75] View Execution Logs",
-        "[76] Audit Last 20 Print Service Error Logs",
-        "[77] System Diagnostics Audit",
-        "[78] PrintService Event Log Parser (Top 5)",
-        "[79] Generate HTML Diagnostic Report",
-        "[80] Detect GPO Intervention (Policy Scan)",
-        "[81] PrintBRM (Backup/Restore Migration)",
-        "[82] Enable SMB Guest Access & Drop Anon Blocks",
-        "[83] EXTREME PATH (WIN 11 24H2/25H2/26H2+ & ARM64)",
-        "[84] ALLFIX (50 AUTOMATED FIXES)",
-        "[85] SILENT ALLFIX & REBOOT (ZERO-PROMPT)",
-        "[86] Map Local Port to UNC Path (Bypass 0x00000709)",
-        "[87] Remove Injected Local Port (UNC)",
-        "[88] Reboot System",
-        "[89] EXIT SCRIPT"
-    )
-
-    $maxRows = 30
-    for ($i = 0; $i -lt $maxRows; $i++) {
-
-        if ($i -lt $col1.Count) {
-            $m1 = [regex]::Match($col1[$i], '^(\[\d+\])(.*)')
-            if ($m1.Success) {
-                Write-Host (" " + $m1.Groups[1].Value) -ForegroundColor Green -NoNewline
-                Write-Host $m1.Groups[2].Value.PadRight($cw1 - 6) -ForegroundColor Green -NoNewline
-            } else { Write-Host (" " + $col1[$i].PadRight($cw1 - 1)) -ForegroundColor Green -NoNewline }
-        } else { Write-Host (" " * ($cw1 - 1)) -NoNewline }
-
-        Write-Host " " -NoNewline
-
-        if ($i -lt $col2.Count) {
-            $m2 = [regex]::Match($col2[$i], '^(\[\d+\])(.*)')
-            if ($m2.Success) {
-                Write-Host $m2.Groups[1].Value -ForegroundColor Green -NoNewline
-                Write-Host $m2.Groups[2].Value.PadRight($cw2 - 5) -ForegroundColor Green -NoNewline
-            } else { Write-Host $col2[$i].PadRight($cw2 - 1) -ForegroundColor Green -NoNewline }
-        } else { Write-Host (" " * ($cw2 - 1)) -NoNewline }
-
-        Write-Host " " -NoNewline
-
-        if ($i -lt $col3.Count) {
-            $m3 = [regex]::Match($col3[$i], '^(\[\d+\])(.*)')
-            if ($m3.Success) {
-                Write-Host $m3.Groups[1].Value -ForegroundColor Green -NoNewline
-                if ($m3.Groups[1].Value -in @("[83]", "[84]", "[85]")) {
-                    Write-Host $m3.Groups[2].Value -ForegroundColor Red
-                } else {
-                    Write-Host $m3.Groups[2].Value -ForegroundColor Green
-                }
-            } else { Write-Host $col3[$i] -ForegroundColor Green }
-        } else { Write-Host "" }
-    }
-
-    Write-Host ("-" * $totalW) -ForegroundColor Red
-    $noteLine1 = " :   NOTE: ".PadRight($totalW - 2) + ":"
-    $noteLine2 = " :   [84] ALLFIX (50 Steps) | [83] EXTREME PATH (Win11) | [85] SILENT ALLFIX ".PadRight($totalW - 2) + ":"
-    $noteLine3 = " :   [?] HELP | [? 7] INFO | [? all] HTML | TIP: If 'Check Printer Name' error, use Option [86] ".PadRight($totalW - 2) + ":"
-
-    Write-Host $noteLine1 -ForegroundColor Red
-    Write-Host $noteLine2 -ForegroundColor Red
-    Write-Host $noteLine3 -ForegroundColor Green
-    Write-Host ("-" * $totalW) -ForegroundColor Red
+    Show-Header
     Write-Host ""
-    Write-Host "Type option: " -NoNewline
+    Write-Host "  PILIH KATEGORI PERBAIKAN:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  [1] Solusi Cepat & Otomatis (ALLFIX & Windows 11 Terbaru)" -ForegroundColor Green -NoNewline
+    Write-Host "  <-- REKOMENDASI UTAMA" -ForegroundColor Red
+    Write-Host "  [2] Perbaikan Kode Error Spesifik (0x11b, 0x709, 0xbc4, 0x040, dll.)" -ForegroundColor White
+    Write-Host "  [3] Pengaturan Jaringan, Berbagi (SMB) & Firewall" -ForegroundColor White
+    Write-Host "  [4] Layanan Print Spooler & Pembersihan Antrean Cetak" -ForegroundColor White
+    Write-Host "  [5] Pengelolaan Driver & Pembersihan Printer Hantu/USB" -ForegroundColor White
+    Write-Host "  [6] Kredensial, Hak Akses & Keamanan Windows (Vault, LSA, UAC)" -ForegroundColor White
+    Write-Host "  [7] Pemetaan Port & Sambungan Manual (UNC Port Map & TCP/IP)" -ForegroundColor White
+    Write-Host "  [8] Cadangan (Backup), Diagnostik & Pemulihan Sistem" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  [9] Panduan & Bantuan Penggunaan" -ForegroundColor Cyan
+    Write-Host "  [0] Keluar dari Aplikasi" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host ("-" * 86) -ForegroundColor Cyan
+    Write-Host "  [Tips Pintasan]: Ketik nomor menu (1-9) atau ketik langsung kode modul klasik" -ForegroundColor Gray
+    Write-Host "                   seperti 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC Port)." -ForegroundColor Gray
+    Write-Host ("-" * 86) -ForegroundColor Cyan
+    Write-Host "Pilih nomor menu: " -NoNewline -ForegroundColor Yellow
 }
 
-if ($script:silentNuke) {
-    AllFix-Core
-    exit
-}
+function Invoke-Module {
+    param([string]$Code)
+    $num = $Code.TrimStart('0')
+    if (-not $num) { return }
 
-do {
-    Show-Menu
-    $choice = Read-Host
-    $choice = $choice.Trim()
+    Clear-Host
+    Write-Host ("=" * 86) -ForegroundColor Cyan
+    Write-Host "  MENJALANKAN MODUL PERBAIKAN [$Code]" -ForegroundColor Yellow
+    Write-Host ("=" * 86) -ForegroundColor Cyan
+    Write-Host ""
 
-    if ($choice -match '^\?(.*)$' -or $choice -match '^help\s*(.*)$') {
-        $helpTopic = $Matches[1].Trim()
-        Show-Help -Topic $helpTopic
-        Write-Host "`n  [>] Press ENTER to return to Main Menu..." -ForegroundColor Yellow
-        Read-Host | Out-Null
-        continue
-    }
-
-    if ($choice -match '^\d+$' -and $choice.Length -gt 1) { $choice = $choice.TrimStart('0') }
-
-    if ($choice -match '^\d+$') {
-        Clear-Host
-        Write-Host "================================================================================" -ForegroundColor Cyan
-        Write-Host "  EXECUTING MODULE [$choice]" -ForegroundColor Yellow
-        Write-Host "================================================================================" -ForegroundColor Cyan
-        Write-Host ""
-    }
-
-    switch ($choice) {
-        '1' { Fix-RpcAuthn0x0000011b }
-        '2' { Fix-Deep0x00000709 }
-        '3' { Fix-Discovery0x00000bc4 }
-        '4' { Fix-NetworkServices }
-        '5' { Fix-CSR }
-        '6' { Reset-SpoolerPerm }
-        '7' { Fix-Network0x00000040 }
-        '8' { Fix-DriverCopy0x00000002 }
-        '9' { Fix-RpcBitness0x0000007e }
+    switch ($num) {
+        '1'  { Fix-RpcAuthn0x0000011b }
+        '2'  { Fix-Deep0x00000709 }
+        '3'  { Fix-Discovery0x00000bc4 }
+        '4'  { Fix-NetworkServices }
+        '5'  { Fix-CSR }
+        '6'  { Reset-SpoolerPerm }
+        '7'  { Fix-Network0x00000040 }
+        '8'  { Fix-DriverCopy0x00000002 }
+        '9'  { Fix-RpcBitness0x0000007e }
         '10' { Reset-Network }
         '11' { Set-NetworkPrivate }
         '12' { Disable-PasswordSharing }
@@ -3107,7 +3337,7 @@ do {
         '27' { Reset-NetworkSockets }
         '28' { Rescue-NetworkProfile }
         '29' { Manage-TCPPort }
-        '30' { Start-Service WSDPrintDevice -ErrorAction SilentlyContinue; Write-Host "  [+] WSD Discovery Enabled" -ForegroundColor Green }
+        '30' { Start-Service WSDPrintDevice -ErrorAction SilentlyContinue; Write-Host "  [+] WSD Discovery Diaktifkan." -ForegroundColor Green }
         '31' { Reset-Spooler }
         '32' { Check-RPC }
         '33' { Remote-SpoolerReset }
@@ -3117,7 +3347,7 @@ do {
         '37' { Nuke-PrintQueue }
         '38' { Reset-SpoolerDependencyRegistry }
         '39' { Manage-Drivers }
-        '40' { Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force; Write-Host "  [+] Isolation Disabled" -ForegroundColor Green }
+        '40' { Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force; Write-Host "  [+] Isolasi Driver Dinonaktifkan." -ForegroundColor Green }
         '41' { Fix-V4ClassDriver }
         '42' { Switch-DriverMode }
         '43' { Sweep-OrphanedDrivers }
@@ -3166,13 +3396,55 @@ do {
         '86' { Map-LocalPortUNC }
         '87' { Remove-LocalPortUNC }
         '88' { Restart-PC }
-        '89' { Write-Log "Tool Terminated." -Type "INFO"; exit }
+        '89' { Write-Log "Aplikasi Dihentikan." -Type "INFO"; exit }
+        default { Write-Host "  [-] Modul [$Code] tidak ditemukan. Masukkan kode modul yang valid (1-89)." -ForegroundColor Red }
+    }
+}
 
-        default { Write-Host "`n  [-] Invalid selection. Enter numbers 1 - 89." -ForegroundColor Red }
+if ($script:silentNuke) {
+    AllFix-Core
+    exit
+}
+
+do {
+    Show-MainMenu
+    $choice = Read-Host
+    if ($null -eq $choice) { continue }
+    $choice = $choice.Trim()
+
+    if ($choice -match '^\?(.*)$' -or $choice -match '^help\s*(.*)$') {
+        $helpTopic = $Matches[1].Trim()
+        Show-Help -Topic $helpTopic
+        Pause-User
+        continue
     }
 
-    if ($choice -ne '89' -and $choice -ne '88' -and $choice -ne '85') {
-        Write-Host "`n  [>] Press ENTER to return to Main Menu..." -ForegroundColor Yellow
-        Read-Host | Out-Null
+    if ($choice -match '^(0|exit|keluar|quit)$') {
+        Write-Log "Aplikasi Dihentikan oleh Pengguna." -Type "INFO"
+        Write-Host "`n  [*] Terima kasih telah menggunakan Windows Printer Sharing Fix.`n" -ForegroundColor Green
+        exit
+    }
+
+    switch ($choice) {
+        '1' { Show-Submenu1 }
+        '2' { Show-Submenu2 }
+        '3' { Show-Submenu3 }
+        '4' { Show-Submenu4 }
+        '5' { Show-Submenu5 }
+        '6' { Show-Submenu6 }
+        '7' { Show-Submenu7 }
+        '8' { Show-Submenu8 }
+        '9' { Show-Submenu9 }
+        default {
+            if ($choice -match '^\d+$') {
+                Invoke-Module -Code $choice
+                Pause-User
+            }
+            else {
+                Write-Host "`n  [-] Pilihan menu '$choice' tidak dikenali. Masukkan angka 1-9 atau 0." -ForegroundColor Red
+                Start-Sleep -Milliseconds 1200
+            }
+        }
     }
 } while ($true)
+
