@@ -43,7 +43,7 @@ WindowsPrinterSharingFix/
 
 ## Code Conventions
 
-- **UI Language**: English (User-facing prompts and execution logs).
+- **UI Language**: Bilingual support (Indonesian and English with user toggle `[L]`). User-facing prompts are localized with persistent registry selection.
 - **Code Language**: English (Function names, variables, and structural logic).
 - **Logging**: use the native `Write-Log` function for all critical operational logging.
 - **Error Handling**: Always wrap registry mutations and service state changes within `try/catch` blocks to prevent fatal crashes.

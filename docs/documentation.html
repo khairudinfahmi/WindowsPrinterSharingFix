@@ -1,36 +1,40 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth antialiased">
+<html lang="id" class="scroll-smooth antialiased" x-data="{ 
+    darkMode: localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches),
+    lang: localStorage.getItem('doc_lang') || 'id',
+    searchQuery: '',
+    activeTab: 'all',
+    openSubmenu: 1,
+    toggleDarkMode() {
+        this.darkMode = !this.darkMode;
+        localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
+        if (this.darkMode) { document.documentElement.classList.add('dark'); }
+        else { document.documentElement.classList.remove('dark'); }
+    },
+    setLanguage(l) {
+        this.lang = l;
+        localStorage.setItem('doc_lang', l);
+    }
+}" :class="{ 'dark': darkMode }">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COMPLETE DOCUMENTATION - Windows Printer Sharing Fix</title>
-
+    <title x-text="lang === 'id' ? 'DOKUMENTASI RESMI - Windows Printer Sharing Fix v2.4.0' : 'OFFICIAL DOCUMENTATION - Windows Printer Sharing Fix v2.4.0'"></title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-
+    <!-- Alpine.js Collapse & Core -->
     <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-
+    <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
-
-
-    <script>
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
-
 
     <script>
         tailwind.config = {
@@ -39,1155 +43,604 @@
                 extend: {
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
                     },
                     colors: {
                         brand: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            200: '#bfdbfe',
-                            300: '#93c5fd',
-                            400: '#60a5fa',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            800: '#1e40af',
-                            900: '#1e3a8a',
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
                         }
                     }
                 }
             }
         }
     </script>
-
-
     <style>
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-
-        .dark ::-webkit-scrollbar-thumb {
-            background: #475569;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        body,
-        html {
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        ::selection {
-            background: rgba(59, 130, 246, 0.3);
-            color: inherit;
-        }
-
-        .glass-nav {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-
-        .dark .glass-nav {
-            background: rgba(15, 23, 42, 0.85);
-        }
+        [x-cloak] { display: none !important; }
     </style>
-
-
-    <script>
-        window.__FEATURES_DATA__ = [
-            {
-                category: "PART 1: CORE FIXES & NETWORK SERVICES",
-                items: [
-                    { id: "01", title: "Patch Error 0x0000011b (RpcAuthnLevelPrivacy)", problem: "Failed to connect to shared printer, throwing error 0x0000011b.", solution: "Disables the RpcAuthnLevelPrivacyEnabled registry key.", whenToUse: "Most common error following Windows 10/11 cumulative updates." },
-                    { id: "02", title: "Deep Fix 0x00000709 (Multi-Layer RPC & Kerberos)", problem: "Persistent 0x00000709 errors that block printer installation even after standard fixes.", solution: "Applies multi-layered RPC protocols, disables Kerberos for RPC, and sanitizes HKCU device keys.", whenToUse: "When standard fixes fail on Windows 11 (22H2, 23H2, 24H2+). MUST run on both Host and Client." },
-                    { id: "03", title: "Bypass Error 0x00000bc4 (No Printers Found)", problem: "Windows reports 'No printers were found' despite network availability.", solution: "Forces RPC to use Named Pipe Protocol.", whenToUse: "Common in recent Windows 11 updates blocking dynamic discovery." },
-                    { id: "04", title: "Fix Error 0x80070035 (Automate Network Services)", problem: "'The network path was not found' error.", solution: "Automates startup for fdPHost, FDResPub, SSDPSRV, upnphost services.", whenToUse: "Target PC is not showing up on the network Discovery." },
-                    { id: "05", title: "Disable Client-Side Rendering (Error 0x000006d1)", problem: "Print job fails due to client-side driver rendering issues.", solution: "Enables DisableClientSideRendering in the registry.", whenToUse: "Print jobs are stuck or failing to transmit to the spooler." },
-                    { id: "06", title: "Fix Error 0x80070005 (Reset Spooler ACL Permissions)", problem: "'Access Denied' (0x80070005) error during print operations.", solution: "Resets Spool\\Printers directory ACL to default.", whenToUse: "After migrating domains or changing user permissions." },
-                    { id: "07", title: "Fix Error 0x00000040 (Network Unavailable)", problem: "'Network is unavailable' error during printer access.", solution: "Repairs PrintProcessor and Ports registry nodes and maximizes KeepConn.", whenToUse: "Network printer error 0x00000040 despite stable network." },
-                    { id: "08", title: "Fix Error 0x00000002 (CopyFilesPolicy Violation)", problem: "Error cloning printer driver from host server.", solution: "Configures CopyFilesPolicy allowing driver ingestion.", whenToUse: "Failing to install driver from print server." },
-                    { id: "09", title: "Fix Error 0x0000007e (RPC Bitness Mismatch)", problem: "32-bit vs 64-bit architecture mismatch.", solution: "Forces registry compliance for cross-architecture drivers by bypassing RPC Authentication Level.", whenToUse: "64-bit host failing to connect to 32-bit print server (or vice versa)." },
-                    { id: "10", title: "Complete Network Reset (Flush DNS, Winsock, NetBIOS)", problem: "Unstable network connection, RTO, or severe latency.", solution: "Flushes DNS, releases/renews IP, resets Winsock & NetBIOS.", whenToUse: "After IP changes, network migration, or anomalous connectivity." },
-                    { id: "11", title: "Force Network Profile to Private (Ignore Public/Domain)", problem: "Sharing blocked because network profile is set to Public.", solution: "Overrides all connection profiles to Private state.", whenToUse: "Recently connected to a new network or corporate WiFi." },
-                    { id: "12", title: "Force Disable Password Protected Sharing", problem: "Credential prompt appears despite no password being configured.", solution: "Modifies LSA registry to prevent password enforcement (limitblankpassworduse).", whenToUse: "File/printer sharing in LAN without active directory domain." },
-                    { id: "13", title: "Enable RPC via Named Pipes & TCP", problem: "Printer connection error due to RPC endpoint blocking.", solution: "Forces RPC communication through Named Pipes and TCP protocols.", whenToUse: "Error 0xbcf4db3 or RPC connection timeouts." },
-                    { id: "14", title: "Configure Windows Firewall File & Printer Sharing", problem: "Host invisible on network, sharing heavily blocked.", solution: "Enables File & Printer Sharing rules natively in Firewall.", whenToUse: "After clean OS install or firewall reset." },
-                    { id: "15", title: "SMB 1.0 Legacy Protocol Management (ON/OFF)", problem: "Need to connect to legacy hardware (Win XP/7).", solution: "Enables or disables SMB 1.0 protocol based on user input.", whenToUse: "Connecting to legacy hardware.", warning: "SMB 1.0 is highly vulnerable to ransomware! Enable only if strictly necessary!" },
-                    { id: "16", title: "Disable SMB Signing (Fix Win 11 NAS Access)", problem: "Unable to access NAS or legacy hosts from Win 11 24H2+.", solution: "Disables RequireSecuritySignature and Mutual Authentication for SMB.", whenToUse: "Latest Win 11 builds failing to connect to NAS/legacy Win 10." },
-                    { id: "17", title: "Force Modern SMB2/SMB3 Topology", problem: "SMB connections inefficient or insecure.", solution: "Ensures SMB2/SMB3 are active, explicitly disables SMB1.", whenToUse: "Transitioning to modern secure protocols." },
-                    { id: "18", title: "Prioritize SMB in Network Provider Order", problem: "SMB connections suffering extreme latency.", solution: "Prioritizes LanmanWorkstation in the provider list.", whenToUse: "Share access is sluggish or timing out." },
-                    { id: "19", title: "Disable IPv6 Stack", problem: "IPv6 causing network routing issues in local networks.", solution: "Disables IPv6 via registry and netsh interfaces.", whenToUse: "Pure IPv4 networks experiencing severe routing conflicts." },
-                    { id: "20", title: "Enable mDNS & LLMNR (Discovery Protocols)", problem: "Printers undetectable via hostname resolution.", solution: "Enables Multicast DNS and LLMNR protocols.", whenToUse: "Bonjour/mDNS discovery failing." },
-                    { id: "21", title: "Configure WSD Firewall Rules (Port 3702)", problem: "Web Services Discovery blocked by firewall.", solution: "Opens UDP port 3702 and 5353 for WSD/mDNS discovery.", whenToUse: "Network printers absent from search queries." },
-                    { id: "22", title: "Enable IPP & Mopria Sharing Foundation", problem: "IPP (Internet Printing Protocol) printers non-functional.", solution: "Enables Windows IPP and Mopria Foundation features.", whenToUse: "Modern printers utilizing IPP protocols." },
-                    { id: "23", title: "Resolve Hyper-V/WSL Virtual Network Conflicts", problem: "Hyper-V/WSL virtual switches disrupting LAN topology.", solution: "Disables printer bindings on virtual adapters by lowering interface metrics.", whenToUse: "Sharing failures emerging post Hyper-V/WSL installation." },
-                    { id: "24", title: "Install Legacy LPR/LPD Protocols", problem: "Need to connect via legacy LPR (Line Printer Remote).", solution: "Enables Windows LPR Port Monitor & LPD Service features.", whenToUse: "Connecting to Unix/Linux hosts or legacy print servers." },
-                    { id: "25", title: "Remote Network Printer Discovery", problem: "Unknown shared printers on target host.", solution: "Scans and enumerates all shared printers on the target via WMI.", whenToUse: "Before installing drivers, identifying remote shares." },
-                    { id: "26", title: "WSD to Standard TCP/IP Port Converter", problem: "Intermittent printer disappearance or offline status due to WSD discovery failure.", solution: "Detects WSD ports and migrates printers to stable Standard TCP/IP ports.", whenToUse: "Printer works occasionally but often shows offline dynamically." },
-                    { id: "27", title: "Network Socket Re-init (Selective Purge)", problem: "Stale network connections blocking printer access after IP changes or VPN.", solution: "Restarts SMB Client/Server services and clears stuck port 445/135 connections.", whenToUse: "After changing IP or connecting/disconnecting VPNs." },
-                    { id: "28", title: "Rescue Network Profile (Auto Watchdog)", problem: "Network profile resetting to Public after reboot, blocking printer sharing.", solution: "Forces all Public network profiles to Private and optionally deploys a scheduled watchdog task.", whenToUse: "Windows keeps forgetting your network is a Private trusted network." },
-                    { id: "29", title: "Manually Inject Standard TCP/IP Port", problem: "Need to manually add an IP printer port.", solution: "Injects TCP/IP port via WMI scripting.", whenToUse: "Installing network printers via direct IP addressing." },
-                    { id: "30", title: "Force Initialize WSD Print Device", problem: "WSD (Web Services for Devices) printers remain undetected.", solution: "Initializes WSDPrintDevice service.", whenToUse: "Network printers missing from auto-discovery." }
-                ]
-            },
-            {
-                category: "PART 2: SPOOLER, DRIVERS & POLICIES",
-                items: [
-                    { id: "31", title: "Hard Reset Print Spooler (Purge Stuck Queue)", problem: "Print queue is completely frozen, spooler hangs.", solution: "Stops spooler, forcefully deletes queue files, restarts spooler.", whenToUse: "Documents stuck in queue that cannot be cancelled manually." },
-                    { id: "32", title: "Re-initialize RPC & DCOM Services", problem: "RPC or DCOM services terminated/crashed.", solution: "Verifies and restarts RpcSs and DcomLaunch services.", whenToUse: "'RPC server is unavailable' error." },
-                    { id: "33", title: "Remote Target Spooler Restart", problem: "Remote spooler frozen without physical access.", solution: "Executes remote spooler reset via PowerShell WinRM/DCOM.", whenToUse: "Host/Server spooler frozen requiring remote intervention.", note: "Requires Administrative privileges on target host." },
-                    { id: "34", title: "Configure Spooler Auto-Restart on Crash", problem: "Print Spooler crashes and remains inactive.", solution: "Configures recovery action: auto-restart upon crash via sc.exe.", whenToUse: "Spooler highly unstable, requiring self-healing mechanisms." },
-                    { id: "35", title: "Purge Stale Spooler Dependencies", problem: "Spooler fails to start due to invalid service dependencies.", solution: "Resets DependOnService spooler parameters to default (RPCSS, http).", whenToUse: "Spooler inactive despite operational RPC services." },
-                    { id: "36", title: "Deploy Spooler Watchdog (5-Minute Audit)", problem: "Spooler silently terminates without notification.", solution: "Deploys a scheduled task auditing the spooler every 5 minutes.", whenToUse: "High-uptime print server environments requiring constant availability." },
-                    { id: "37", title: "Force Purge Print Queue (.shd/.spl)", problem: "Print queue permanently stuck with undeletable jobs.", solution: "Terminates all print processes and purges corrupt .shd/.spl spool files.", whenToUse: "Standard cancellation methods fail to clear the queue completely." },
-                    { id: "38", title: "Spooler Dependency Registry Reset", problem: "Spooler fails to start due to corrupted or missing service dependencies.", solution: "Resets Spooler's DependOnService registry to factory defaults (RPCSS, http) directly via HK_LOCAL_MACHINE.", whenToUse: "Spooler won't start even after a reboot." },
-                    { id: "39", title: "Driver Management (Print Server Properties)", problem: "Corrupted or duplicate printer drivers.", solution: "Launches Print Server Properties GUI to manage installed drivers.", whenToUse: "Printer utilizing incorrect driver or duplicate driver instances." },
-                    { id: "40", title: "Disable Print Driver Isolation", problem: "Printer driver crash forces spooler termination.", solution: "Disables IsolationPolicy in the registry.", whenToUse: "Spooler crashing concurrently with specific drivers." },
-                    { id: "41", title: "Universal Print Class Driver V4 Fix", problem: "Post-Windows Update V4 driver corruption causing blank/garbled output.", solution: "Scans V4 drivers for corrupted PrintConfig.dll and triggers DriverStore re-registration.", whenToUse: "V4 printers suddenly stop working or print gibberish." },
-                    { id: "42", title: "Toggle PCL vs. PostScript Driver Mode", problem: "Garbled text or formatting issues caused by incompatible driver mode.", solution: "Switches a printer's driver between PCL and PostScript rendering modes.", whenToUse: "Printer spits out pages of random characters." },
-                    { id: "43", title: "Orphaned Driver Sweeper (pnputil)", problem: "Phantom driver conflicts or bloated DriverStore after multiple driver installs.", solution: "Scans DriverStore for orphaned printer OEM INF packages and force-deletes them.", whenToUse: "Unable to install new driver due to conflicts with old invisible drivers." },
-                    { id: "44", title: "Bypass 'Driver is currently in use'", problem: "Cannot uninstall or update a printer driver due to 'in use' lock.", solution: "Force-kills PrintIsolationHost, splwow64, and pipeline processes to release driver handles.", whenToUse: "Windows refuses to let you delete a driver." },
-                    { id: "45", title: "Ghost USB Port & Copy Eliminator", problem: "Multiple 'Copy 1/2/3' printer entries cluttering the printer list.", solution: "Detects and removes duplicate/ghost printer copies and dead USB ports.", whenToUse: "You plugged the printer into a different USB port and it created a ghost copy." },
-                    { id: "46", title: "Force Remove Ghost Printers", problem: "Printer uninstallation fails via standard GUI.", solution: "Forces printer removal via command line (printui).", whenToUse: "Ghost or corrupted printers refusing standard uninstallation." },
-                    { id: "47", title: "Fix Microsoft Edge / UWP Printing", problem: "Unable to print from Microsoft Store/Edge applications.", solution: "Re-registers UWP printing components and loopback exemptions.", whenToUse: "Printing fails from Edge/UWP apps but succeeds from Notepad." },
-                    { id: "48", title: "Reinstall Microsoft Print to PDF/XPS", problem: "'Print to PDF' or 'XPS Document Writer' missing.", solution: "Re-initializes native Windows PDF & XPS printing features.", whenToUse: "Native virtual printers missing or generating errors." },
-                    { id: "49", title: "Browser Print Sandbox Fix (Chromium)", problem: "Chrome/Edge shows blank print preview or fails to detect printers.", solution: "Clears browser print cache and fixes loopback exemptions for print dialogs.", whenToUse: "Can print from Word but not from Chrome." },
-                    { id: "50", title: "Force Permanent Default Printer", problem: "Default printer spontaneously reassigns.", solution: "Disables auto-manage and forcibly sets default via WMI.", whenToUse: "Windows dynamically mutating default printer based on network location." },
-                    { id: "51", title: "Force-Set Default Printer (Registry Bypass)", problem: "Error 0x00000709 or default printer keeps changing after reboot.", solution: "Bypasses Windows auto-manage and sets default printer via direct HKCU registry write.", whenToUse: "Cannot set default printer through normal settings app." },
-                    { id: "52", title: "Fix RDP Printer Terminal Services", problem: "Redirected printers absent in Remote Desktop sessions.", solution: "Enables printer redirection in RDP Terminal Services registry.", whenToUse: "Authenticating via RDP but local printers fail to map." },
-                    { id: "53", title: "Auto-Sanitize Printer Share Name", problem: "Printer sharing fails due to special characters or spaces in share name.", solution: "Scans shared printers and replaces illegal characters in share names with underscores.", whenToUse: "Clients cannot connect to a printer shared with a long or complex name." },
-                    { id: "54", title: "Downgrade LSA Protection (Legacy Auth)", problem: "Authentication rejected due to aggressive LSA Protection.", solution: "Disables RunAsPPL in LSA registry.", whenToUse: "Share login failures due to strict Win 11 LSA protection." },
-                    { id: "55", title: "Bypass Smart App Control (SAC)", problem: "Smart App Control blocking driver installation.", solution: "Sets VerifiedAndReputablePolicyState to Off.", whenToUse: "Windows 11 SAC actively blocking driver installers." },
-                    { id: "56", title: "Bypass Advanced ServerList Point & Print (PrintNightmare Bypass)", problem: "PrintNightmare policies obstructing silent driver installation causing general connect errors.", solution: "Injects PrintNightmare bypasses (Elevation Override) and ServerList wildcard (*) into registry.", whenToUse: "Throws 'Check Printer Name' or 'Access Denied' generic errors during driver download.", note: "Required for Windows 11 Build 22621+" },
-                    { id: "57", title: "Bypass UAC Admin Network TokenFilter", problem: "Admin share access denied despite administrative credentials.", solution: "Configures LocalAccountTokenFilterPolicy = 1.", whenToUse: "Remote administration to workgroup hosts failing due to UAC filtering." },
-                    { id: "58", title: "Force NTLMv2 Response Compliance", problem: "Authentication fails due to NTLM version mismatch.", solution: "Configures LmCompatibilityLevel strictly to NTLMv2 (Level 3).", whenToUse: "'Access Denied' when authenticating against varying OS versions or network storage (NAS)." },
-                    { id: "59", title: "Manage Windows Protected Print (WPP)", problem: "WPP in Windows 11 obstructing legacy driver usage.", solution: "Disables Windows Protected Print feature.", whenToUse: "Printer driver incompatible with WPP isolation." }
-                ]
-            },
-            {
-                category: "PART 3: DIAGNOSTICS & AUTOMATION",
-                items: [
-                    { id: "60", title: "Inject Windows Credentials into Vault Permanently", problem: "Continuous prompt for password during share access.", solution: "Injects username/password directly into Windows Credential Manager.", whenToUse: "To bypass manual authentication upon each access." },
-                    { id: "61", title: "Purge Stale Credentials from Windows Vault", problem: "Cached legacy logins causing authentication conflicts.", solution: "Purges invalid or outdated credentials from the vault via cmdkey.", whenToUse: "Host password was changed but local machine retains stale cache." },
-                    { id: "62", title: "Bypass Credential Guard (Strict NTLM Block)", problem: "Credential Guard actively blocking NTLM authentication to shares.", solution: "Disables LsaCfgFlags Credential Guard registry node.", whenToUse: "Enterprise/Pro environments with Credential Guard enabled." },
-                    { id: "63", title: "Cross-User Credential Mapping", problem: "Multiple user accounts need credentials for the same network printer.", solution: "Injects network credentials into ALL user profiles via NTUSER.DAT registry load.", whenToUse: "Setting up a shared PC with multiple local accounts." },
-                    { id: "64", title: "Pre-execution Registry Backup (Spooler & Network)", problem: "Requirement to backup state before Modifying registry.", solution: "Exports Print, Printers Policy, and LanmanWorkstation registry trees to C:\\WindowsPrinterSharingFixBackup.", whenToUse: "Recommended before applying other fixes.", note: "Always run this first!" },
-                    { id: "65", title: "Rollback Registry from Backup", problem: "Need to undo changes made by this tool.", solution: "Imports .reg files from the backup directory.", whenToUse: "If things get worse after applying fixes.", note: "Only functional if [64] Backup was previously executed." },
-                    { id: "66", title: "Generate System Restore Point (Security)", problem: "Need to create a restore point before making system changes.", solution: "Generates a System Restore Point for full OS rollback.", whenToUse: "Prior to executing major system-level architectural changes." },
-                    { id: "67", title: "System File Checker & DISM Restoration", problem: "Corrupted or damaged Windows system files.", solution: "Executes SFC /scannow and DISM RestoreHealth.", whenToUse: "Frequent BSODs, anomalous errors, or post-malware cleanup.", note: "This process may take 10-30 minutes!" },
-                    { id: "68", title: "Restart BITS (Background Transfer Service)", problem: "Driver downloads failing via Windows Update.", solution: "Restarts Background Intelligent Transfer Service.", whenToUse: "Drivers failing to download automatically." },
-                    { id: "69", title: "Windows Update & Blocker Management", problem: "Windows Update or bad KBs break printer sharing, or revert security registry overrides.", solution: "Provides tools to uninstall specific KBs, pause updates for 35 days, permanently disable Windows Update services (wuauserv, UsoSvc, bits, WaaSMedicSvc) to block fix reversion, or restore default service states.", whenToUse: "To prevent Windows Update from re-enabling restricted protocols, installing problematic updates, or resetting printer sharing fixes." },
-                    { id: "70", title: "Launch Native Windows Troubleshooter", problem: "Need to run the built-in automated OS diagnostic.", solution: "Executes native Windows Printer Troubleshooter (msdt).", whenToUse: "Initial diagnostic step before manual intervention." },
-                    { id: "71", title: "Force Printer Online Status", problem: "Printer displays 'Offline' status despite being powered on.", solution: "Transmits online enforcement command via printui /yl.", whenToUse: "Printer status stuck on 'Offline' or grayed out." },
-                    { id: "72", title: "Launch Services.msc", problem: "Manually check Windows services.", solution: "Launches the Services.msc MMC snap-in.", whenToUse: "Manual verification of Print Spooler operational status." },
-                    { id: "73", title: "Detect OS Version & Build Architecture", problem: "Need to check Windows OS version and build number.", solution: "Displays OS version, build number, and specific recommendations.", whenToUse: "Before choosing a specific fix to ensure compatibility." },
-                    { id: "74", title: "Ping & Port 445/135 Diagnostics", problem: "Target PC is not responding.", solution: "ICMP Ping + port scanning for SMB (445) and RPC (135).", whenToUse: "First step in testing network connection and firewall status." },
-                    { id: "75", title: "View Execution Logs", problem: "Need to view the history of past repair logs.", solution: "Launches log management interface (Notepad).", whenToUse: "Post-repair auditing and verification." },
-                    { id: "76", title: "Audit Last 20 Print Service Error Logs", problem: "Need to check specific print service error logs.", solution: "Parses the last 20 error events from the System Event Log.", whenToUse: "Investigating root causes of print issues." },
-                    { id: "77", title: "System Diagnostics Audit", problem: "Need a quick health summary of the printing subsystem.", solution: "Audits Spooler state, SMB, Firewall, and network topologies.", whenToUse: "Checking the overall health of the system before deploying fixes." },
-                    { id: "78", title: "PrintService Event Log Parser (Top 5)", problem: "Need to identify root cause from Windows Event Log print errors.", solution: "Parses the 5 most recent Error/Warning events with automated resolution suggestions.", whenToUse: "Mystery printing issues with no obvious error code." },
-                    { id: "79", title: "Generate HTML Diagnostic Report", problem: "Requirement for printable or distributable logs.", solution: "Compiles execution logs into an interactive HTML file.", whenToUse: "For IT documentation or administrative reporting to superiors." },
-                    { id: "80", title: "Detect GPO Intervention (Policy Scan)", problem: "Local registry fixes keep reverting due to domain GPO enforcement.", solution: "Scans registry and gpresult for Group Policy overrides affecting printers.", whenToUse: "Fixes work temporarily but break again after gpupdate or reboot." },
-                    { id: "81", title: "PrintBRM (Backup/Restore Migration)", problem: "Need to migrate or clone printer settings to another PC.", solution: "Executes full backup or restoration of printer topologies via PrintBrm.exe.", whenToUse: "Deploying printers to multiple workstations or migrating to new hardware." },
-                    { id: "82", title: "Enable SMB Guest Access & Drop Anonymous Blocks", problem: "Continuous prompt for credentials when accessing shares.", solution: "Enables AllowInsecureGuestAuth in LanmanWorkstation registry.", whenToUse: "For password-less sharing in local networks." },
-                    { id: "83", title: "EXTREME PATH (WIN 11 24H2/25H2/26H2+ & ARM64 SPECIFIC)", problem: "Standard fixes ineffective on latest Windows 11 builds.", solution: "Aggressive fix combination: DnsOnWire, StrictNameChecking, NTLM level, SMB Signing, KB5089549 driver policy bypass, Kerberos purge, etc.", whenToUse: "Standard fixes didn't work on latest Win 11.", note: "Built specifically for Build 26000 and above." },
-                    { id: "84", title: "EXECUTE ALLFIX (50 AUTOMATED FIXES)", problem: "Unknown printing error, requires a complete and thorough troubleshooting sweep.", solution: "Executes 50 automated fixes sequentially.", whenToUse: "PRIMARY RECOMMENDATION - the recommended fix for most general cases.", note: "REBOOT SYSTEM upon completion for best results." },
-                    { id: "85", title: "SILENT ALLFIX & REBOOT (ZERO-PROMPT)", problem: "Need to blindly run all fixes without user prompts.", solution: "Executes all 50 steps + automated reboot silently.", whenToUse: "Emergency situations requiring immediate unattended fixes.", warning: "SYSTEM WILL AUTOMATICALLY REBOOT! Save all critical work prior!" },
-                    { id: "86", title: "Map Local Port to UNC Path (Bypass 0x00000709)", problem: "Direct registry fallback when standard RPC network sharing fails with '0x00000709' or 'Check Printer Name' errors.", solution: "Attempts standard port creation, then falls back to a Direct Registry Injection bypass if blocked.", whenToUse: "When standard sharing fails and the system entirely blocks 'Add-PrinterPort' commands." },
-                    { id: "87", title: "Remove Injected Local Port (UNC)", problem: "Need to clean up or remove a previously mapped IP port created by Option [86].", solution: "Attempts standard port removal, then falls back to a Registry Purge if blocked.", whenToUse: "When a mapped port is no longer needed or was misconfigured." },
-                    { id: "88", title: "Reboot System", problem: "Need to apply registry changes to active state.", solution: "Executes an immediate system reboot.", whenToUse: "Always execute after running any major fixes." },
-                    { id: "89", title: "EXIT SCRIPT", problem: "Finished operations.", solution: "Exits the tool.", whenToUse: "When troubleshooting is complete." }
-                ]
-            }
-        ];
-    </script>
 </head>
 
-<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 min-h-screen flex flex-col"
-    x-data="{ darkMode: false, mobileMenuOpen: false }" x-init="
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            darkMode = true;
-        } else {
-            darkMode = false;
-        }
-        $watch('darkMode', val => {
-            if (val) {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            }
-        });
-    ">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
 
-
-    <nav class="fixed top-0 z-40 w-full glass-nav border-b border-slate-200 dark:border-slate-800 shadow-sm">
-        <div class="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-
-                <div class="flex items-center gap-3">
-                    <div
-                        class="bg-gradient-to-br from-brand-500 to-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-brand-500/30">
-                        <i data-lucide="printer" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <h1
-                            class="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-indigo-600 dark:from-brand-400 dark:to-indigo-400 tracking-tight">
-                            Windows Printer Sharing Fix
-                        </h1>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-wide">
-                            2026 by
-                            <a href="https://instagram.com/khairudinfahmi" target="_blank"
-                                class="hover:text-brand-600 dark:hover:text-brand-400 hover:underline transition-colors ml-0.5">
-                                @khairudinfahmi
-                            </a>
-                        </p>
-                    </div>
+    <!-- Navbar Sticky -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                    <i data-lucide="printer" class="w-6 h-6"></i>
                 </div>
-
-
-                <div class="flex items-center gap-4">
-                    <div class="hidden md:flex relative group">
-                        <i data-lucide="search"
-                            class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 transition-colors group-focus-within:text-brand-500"></i>
-                        <input type="text" id="searchInput" placeholder="Search features (e.g. 0x0000011b, NTLM)..."
-                            class="w-80 pl-10 pr-4 py-2.5 bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-full text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all dark:text-white placeholder-slate-400 shadow-inner">
-                    </div>
-
-
-                    <button @click="darkMode = !darkMode"
-                        class="p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-400 focus:outline-none shadow-sm border border-slate-200 dark:border-slate-700"
-                        aria-label="Toggle Dark Mode">
-                        <i data-lucide="moon" x-show="!darkMode" class="w-4 h-4"></i>
-                        <i data-lucide="sun" x-show="darkMode" class="w-4 h-4" style="display: none;"></i>
-                    </button>
-
-
-                    <button @click="mobileMenuOpen = !mobileMenuOpen"
-                        class="md:hidden p-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-400 focus:outline-none border border-slate-200 dark:border-slate-700">
-                        <i data-lucide="menu" class="w-5 h-5"></i>
-                    </button>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Windows Printer Sharing Fix</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full font-semibold bg-brand-100 text-brand-800 dark:bg-brand-900/60 dark:text-brand-300">v2.4.0</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block" x-text="lang === 'id' ? 'Panduan Resmi & Dokumentasi Teknis Lengkap' : 'Official Technical Documentation & Manual'"></p>
                 </div>
             </div>
 
-
-            <div x-show="mobileMenuOpen" x-collapse class="md:hidden" style="display: none;">
-                <div class="pb-4 pt-3 border-t border-slate-200 dark:border-slate-800 mt-1">
-                    <div class="relative">
-                        <i data-lucide="search"
-                            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                        <input type="text" id="mobileSearchInput" placeholder="Search features..."
-                            class="w-full pl-9 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none dark:text-white placeholder-slate-400 shadow-inner">
-                    </div>
+            <div class="flex items-center space-x-3">
+                <!-- Search Bar Shortcut -->
+                <div class="relative hidden md:block w-64">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" x-model="searchQuery" :placeholder="lang === 'id' ? 'Cari modul, error 0x...' : 'Search module, error 0x...'" 
+                           class="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
                 </div>
+
+                <!-- Language Toggle Switcher -->
+                <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+                    <button @click="setLanguage('id')" :class="lang === 'id' ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'" class="px-2.5 py-1 rounded-md transition">ID</button>
+                    <button @click="setLanguage('en')" :class="lang === 'en' ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'" class="px-2.5 py-1 rounded-md transition">EN</button>
+                </div>
+
+                <!-- Theme Toggle -->
+                <button @click="toggleDarkMode()" class="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition" :title="darkMode ? 'Mode Terang' : 'Mode Gelap'">
+                    <i x-show="!darkMode" data-lucide="moon" class="w-5 h-5"></i>
+                    <i x-show="darkMode" data-lucide="sun" class="w-5 h-5" x-cloak></i>
+                </button>
+
+                <!-- GitHub Link -->
+                <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix" target="_blank" rel="noopener noreferrer" 
+                   class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:opacity-90 transition">
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                    <span>GitHub</span>
+                </a>
             </div>
         </div>
-    </nav>
+    </header>
 
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-10">
 
-    <div
-        class="flex-grow max-w-[90rem] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-12 flex flex-col lg:flex-row gap-8 lg:gap-12">
+        <!-- Hero Section -->
+        <section class="rounded-3xl p-6 sm:p-10 bg-gradient-to-br from-white via-slate-50 to-brand-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-brand-950/20 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+            <div class="max-w-3xl space-y-4 relative z-10">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-brand-100 dark:bg-brand-900/60 text-brand-800 dark:text-brand-300 border border-brand-200 dark:border-brand-800/80">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    <span x-text="lang === 'id' ? 'Tervalidasi & Siap untuk Windows 11 24H2/25H2/26H2 & Server 2025' : 'Validated & Ready for Windows 11 24H2/25H2/26H2 & Server 2025'"></span>
+                </div>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight" 
+                    x-text="lang === 'id' ? 'Solusi Berbagi Printer Windows Tanpa Hambatan' : 'Universal Windows Printer Sharing Repair Tool'"></h2>
+                <p class="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed"
+                   x-text="lang === 'id' ? 'Satu perangkat lunak otomatis untuk menuntaskan seluruh kode error printer sharing (0x0000011b, 0x00000709, 0x00000bc4, 0x80070035, dsb.), proteksi RPC Named Pipes Windows 11 terbaru, hingga perbaikan spooler macet dalam 1 kali klik.' : 'An all-in-one automated utility designed to permanently eliminate network printer sharing errors (0x0000011b, 0x00000709, 0x00000bc4, 0x80070035, etc.), RPC Named Pipes enforcements in modern Windows 11, and print spooler deadlocks in a single click.'"></p>
 
-
-        <aside class="hidden lg:block w-72 flex-shrink-0">
-
-            <div
-                class="sticky top-28 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm overflow-y-auto max-h-[calc(100vh-8rem)]">
-                <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-5 px-3">
-                    Documentation Nav</h3>
-                <nav class="space-y-2 text-sm font-medium">
-                    <a href="#introduction"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-slate-700/50 dark:hover:text-white transition-all group">
-                        <i data-lucide="info"
-                            class="w-4 h-4 text-slate-400 group-hover:text-brand-500 transition-colors"></i>
-                        Introduction
-                    </a>
-                    <a href="#usage-instructions"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-slate-700/50 dark:hover:text-white transition-all group">
-                        <i data-lucide="play-circle"
-                            class="w-4 h-4 text-slate-400 group-hover:text-brand-500 transition-colors"></i> Execution
-                        Guide
-                    </a>
-                    <a href="#features"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-slate-700/50 dark:hover:text-white transition-all group">
-                        <i data-lucide="list-checks"
-                            class="w-4 h-4 text-slate-400 group-hover:text-brand-500 transition-colors"></i> Feature
-                        Glossary
-                    </a>
-                    <a href="#tips"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-slate-700/50 dark:hover:text-white transition-all group">
-                        <i data-lucide="lightbulb"
-                            class="w-4 h-4 text-slate-400 group-hover:text-brand-500 transition-colors"></i> Tips &
-                        Recommendations
-                    </a>
-                    <a href="#troubleshooting"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-slate-700/50 dark:hover:text-white transition-all group">
-                        <i data-lucide="life-buoy"
-                            class="w-4 h-4 text-slate-400 group-hover:text-brand-500 transition-colors"></i>
-                        Troubleshooting FAQ
-                    </a>
-                    <a href="#deep-analysis"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/20 dark:hover:text-rose-300 transition-all group mt-4 border border-rose-100 dark:border-rose-900/30">
-                        <i data-lucide="microscope" class="w-4 h-4 group-hover:animate-pulse"></i> Deep Analysis
-                    </a>
-                </nav>
+                <!-- Live Health Banner Simulator -->
+                <div class="pt-2">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2" x-text="lang === 'id' ? 'Indikator Kesehatan Sistem Waktu-Nyata (Header Banner di Konsol):' : 'Real-Time System Health Banner (Console Header):'"></p>
+                    <div class="font-mono text-xs p-3 rounded-xl bg-slate-900 text-slate-200 border border-slate-800 shadow-inner flex flex-wrap gap-y-2 gap-x-4 items-center">
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> <strong class="text-white">Spooler:</strong> <span class="text-emerald-400 font-bold" x-text="lang === 'id' ? '[AKTIF]' : '[RUNNING]'"></span></span>
+                        <span class="text-slate-600">|</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> <strong class="text-white" x-text="lang === 'id' ? 'Jaringan:' : 'Network:'"></strong> <span class="text-emerald-400 font-bold">[PRIVATE]</span></span>
+                        <span class="text-slate-600">|</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> <strong class="text-white">SMB Signing:</strong> <span class="text-emerald-400 font-bold" x-text="lang === 'id' ? '[SESUAI]' : '[OK]'"></span></span>
+                        <span class="text-slate-600">|</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> <strong class="text-white" x-text="lang === 'id' ? 'Sandi Berbagi:' : 'Password Sharing:'"></strong> <span class="text-emerald-400 font-bold">[OFF]</span></span>
+                    </div>
+                </div>
             </div>
-        </aside>
+        </section>
 
+        <!-- Search Bar Mobile -->
+        <div class="block md:hidden">
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" x-model="searchQuery" :placeholder="lang === 'id' ? 'Cari modul, error 0x...' : 'Search module, error 0x...'" 
+                       class="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition shadow-sm">
+            </div>
+        </div>
 
-        <main class="flex-1 min-w-0 space-y-24">
-
-
-            <section id="introduction" class="scroll-mt-32">
-                <div class="flex items-center gap-4 mb-6">
-                    <div
-                        class="bg-indigo-100 dark:bg-indigo-900/50 p-3 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-sm">
-                        <i data-lucide="info" class="w-6 h-6 text-indigo-600 dark:text-indigo-400"></i>
-                    </div>
-                    <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">A. Introduction
-                    </h2>
+        <!-- Category Grid / Navigation Accordion -->
+        <div class="space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Daftar Kategori & 89 Modul Solusi' : 'Categories & 89 Solution Modules'"></h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Sesuai persis dengan struktur Menu Utama dan Submenu di aplikasi.' : 'Exactly matches the Main Menu and Submenus in the console app.'"></p>
                 </div>
-
-                <div
-                    class="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-sm border border-slate-200 dark:border-slate-700 relative overflow-hidden">
-
-                    <div
-                        class="absolute top-0 right-0 w-64 h-64 bg-indigo-50 dark:bg-indigo-900/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none">
-                    </div>
-
-                    <p class="text-slate-600 dark:text-slate-300 leading-relaxed mb-10 text-lg relative z-10">
-                        <strong>Windows Printer Sharing Fix</strong> is an automated, zero-dependency
-                        troubleshooting and repair tool designed to resolve persistent printer sharing issues across all
-                        modern Windows environments. It bridges the gap between strict Microsoft security
-                        policies (like PrintNightmare restrictions) and legacy LAN networking requirements.
-                    </p>
-
-                    <div class="grid md:grid-cols-2 gap-6 relative z-10">
-                        <div
-                            class="bg-slate-50 dark:bg-slate-900/60 p-7 rounded-2xl border border-slate-100 dark:border-slate-700/80 shadow-sm hover:border-brand-300 dark:hover:border-slate-600 transition-colors">
-                            <h4 class="font-bold text-slate-900 dark:text-white flex items-center gap-3 mb-5">
-                                <span
-                                    class="bg-white dark:bg-slate-800 p-1.5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-                                    <i data-lucide="monitor" class="w-4 h-4 text-brand-500"></i>
-                                </span>
-                                Supported Architectures
-                            </h4>
-                            <ul class="space-y-3.5 text-sm text-slate-600 dark:text-slate-400">
-                                <li class="flex items-start gap-3"><i data-lucide="check-circle-2"
-                                        class="w-4 h-4 text-emerald-500 mt-0.5 shrink-0"></i> <span
-                                        class="leading-tight"><strong>Windows 11</strong> (including 24H2, 25H2, 26H2+
-                                        builds)</span></li>
-                                <li class="flex items-start gap-3"><i data-lucide="check-circle-2"
-                                        class="w-4 h-4 text-emerald-500 mt-0.5 shrink-0"></i> <span
-                                        class="leading-tight"><strong>Windows 10</strong> (All Editions)</span></li>
-                                <li class="flex items-start gap-3"><i data-lucide="check-circle-2"
-                                        class="w-4 h-4 text-emerald-500 mt-0.5 shrink-0"></i> <span
-                                        class="leading-tight"><strong>Windows Server</strong> (2012, 2016, 2019, 2022,
-                                        2025)</span></li>
-                                <li class="flex items-start gap-3"><i data-lucide="check-circle-2"
-                                        class="w-4 h-4 text-emerald-500 mt-0.5 shrink-0"></i> <span
-                                        class="leading-tight"><strong>ARM64</strong> & Apple Silicon VM Support</span>
-                                </li>
-                                <li class="flex items-start gap-3"><i data-lucide="check-circle-2"
-                                        class="w-4 h-4 text-emerald-500 mt-0.5 shrink-0"></i> <span
-                                        class="leading-tight"><strong>Windows 7, 8, 8.1</strong> (Partial / Registry Support Only)</span></li>
-                            </ul>
-                        </div>
-
-                        <div
-                            class="bg-amber-50/80 dark:bg-amber-900/10 p-7 rounded-2xl border border-amber-200/60 dark:border-amber-900/30 shadow-sm hover:border-amber-300 dark:hover:border-amber-800 transition-colors">
-                            <h4 class="font-bold text-amber-900 dark:text-amber-400 flex items-center gap-3 mb-5">
-                                <span
-                                    class="bg-white dark:bg-slate-800 p-1.5 rounded-lg shadow-sm border border-amber-100 dark:border-slate-700">
-                                    <i data-lucide="shield-alert" class="w-4 h-4 text-amber-600"></i>
-                                </span>
-                                Core Requirements
-                            </h4>
-                            <ul class="space-y-3.5 text-sm text-amber-800 dark:text-amber-300/80">
-                                <li class="flex items-start gap-3"><i data-lucide="shield"
-                                        class="w-4 h-4 mt-0.5 shrink-0 opacity-70"></i> <span
-                                        class="leading-relaxed"><strong>Elevation:</strong> The script will
-                                        automatically request UAC Administrative privileges upon launch.</span></li>
-                                <li class="flex items-start gap-3"><i data-lucide="file-text"
-                                        class="w-4 h-4 mt-0.5 shrink-0 opacity-70"></i> <span
-                                        class="leading-relaxed"><strong>Audit Log:</strong> Real-time execution logs are
-                                        generated at <br><code
-                                            class="inline-block mt-1 bg-white/60 dark:bg-black/20 px-2 py-1 rounded text-amber-900 dark:text-amber-200 font-mono text-xs border border-amber-200/50 dark:border-amber-800/50">C:\WindowsPrinterSharingFixLog.txt</code></span>
-                                </li>
-                                <li class="flex items-start gap-3"><i data-lucide="database"
-                                        class="w-4 h-4 mt-0.5 shrink-0 opacity-70"></i> <span
-                                        class="leading-relaxed"><strong>Backup Vault:</strong> Pre-execution registry
-                                        backups are stored in <br><code
-                                            class="inline-block mt-1 bg-white/60 dark:bg-black/20 px-2 py-1 rounded text-amber-900 dark:text-amber-200 font-mono text-xs border border-amber-200/50 dark:border-amber-800/50">C:\WindowsPrinterSharingFixBackup\</code></span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+                <div class="text-xs text-slate-400 font-mono">
+                    <span x-text="lang === 'id' ? 'Tekan [L] di konsol untuk ganti bahasa' : 'Press [L] in console to switch language'"></span>
                 </div>
-            </section>
+            </div>
 
+            <!-- Submenu Accordion Container -->
+            <div class="space-y-4">
 
-            <section id="usage-instructions" class="scroll-mt-32">
-                <div class="flex items-center gap-4 mb-6">
-                    <div
-                        class="bg-emerald-100 dark:bg-emerald-900/50 p-3 rounded-2xl border border-emerald-200 dark:border-emerald-800 shadow-sm">
-                        <i data-lucide="play-circle" class="w-6 h-6 text-emerald-600 dark:text-emerald-400"></i>
-                    </div>
-                    <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">B. Execution Guide
-                    </h2>
-                </div>
-
-                <div
-                    class="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-sm border border-slate-200 dark:border-slate-700">
-
-
-                    <div
-                        class="relative border-l-2 border-slate-200 dark:border-slate-700 ml-4 md:ml-6 space-y-12 py-2">
-
-
-                        <div class="relative pl-8 md:pl-12 group">
-
-                            <div
-                                class="absolute -left-[17px] top-1 flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 ring-8 ring-white dark:ring-slate-800 border-2 border-slate-200 dark:border-slate-600 group-hover:border-brand-500 transition-colors z-10">
-                                <span
-                                    class="text-xs font-extrabold text-slate-400 dark:text-slate-500 group-hover:text-brand-500 transition-colors">1</span>
-                            </div>
-
-                            <div
-                                class="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:shadow-md hover:border-brand-200 dark:hover:border-brand-800 transition-all">
-                                <h3 class="font-bold text-slate-900 dark:text-white text-lg">Launch the Executable</h3>
-                                <p class="text-slate-600 dark:text-slate-400 mt-2.5 leading-relaxed">Right-click the
-                                    <code
-                                        class="bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 text-sm font-mono text-brand-600 dark:text-brand-400">WindowsPrinterSharingFix.ps1</code>
-                                    script and select <strong>Run with PowerShell</strong>, or execute the compiled
-                                    <code>.exe</code> file directly if provided.</p>
-                            </div>
-                        </div>
-
-
-                        <div class="relative pl-8 md:pl-12 group">
-
-                            <div
-                                class="absolute -left-[17px] top-1 flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 ring-8 ring-white dark:ring-slate-800 border-2 border-slate-200 dark:border-slate-600 group-hover:border-brand-500 transition-colors z-10">
-                                <span
-                                    class="text-xs font-extrabold text-slate-400 dark:text-slate-500 group-hover:text-brand-500 transition-colors">2</span>
-                            </div>
-
-                            <div
-                                class="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:shadow-md hover:border-brand-200 dark:hover:border-brand-800 transition-all">
-                                <h3 class="font-bold text-slate-900 dark:text-white text-lg">Grant Privileges</h3>
-                                <p class="text-slate-600 dark:text-slate-400 mt-2.5 leading-relaxed">The application
-                                    will automatically detect permission levels and trigger a UAC prompt. Click <strong
-                                        class="text-emerald-600 dark:text-emerald-400">YES</strong> to grant
-                                    Administrative elevation. Without this, deep registry injection will fail.</p>
-                            </div>
-                        </div>
-
-
-                        <div class="relative pl-8 md:pl-12 group">
-
-                            <div
-                                class="absolute -left-[17px] top-1 flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 ring-8 ring-white dark:ring-slate-800 border-2 border-slate-200 dark:border-slate-600 group-hover:border-brand-500 transition-colors z-10">
-                                <span
-                                    class="text-xs font-extrabold text-slate-400 dark:text-slate-500 group-hover:text-brand-500 transition-colors">3</span>
-                            </div>
-
-                            <div
-                                class="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:shadow-md hover:border-brand-200 dark:hover:border-brand-800 transition-all">
-                                <h3 class="font-bold text-slate-900 dark:text-white text-lg">Input Command</h3>
-                                <p class="text-slate-600 dark:text-slate-400 mt-2.5 leading-relaxed">The main console
-                                    interface will map out all 89 execution modules. Type the numerical identifier
-                                    (e.g., <code
-                                        class="bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 text-sm font-mono text-brand-600 dark:text-brand-400">84</code>,
-                                    <code
-                                        class="bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 text-sm font-mono text-brand-600 dark:text-brand-400">07</code>,
-                                    <code
-                                        class="bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 text-sm font-mono text-brand-600 dark:text-brand-400">86</code>)
-                                    and press <strong>ENTER</strong>.</p>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div
-                        class="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6 md:p-8 border border-blue-100/80 dark:border-blue-800/30 flex flex-col md:flex-row gap-5 items-start">
-                        <div
-                            class="bg-white dark:bg-slate-800 p-2.5 rounded-xl shadow-sm border border-blue-100 dark:border-slate-700 shrink-0 md:mt-1">
-                            <i data-lucide="terminal" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
-                        </div>
-                        <div class="w-full">
-                            <h4 class="font-bold text-blue-900 dark:text-blue-300 mb-2.5 text-lg">CLI Automation /
-                                Unattended Mode</h4>
-                            <p class="text-sm text-blue-800/80 dark:text-blue-300/80 leading-relaxed mb-5">
-                                System Administrators can deploy this tool silently across networks by passing the <code
-                                    class="font-bold bg-blue-100 dark:bg-blue-900/50 px-1.5 py-0.5 rounded">-nuke</code>
-                                parameter via command line. This automatically triggers Option [85] (Silent AllFix +
-                                Auto-Reboot).
-                            </p>
-                            <div
-                                class="bg-slate-900 rounded-xl p-4 shadow-inner relative overflow-hidden group border border-slate-800">
-                                <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                                <code class="font-mono text-xs md:text-sm text-emerald-400 break-all pl-2 block">
-                                    powershell.exe -ExecutionPolicy Bypass -File .\WindowsPrinterSharingFix.ps1 <span class="text-blue-400 font-bold">-nuke</span>
-                                </code>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-
-            <section id="features" class="scroll-mt-32">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="bg-brand-100 dark:bg-brand-900/50 p-3 rounded-2xl border border-brand-200 dark:border-brand-800 shadow-sm">
-                            <i data-lucide="list-checks" class="w-6 h-6 text-brand-600 dark:text-brand-400"></i>
-                        </div>
-                        <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">C. Feature
-                            Glossary</h2>
-                    </div>
-                    <div id="searchStats"
-                        class="text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hidden flex items-center gap-2.5">
-                        <span class="relative flex h-2.5 w-2.5">
-                            <span
-                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                        </span>
-                        Showing <span id="visibleCount" class="text-brand-600 dark:text-brand-400 font-bold">89</span>
-                        tools
-                    </div>
-                </div>
-
-
-                <div id="featuresList" class="space-y-12">
-
-                </div>
-
-
-                <div id="emptySearchState"
-                    class="hidden bg-white dark:bg-slate-800 rounded-[2rem] p-16 md:p-24 text-center shadow-sm border border-slate-200 dark:border-slate-700">
-                    <div
-                        class="bg-slate-50 dark:bg-slate-700/30 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100 dark:border-slate-600 shadow-inner">
-                        <i data-lucide="search-x" class="w-12 h-12 text-slate-400"></i>
-                    </div>
-                    <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white mb-3">No tools match your query
-                    </h3>
-                    <p class="text-slate-500 dark:text-slate-400 text-base max-w-md mx-auto leading-relaxed">Adjust your
-                        search parameters. Try general keywords such as <span
-                            class="font-mono text-sm bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">Error</span>,
-                        <span
-                            class="font-mono text-sm bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">Spooler</span>,
-                        <span
-                            class="font-mono text-sm bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">Registry</span>,
-                        or <span
-                            class="font-mono text-sm bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">Network</span>.
-                    </p>
-                </div>
-            </section>
-
-
-            <section id="tips" class="scroll-mt-32">
-                <div class="flex items-center gap-4 mb-6">
-                    <div
-                        class="bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-2xl border border-yellow-200 dark:border-yellow-800 shadow-sm">
-                        <i data-lucide="lightbulb" class="w-6 h-6 text-yellow-600 dark:text-yellow-400"></i>
-                    </div>
-                    <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">D. Tips &
-                        Recommendations</h2>
-                </div>
-
-                <div class="grid md:grid-cols-3 gap-6 lg:gap-8">
-
-                    <div
-                        class="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border-t-[6px] border-t-brand-500 border-x border-b border-slate-200 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-                        <div
-                            class="absolute -right-6 -top-6 p-4 opacity-[0.03] dark:opacity-[0.02] group-hover:scale-110 transition-transform duration-500">
-                            <i data-lucide="zap" class="w-40 h-40 text-brand-500"></i>
-                        </div>
-                        <div class="relative z-10">
-                            <h3 class="font-extrabold text-xl text-slate-900 dark:text-white mb-2">Standard Workflow
-                            </h3>
-                            <p
-                                class="text-xs text-brand-600 dark:text-brand-400 font-bold mb-6 tracking-widest uppercase bg-brand-50 dark:bg-brand-900/30 inline-block px-2.5 py-1 rounded">
-                                General Purpose</p>
-                            <ol class="space-y-4 text-sm text-slate-600 dark:text-slate-300">
-                                <li class="flex items-start gap-3"><span
-                                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold shrink-0 text-xs">1</span>
-                                    <span class="pt-0.5">Execute <strong>[64] Backup</strong>.</span>
-                                </li>
-                                <li class="flex items-start gap-3"><span
-                                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold shrink-0 text-xs">2</span>
-                                    <span class="pt-0.5">Execute <strong>[84] ALLFIX</strong>.</span>
-                                </li>
-                                <li class="flex items-start gap-3"><span
-                                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold shrink-0 text-xs">3</span>
-                                    <span class="pt-0.5">Reboot the system.</span>
-                                </li>
-                                <li class="flex items-start gap-3"><span
-                                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold shrink-0 text-xs">4</span>
-                                    <span class="pt-0.5">Verify printer connectivity.</span>
-                                </li>
-                            </ol>
-                        </div>
-                    </div>
-
-
-                    <div
-                        class="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border-t-[6px] border-t-purple-500 border-x border-b border-slate-200 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-                        <div
-                            class="absolute -right-6 -top-6 p-4 opacity-[0.03] dark:opacity-[0.02] group-hover:scale-110 transition-transform duration-500">
-                            <i data-lucide="shield-check" class="w-40 h-40 text-purple-500"></i>
-                        </div>
-                        <div class="relative z-10">
-                            <h3 class="font-extrabold text-xl text-slate-900 dark:text-white mb-2">Win 11 Custom</h3>
-                            <p
-                                class="text-xs text-purple-600 dark:text-purple-400 font-bold mb-6 tracking-widest uppercase bg-purple-50 dark:bg-purple-900/30 inline-block px-2.5 py-1 rounded">
-                                Build 26000+ Specific</p>
-                            <ol class="space-y-4 text-sm text-slate-600 dark:text-slate-300">
-                                <li class="flex items-start gap-3"><span
-                                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold shrink-0 text-xs">1</span>
-                                    <span class="pt-0.5">Execute <strong>[64] Backup</strong>.</span>
-                                </li>
-                                <li class="flex items-start gap-3"><span
-                                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold shrink-0 text-xs">2</span>
-                                    <span class="pt-0.5">Execute <strong>[83] Extreme Path</strong>.</span>
-                                </li>
-                                <li class="flex items-start gap-3"><span
-                                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold shrink-0 text-xs">3</span>
-                                    <span class="pt-0.5">Reboot the system.</span>
-                                </li>
-                            </ol>
-                        </div>
-                    </div>
-
-
-                    <div
-                        class="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border-t-[6px] border-t-rose-500 border-x border-b border-slate-200 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-                        <div
-                            class="absolute -right-6 -top-6 p-4 opacity-[0.03] dark:opacity-[0.02] group-hover:scale-110 transition-transform duration-500">
-                            <i data-lucide="flame" class="w-40 h-40 text-rose-500"></i>
-                        </div>
-                        <div class="relative z-10">
-                            <h3 class="font-extrabold text-xl text-slate-900 dark:text-white mb-2">Emergency Silent AllFix</h3>
-                            <p
-                                class="text-xs text-rose-600 dark:text-rose-400 font-bold mb-6 tracking-widest uppercase bg-rose-50 dark:bg-rose-900/30 inline-block px-2.5 py-1 rounded">
-                                Unattended Execution</p>
-                            <ol class="space-y-4 text-sm text-slate-600 dark:text-slate-300">
-                                <li class="flex items-start gap-3"><span
-                                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold shrink-0 text-xs">1</span>
-                                    <span class="pt-0.5">Execute <strong>[85] SILENT ALLFIX</strong>.</span>
-                                </li>
-                                <li
-                                    class="p-3.5 bg-rose-50 dark:bg-rose-900/20 rounded-xl border border-rose-100 dark:border-rose-800/50 mt-4 text-rose-800 dark:text-rose-300 text-xs font-semibold leading-relaxed shadow-sm">
-                                    <i data-lucide="alert-triangle"
-                                        class="w-4 h-4 inline mr-1.5 mb-0.5 text-rose-600 dark:text-rose-500"></i>
-                                    System will forcefully reboot immediately upon completion without prompting.
-                                </li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-
-            </section>
-
-
-            <section id="troubleshooting" class="scroll-mt-32">
-                <div class="flex items-center gap-4 mb-8">
-                    <div
-                        class="bg-rose-100 dark:bg-rose-900/50 p-3 rounded-2xl border border-rose-200 dark:border-rose-800 shadow-sm">
-                        <i data-lucide="life-buoy" class="w-6 h-6 text-rose-600 dark:text-rose-400"></i>
-                    </div>
-                    <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">E. Troubleshooting
-                        FAQ</h2>
-                </div>
-
-                <div class="space-y-4">
-
-
-                    <div x-data="{ open: false }"
-                        class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-slate-500"
-                        :class="{ 'ring-2 ring-brand-500 border-transparent shadow-md': open }">
-                        <button @click="open = !open"
-                            class="w-full px-7 py-5 flex justify-between items-center focus:outline-none bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                            <span class="font-bold text-slate-900 dark:text-white text-left text-[1.1rem]">Error
-                                0x0000011b (RpcAuthnLevelPrivacyEnabled) keeps returning?</span>
-                            <div class="bg-slate-100 dark:bg-slate-700 p-1.5 rounded-full shrink-0 ml-4">
-                                <i data-lucide="chevron-down"
-                                    class="w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform duration-300"
-                                    :class="{ 'rotate-180': open }"></i>
-                            </div>
-                        </button>
-                        <div x-show="open" x-collapse x-cloak>
-                            <div
-                                class="px-7 pb-7 text-slate-600 dark:text-slate-300 text-base border-t border-slate-100 dark:border-slate-700/50 pt-5 leading-relaxed bg-white dark:bg-slate-800">
-                                This is a common Windows Update enforcement behavior. Execute <span
-                                    class="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md font-mono text-sm font-semibold text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-600">[01]
-                                    Bypass Error 0x0000011b</span> to disable RPC Auth Level Privacy. If it reverts
-                                immediately after a reboot, use <span
-                                    class="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md font-mono text-sm font-semibold text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-600">[80]
-                                    Detect GPO Intervention</span> to audit if your IT administrator or Domain
-                                Controller is forcing it locally via Group Policy.
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div x-data="{ open: false }"
-                        class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-slate-500"
-                        :class="{ 'ring-2 ring-brand-500 border-transparent shadow-md': open }">
-                        <button @click="open = !open"
-                            class="w-full px-7 py-5 flex justify-between items-center focus:outline-none bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                            <span class="font-bold text-slate-900 dark:text-white text-left text-[1.1rem]">Windows 11
-                                reports "No printers were found" (Error 0x00000bc4)?</span>
-                            <div class="bg-slate-100 dark:bg-slate-700 p-1.5 rounded-full shrink-0 ml-4">
-                                <i data-lucide="chevron-down"
-                                    class="w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform duration-300"
-                                    :class="{ 'rotate-180': open }"></i>
-                            </div>
-                        </button>
-                        <div x-show="open" x-collapse x-cloak>
-                            <div
-                                class="px-7 pb-7 text-slate-600 dark:text-slate-300 text-base border-t border-slate-100 dark:border-slate-700/50 pt-5 leading-relaxed bg-white dark:bg-slate-800">
-                                Execute <span
-                                    class="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md font-mono text-sm font-semibold text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-600">[03]
-                                    Bypass Error 0x00000bc4</span>. By default, newer Windows 11 builds attempt RPC over
-                                TCP for printer discovery, which is frequently dropped by local firewalls. This fix
-                                alters the subsystem to fall back to the legacy Named Pipes Protocol, instantly
-                                restoring visibility with older print servers.
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div x-data="{ open: false }"
-                        class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-slate-500"
-                        :class="{ 'ring-2 ring-brand-500 border-transparent shadow-md': open }">
-                        <button @click="open = !open"
-                            class="w-full px-7 py-5 flex justify-between items-center focus:outline-none bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                            <span class="font-bold text-slate-900 dark:text-white text-left text-[1.1rem]">Cannot delete
-                                printer because "Driver is currently in use"?</span>
-                            <div class="bg-slate-100 dark:bg-slate-700 p-1.5 rounded-full shrink-0 ml-4">
-                                <i data-lucide="chevron-down"
-                                    class="w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform duration-300"
-                                    :class="{ 'rotate-180': open }"></i>
-                            </div>
-                        </button>
-                        <div x-show="open" x-collapse x-cloak>
-                            <div
-                                class="px-7 pb-7 text-slate-600 dark:text-slate-300 text-base border-t border-slate-100 dark:border-slate-700/50 pt-5 leading-relaxed bg-white dark:bg-slate-800">
-                                First, execute <span
-                                    class="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md font-mono text-sm font-semibold text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-600">[44]
-                                    Bypass 'Driver is currently in use'</span> to force-kill the spooler isolation
-                                handles that are locking the file. Then execute <span
-                                    class="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md font-mono text-sm font-semibold text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-600">[43]
-                                    Orphaned Driver Sweeper</span> to completely purge the stubborn driver package from
-                                the Windows Driver Store using the native <code>pnputil</code> module.
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div x-data="{ open: true }"
-                        class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-2xl overflow-hidden transition-all duration-300 shadow-md ring-2 ring-indigo-500 border-transparent relative">
-                        <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
-                        <button @click="open = !open"
-                            class="w-full px-8 py-5 flex justify-between items-center focus:outline-none hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 transition-colors">
-                            <span
-                                class="font-extrabold text-indigo-900 dark:text-indigo-300 text-left text-[1.1rem] flex items-center gap-3">
-                                <i data-lucide="alert-octagon"
-                                    class="w-5 h-5 shrink-0 text-indigo-600 dark:text-indigo-400"></i>
-                                Printer sharing completely blocked? "Check Printer Name" Error?
-                            </span>
-                            <div
-                                class="bg-indigo-100 dark:bg-indigo-800/50 p-1.5 rounded-full shrink-0 ml-4 border border-indigo-200 dark:border-indigo-700/50">
-                                <i data-lucide="chevron-down"
-                                    class="w-5 h-5 text-indigo-600 dark:text-indigo-400 transition-transform duration-300"
-                                    :class="{ 'rotate-180': open }"></i>
-                            </div>
-                        </button>
-                        <div x-show="open" x-collapse x-cloak>
-                            <div
-                                class="px-8 pb-7 text-indigo-900/80 dark:text-indigo-200/80 text-base border-t border-indigo-200 dark:border-indigo-800/50 pt-5 leading-relaxed space-y-4">
-                                <p>This is the infamous <strong>PrintNightmare / 0x00000709</strong> restriction where
-                                    Windows entirely blocks the standard <code>Add-PrinterPort</code> API. To fix this
-                                    instantly, use the registry port injection mechanism.</p>
-                                <ol class="list-decimal pl-5 space-y-2.5 font-medium mt-2">
-                                    <li>Execute <span
-                                            class="bg-indigo-100 dark:bg-indigo-900/80 px-2 py-1 rounded-md font-mono text-sm font-bold border border-indigo-200 dark:border-indigo-700/50 text-indigo-700 dark:text-indigo-300">[86]
-                                            Map Local Port to UNC Path</span>.</li>
-                                    <li>Input the Target IP and Exact Share Name. The script will inject the port
-                                        directly into your Registry, successfully bypassing the API block.</li>
-                                    <li>Go to Windows Settings &rarr; Add a Printer Manually &rarr; <strong>Add a Local
-                                            Printer</strong> &rarr; Select the newly injected port from the dropdown
-                                        menu.</li>
-                                </ol>
-                                <div
-                                    class="mt-4 p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-indigo-200/50 dark:border-indigo-800/30 text-sm flex items-start gap-2.5">
-                                    <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500 mt-0.5 shrink-0"></i>
-                                    <p>If you need to delete this port later, use <span
-                                            class="font-mono text-xs font-bold">[87] Remove Injected Local Port</span>.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div x-data="{ open: false }"
-                        class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-slate-500"
-                        :class="{ 'ring-2 ring-brand-500 border-transparent shadow-md': open }">
-                        <button @click="open = !open"
-                            class="w-full px-7 py-5 flex justify-between items-center focus:outline-none bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                            <span class="font-bold text-slate-900 dark:text-white text-left text-[1.1rem]">Continuous
-                                credential prompts despite open configuration?</span>
-                            <div class="bg-slate-100 dark:bg-slate-700 p-1.5 rounded-full shrink-0 ml-4">
-                                <i data-lucide="chevron-down"
-                                    class="w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform duration-300"
-                                    :class="{ 'rotate-180': open }"></i>
-                            </div>
-                        </button>
-                        <div x-show="open" x-collapse x-cloak>
-                            <div
-                                class="px-7 pb-7 text-slate-600 dark:text-slate-300 text-base border-t border-slate-100 dark:border-slate-700/50 pt-5 leading-relaxed bg-white dark:bg-slate-800">
-                                Sequentially execute <span
-                                    class="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md font-mono text-sm font-semibold text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-600">[82]</span>,
-                                <span
-                                    class="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md font-mono text-sm font-semibold text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-600">[12]</span>,
-                                and <span
-                                    class="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md font-mono text-sm font-semibold text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-600">[60]</span>.
-                                This combination resets guest authentication limits, disables password enforcement
-                                natively within the LSA, and injects permanent vault credentials into the Windows
-                                Credential Manager to systematically bypass the prompt.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-
-            <section id="deep-analysis" class="scroll-mt-32 pt-6">
-                <div
-                    class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-[2.5rem] p-8 md:p-12 lg:p-16 shadow-2xl border border-slate-700 relative overflow-hidden">
-
-                    <div
-                        class="absolute top-0 right-0 -mt-32 -mr-32 w-[30rem] h-[30rem] bg-brand-500/10 rounded-full blur-[100px] pointer-events-none">
-                    </div>
-                    <div
-                        class="absolute bottom-0 left-0 -mb-32 -ml-32 w-[30rem] h-[30rem] bg-rose-500/10 rounded-full blur-[100px] pointer-events-none">
-                    </div>
-
-                    <div class="relative z-10">
-                        <div class="flex flex-col md:flex-row md:items-center gap-6 mb-12">
-                            <span
-                                class="bg-slate-800/80 border border-slate-700 text-brand-400 p-4 rounded-2xl shadow-inner inline-flex self-start">
-                                <i data-lucide="microscope" class="w-10 h-10"></i>
-                            </span>
+                <!-- SUBMENU 1 -->
+                <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm transition">
+                    <button @click="openSubmenu === 1 ? openSubmenu = null : openSubmenu = 1" 
+                            class="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">1</span>
                             <div>
-                                <h2
-                                    class="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-2">
-                                    Deep Analysis: PrintNightmare</h2>
-                                <p class="text-brand-400 font-bold tracking-widest uppercase text-sm">Windows 11
-                                    Security Architecture (2026 Edition)</p>
+                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Solusi Cepat & Otomatis (ALLFIX & Windows 11 Terbaru)' : 'Quick & Automated Solutions (ALLFIX & Latest Windows 11)'"></h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Rekomendasi utama: ALLFIX 50 perbaikan, optimasi Host/Client, dan penanganan Windows 11' : 'Top recommendation: ALLFIX 50 automated fixes, Host/Client role tuning, and Windows 11 mitigations'"></p>
                             </div>
                         </div>
-
-                        <div class="grid xl:grid-cols-2 gap-12 lg:gap-16 text-slate-300">
-
-                            <div class="space-y-10">
-                                <div
-                                    class="bg-slate-800/40 p-8 rounded-3xl border border-slate-700/50 backdrop-blur-sm">
-                                    <h3 class="text-2xl font-bold text-white mb-5 flex items-center gap-3">
-                                        <i data-lucide="shield-alert" class="w-6 h-6 text-rose-400"></i> The Root Cause
-                                    </h3>
-                                    <p class="leading-relaxed text-slate-300 text-lg">Modern Windows updates
-                                        (post-PrintNightmare) have introduced aggressive RPC authentication enforcement.
-                                        Standard registry fixes fail because Microsoft now tightly restricts driver
-                                        injection via <code
-                                            class="text-rose-300 bg-rose-900/30 px-2 py-1 rounded text-sm font-mono border border-rose-800/50">RestrictDriverInstallationToAdministrators</code>
-                                        and mandates <strong>Kerberos</strong> over NTLM, causing silent authentication
-                                        blocks during handshake.</p>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openSubmenu === 1 }"></i>
+                    </button>
+                    <div x-show="openSubmenu === 1" x-collapse>
+                        <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30 space-y-3">
+                            
+                            <!-- Modul 84 -->
+                            <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                                <div class="flex items-center justify-between flex-wrap gap-2">
+                                    <span class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 text-xs font-mono font-bold">[1] Modul 84</span>
+                                        <span x-text="lang === 'id' ? 'ALLFIX - 50 Perbaikan Otomatis Sekaligus' : 'ALLFIX - 50 Automated Fixes Simultaneously'"></span>
+                                    </span>
+                                    <span class="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-400 font-semibold" x-text="lang === 'id' ? 'Rekomendasi Utama' : 'Primary Recommendation'"></span>
                                 </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Mengeksekusi 50 langkah perbaikan sistem menyeluruh: backup 5 hive registri, refresh GPO, audit RPC/DCOM, patch 0x0000011b/709/7c/40/02/7e, relaksasi SMB guest, firewall, spooler purge, dan watchdog.' : 'Executes 50 comprehensive system fixes sequentially: 5-hive registry backup, GPO refresh, RPC/DCOM audit, patches 0x0000011b/709/7c/40/02/7e, guest auth, firewall, spooler reset, and watchdog.'"></p>
+                            </div>
 
-                                <div>
-                                    <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                                        <i data-lucide="layers" class="w-6 h-6 text-brand-400"></i> The Multi-Layer
-                                        Automation
-                                    </h3>
-                                    <ul class="space-y-4 list-none">
-                                        <li
-                                            class="flex gap-4 p-4 hover:bg-slate-800/60 rounded-2xl transition-all border border-transparent hover:border-slate-700/50">
-                                            <i data-lucide="check-circle-2"
-                                                class="w-7 h-7 text-emerald-400 shrink-0 mt-0.5"></i>
-                                            <div><strong class="text-white block mb-1 text-lg">RPC Protocol
-                                                    Force</strong> Explicitly routing communication through Named Pipes
-                                                and TCP simultaneously.</div>
-                                        </li>
-                                        <li
-                                            class="flex gap-4 p-4 hover:bg-slate-800/60 rounded-2xl transition-all border border-transparent hover:border-slate-700/50">
-                                            <i data-lucide="check-circle-2"
-                                                class="w-7 h-7 text-emerald-400 shrink-0 mt-0.5"></i>
-                                            <div><strong class="text-white block mb-1 text-lg">Registry Port Injection</strong>
-                                                Injecting UNC paths directly into <code
-                                                    class="text-slate-400 font-mono text-sm">HKLM\\Ports</code> to
-                                                 bypass Win32 API blockades.</div>
-                                        </li>
-                                        <li
-                                            class="flex gap-4 p-4 hover:bg-slate-800/60 rounded-2xl transition-all border border-transparent hover:border-slate-700/50">
-                                            <i data-lucide="check-circle-2"
-                                                class="w-7 h-7 text-emerald-400 shrink-0 mt-0.5"></i>
-                                            <div><strong class="text-white block mb-1 text-lg">HKCU Permission
-                                                    Fix</strong> Granting FullControl to <code
-                                                    class="text-slate-400 font-mono text-sm">Everyone</code> on device
-                                                registry keys to prevent silent "Access Denied".</div>
-                                        </li>
-                                        <li
-                                            class="flex gap-4 p-4 hover:bg-slate-800/60 rounded-2xl transition-all border border-transparent hover:border-slate-700/50">
-                                            <i data-lucide="check-circle-2"
-                                                class="w-7 h-7 text-emerald-400 shrink-0 mt-0.5"></i>
-                                            <div><strong class="text-white block mb-1 text-lg">Elevation
-                                                    Override</strong> Neutralizing <code
-                                                    class="text-slate-400 font-mono text-sm">NoWarningNoElevationOnInstall</code>
-                                                to allow unattended driver installations.</div>
-                                        </li>
-                                    </ul>
+                            <!-- Modul 83 -->
+                            <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                                <div class="flex items-center justify-between flex-wrap gap-2">
+                                    <span class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 text-xs font-mono font-bold">[2] Modul 83</span>
+                                        <span x-text="lang === 'id' ? 'Solusi Khusus Windows 11 Versi Terbaru (24H2/25H2/26H2 & ARM64)' : 'Latest Windows 11 Specialized Fix (24H2/25H2/26H2 & ARM64)'"></span>
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Mengatasi pemblokiran baru di Windows 11: mengizinkan RPC over Named Pipes, menonaktifkan wajib server SMB signing, dan menetapkan fallback NTLMv2 untuk workstation non-domain.' : 'Overcomes modern Windows 11 restrictions: enables RPC over Named Pipes, disables mandatory SMB signing, and configures NTLMv2 fallback for non-domain workgroup PCs.'"></p>
+                            </div>
+
+                            <!-- Modul 87 / Host Role -->
+                            <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                                <div class="flex items-center justify-between flex-wrap gap-2">
+                                    <span class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400 text-xs font-mono font-bold">[3] Modul 87</span>
+                                        <span x-text="lang === 'id' ? 'Optimasi Komputer Host / Server Printer' : 'Printer Host / Server PC Optimization'"></span>
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Khusus dijalankan di PC yang dicolok kabel printer USB: mengizinkan remote RPC spooler endpoint, set jaringan Private, buka guest sharing, buka port firewall/WSD, rapikan nama share, dan pasang Spooler Watchdog.' : 'Tailored for the PC physically connected to the printer: registers spooler remote RPC endpoints, enforces Private network, enables guest sharing, opens firewall/WSD ports, and deploys Spooler Watchdog.'"></p>
+                            </div>
+
+                            <!-- Modul 88 / Client Role -->
+                            <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                                <div class="flex items-center justify-between flex-wrap gap-2">
+                                    <span class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 text-xs font-mono font-bold">[4] Modul 88</span>
+                                        <span x-text="lang === 'id' ? 'Optimasi Komputer Klien / Staf' : 'Client Workstation PC Optimization'"></span>
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Khusus dijalankan di PC karyawan/klien: mengaktifkan RPC Named Pipes protokol, bypass elevasi Point & Print, matikan client SMB signing, perbaiki izin HKCU, aktifkan penemuan perangkat, dan flush DNS.' : 'Tailored for user PCs connecting over LAN: activates RPC Named Pipes, bypasses Point & Print elevation prompts, disables client SMB signing, fixes HKCU keys, enables device discovery, and flushes DNS.'"></p>
+                            </div>
+
+                            <!-- Modul 85 & 69 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <span class="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                                        <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs font-mono font-bold">[5] Modul 85</span>
+                                        <span x-text="lang === 'id' ? 'Silent ALLFIX + Reboot' : 'Silent ALLFIX + Immediate Reboot'"></span>
+                                    </span>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Eksekusi senyap tanpa konfirmasi lalu langsung restart.' : 'Runs silently without prompts and reboots the PC immediately.'"></p>
+                                </div>
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <span class="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                                        <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs font-mono font-bold">[6] Modul 69</span>
+                                        <span x-text="lang === 'id' ? 'Kelola Pembaruan Windows' : 'Windows Update Management'"></span>
+                                    </span>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Jeda Windows Update 35 hari atau blokir update perusak printer.' : 'Pause updates for 35 days or block updates that break printer sharing.'"></p>
                                 </div>
                             </div>
 
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="h-full flex flex-col justify-center">
-                                <div
-                                    class="bg-black/40 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 border border-rose-500/30 shadow-2xl relative overflow-hidden group hover:border-rose-500/60 transition-colors">
-                                    <div
-                                        class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-rose-500 via-orange-500 to-rose-500">
+                <!-- SUBMENU 2 -->
+                <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm transition">
+                    <button @click="openSubmenu === 2 ? openSubmenu = null : openSubmenu = 2" 
+                            class="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">2</span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Perbaikan Berdasarkan Kode Error Spesifik (Error 0x...)' : 'Repair by Specific Error Code (0x...)'"></h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Solusi angka heksadesimal: 0x0000011b, 0x00000709, 0x00000bc4, 0x80070035, dsb.' : 'Exact hexadecimal error solvers: 0x0000011b, 0x00000709, 0x00000bc4, 0x80070035, etc.'"></p>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openSubmenu === 2 }"></i>
+                    </button>
+                    <div x-show="openSubmenu === 2" x-collapse>
+                        <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">[1] 0x0000011b</span>
+                                        <span class="text-xs font-mono text-slate-400">Modul 01</span>
                                     </div>
-                                    <h3 class="text-3xl font-extrabold text-white mb-8 flex items-center gap-4">
-                                        <span class="bg-rose-500/20 p-2 rounded-xl text-rose-400"><i
-                                                data-lucide="network" class="w-7 h-7"></i></span>
-                                        The Two-Way Street Rule
-                                    </h3>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Menyetel RpcAuthnLevelPrivacyEnabled = 0 pada Print Control untuk mengizinkan otentikasi RPC.' : 'Sets RpcAuthnLevelPrivacyEnabled = 0 under Print Control to permit RPC auth.'"></p>
+                                </div>
 
-                                    <div class="space-y-8">
-                                        <p class="text-xl text-slate-300 leading-relaxed font-light">
-                                            A network handshake requires <strong
-                                                class="text-white font-bold border-b-2 border-rose-500">both
-                                                sides</strong> to agree on the lowered security parameters.
-                                        </p>
-
-                                        <div class="flex flex-col gap-4">
-                                            <div
-                                                class="bg-slate-800/90 p-6 rounded-2xl border border-slate-700 shadow-inner">
-                                                <div class="flex items-center gap-3 mb-3">
-                                                    <i data-lucide="server" class="w-6 h-6 text-brand-400"></i>
-                                                    <span class="font-extrabold text-white tracking-widest text-lg">HOST
-                                                        MACHINE</span>
-                                                </div>
-                                                <p class="text-base text-slate-400 leading-relaxed">If unpatched, the
-                                                    Host will reject the client's unauthenticated RPC request at the
-                                                    door.</p>
-                                            </div>
-
-                                            <div class="flex justify-center -my-4 relative z-10">
-                                                <div
-                                                    class="bg-slate-900 p-2.5 rounded-full border border-slate-700 shadow-lg">
-                                                    <i data-lucide="arrow-down-up" class="w-6 h-6 text-slate-400"></i>
-                                                </div>
-                                            </div>
-
-                                            <div
-                                                class="bg-slate-800/90 p-6 rounded-2xl border border-slate-700 shadow-inner">
-                                                <div class="flex items-center gap-3 mb-3">
-                                                    <i data-lucide="laptop" class="w-6 h-6 text-indigo-400"></i>
-                                                    <span
-                                                        class="font-extrabold text-white tracking-widest text-lg">CLIENT
-                                                        MACHINE</span>
-                                                </div>
-                                                <p class="text-base text-slate-400 leading-relaxed">If unpatched, the
-                                                    Client's internal PrintNightmare policy will block the incoming
-                                                    driver download from the Host.</p>
-                                            </div>
-                                        </div>
-
-                                        <div
-                                            class="p-6 bg-gradient-to-r from-rose-900/40 to-rose-800/40 border border-rose-500/30 rounded-2xl text-rose-100 text-center font-bold text-xl mt-6 shadow-inner">
-                                            <i data-lucide="zap" class="w-5 h-5 inline mr-2 mb-1 text-rose-400"></i>
-                                            Always execute [84] ALLFIX on BOTH machines!
-                                        </div>
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">[2] 0x00000709 / 7c</span>
+                                        <span class="text-xs font-mono text-slate-400">Modul 02</span>
                                     </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Bypass Point and Print restriction, set CopyFilesPolicy = 1 & ForceLegacyPrintDriver = 1.' : 'Bypasses Point and Print restriction, sets CopyFilesPolicy = 1 & ForceLegacyPrintDriver = 1.'"></p>
+                                </div>
+
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">[3] 0x00000bc4</span>
+                                        <span class="text-xs font-mono text-slate-400">Modul 03</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Printer tidak ditemukan padahal LAN normal. Set RpcUseNamedPipeProtocol = 1 & RpcProtocols = 7.' : 'No printers found on network. Enforces RpcUseNamedPipeProtocol = 1 & RpcProtocols = 7.'"></p>
+                                </div>
+
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">[4] 0x80070035</span>
+                                        <span class="text-xs font-mono text-slate-400">Modul 04</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Network path not found. Mengaktifkan layanan penemuan fdPHost, FDResPub, SSDPSRV, upnphost.' : 'Network path not found. Automatically starts discovery services (fdPHost, FDResPub, SSDPSRV).'"></p>
+                                </div>
+
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">[5] 0x000006d1</span>
+                                        <span class="text-xs font-mono text-slate-400">Modul 05</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Mematikan Client-Side Rendering (CSR) agar proses rendering dokumen dilakukan oleh komputer host.' : 'Disables Client-Side Rendering (CSR) so print rendering processes on host machine.'"></p>
+                                </div>
+
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">[6] 0x80070005</span>
+                                        <span class="text-xs font-mono text-slate-400">Modul 06</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Access Denied spooler. Reset izin folder PRINTERS dan beri hak Full Control ke Everyone (S-1-1-0).' : 'Access denied spooler. Resets PRINTERS folder ACL permissions and grants Full Control to S-1-1-0.'"></p>
+                                </div>
+
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">[7] 0x00000040</span>
+                                        <span class="text-xs font-mono text-slate-400">Modul 07</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Network name is no longer available. Set KeepConn = 1 dan matikan Multichannel SMB yang deadlocked.' : 'Network name no longer available. Configures KeepConn = 1 and disables bugged Multichannel.'"></p>
+                                </div>
+
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">[8] 0x00000002</span>
+                                        <span class="text-xs font-mono text-slate-400">Modul 08</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Gagal menyalin file driver printer dari host. Set UseSharedSpooler = 1.' : 'Failed to copy driver files from host. Configures UseSharedSpooler = 1.'"></p>
+                                </div>
+
+                                <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">[9] 0x0000007e</span>
+                                        <span class="text-xs font-mono text-slate-400">Modul 09</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Ketidakcocokan arsitektur bitness driver 32-bit vs 64-bit pada lingkungan campuran.' : 'Driver bitness architecture mismatch between 32-bit and 64-bit endpoints.'"></p>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBMENU 3 -->
+                <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm transition">
+                    <button @click="openSubmenu === 3 ? openSubmenu = null : openSubmenu = 3" 
+                            class="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">3</span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Pengaturan Jaringan, Berbagi (SMB) & Firewall' : 'Network Configuration, Sharing (SMB) & Firewall'"></h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Profil Private, sharing tanpa password, SMB Signing, port firewall, WSD discovery' : 'Private profile, passwordless guest sharing, SMB signing, firewall ports, WSD discovery'"></p>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openSubmenu === 3 }"></i>
+                    </button>
+                    <div x-show="openSubmenu === 3" x-collapse>
+                        <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30 space-y-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[1] Modul 11: Set Private Network</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Mengubah profil jaringan ke Private agar penemuan printer diizinkan.' : 'Enforces Private network profile to allow device discovery.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[2] Modul 12 & 82: Buka Sharing Tanpa Sandi</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Mengizinkan login Guest & menonaktifkan sandi sharing Windows.' : 'Permits guest access and removes Windows password prompt for printing.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[3] Modul 16: Matikan Wajib SMB Signing</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Menonaktifkan RequireSecuritySignature pada Workstation & Server.' : 'Disables RequireSecuritySignature on Workstation & Server.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[4] Modul 15 & 17: Manajemen Protokol SMB</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Konfigurasi SMB2/SMB3 & penanganan darurat protokol lawas SMB1.' : 'Manages modern SMB2/SMB3 & legacy SMB 1.0 protocols.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[5] Modul 14 & 21: Buka Port Firewall</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Membuka port TCP 445, 139, 135 dan UDP 137, 138, 3702, 5353.' : 'Opens TCP 445, 139, 135 & UDP 137, 138, 3702, 5353 on Windows Firewall.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[6] Modul 20 & 30: Penemuan Perangkat WSD</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Menyalakan fdPHost, FDResPub, SSDPSRV agar printer modern terdeteksi.' : 'Starts fdPHost, FDResPub, SSDPSRV so modern WSD printers are discovered.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[7] Modul 18 & 23: Prioritas Jaringan & Hyper-V</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Mengatur urutan provider jaringan di atas adapter virtual Hyper-V/WSL.' : 'Prioritizes physical network providers above Hyper-V/WSL virtual adapters.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[8] Modul 10 & 27: Reset Jaringan & Sockets</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Flush DNS, reset Winsock, TCP/IP, dan sesi port 445/135 yang nyangkut.' : 'Flushes DNS, resets Winsock, TCP/IP, and purges stale 445/135 sessions.'"></p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </section>
 
-        </main>
-    </div>
-
-
-    <footer class="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-12 mt-10">
-        <div
-            class="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400 font-medium">
-                <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg">
-                    <i data-lucide="shield-check" class="w-5 h-5 text-brand-500"></i>
+                <!-- SUBMENU 4 -->
+                <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm transition">
+                    <button @click="openSubmenu === 4 ? openSubmenu = null : openSubmenu = 4" 
+                            class="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm">4</span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Manajemen Layanan Spooler & Antrean Cetak' : 'Print Spooler & Print Queue Management'"></h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Reset spooler, bersihkan antrean macet, pemulihan crash otomatis, dan watchdog' : 'Spooler purge, stuck queue flush, automatic crash recovery, and watchdog task'"></p>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openSubmenu === 4 }"></i>
+                    </button>
+                    <div x-show="openSubmenu === 4" x-collapse>
+                        <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[1] Modul 31 & 37: Reset & Purge Queue</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Hentikan spooler, hapus file .spl/.shd, buat ulang folder PRINTERS, dan restart.' : 'Stops spooler, wipes .spl/.shd files, recreates PRINTERS directory, and restarts.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[2] Modul 34: Auto Crash Recovery</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Konfigurasi service recovery tindakan 1, 2, dan berikutnya otomatis restart.' : 'Sets sc.exe failure actions so Windows automatically restarts spooler if it crashes.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[3] Modul 36: Spooler Watchdog Task</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Tugas terjadwal yang memantau spooler tiap 5 menit dan menyalakan kembali.' : 'Scheduled Task checking spooler status every 5 minutes and auto-reviving it.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[4] Modul 35 & 38: Reset Dependensi</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Mengembalikan dependensi spooler ke RPCSS dan http standar pabrik.' : 'Resets spooler service dependencies to standard RPCSS and http.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[5] Modul 32: Restart RPC & DCOM</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Audit dan restart layanan RpcSs dan DcomLaunch yang freeze.' : 'Audits and revives frozen RpcSs and DcomLaunch system services.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[6] Modul 33: Remote Spooler Restart</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Restart layanan spooler di PC lain lewat jaringan via PowerShell/DCOM.' : 'Restarts print spooler on remote server across LAN via WinRM/DCOM.'"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <span>Windows Printer Sharing Fix</span>
+
+                <!-- SUBMENU 5 -->
+                <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm transition">
+                    <button @click="openSubmenu === 5 ? openSubmenu = null : openSubmenu = 5" 
+                            class="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">5</span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Penanganan Driver Printer & Kompatibilitas' : 'Printer Driver & Compatibility Management'"></h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Isolasi driver, pembersihan driver lama, printer hantu USB, cetak browser & UWP' : 'Driver isolation, driver sweeper, ghost USB printer cleanup, browser & UWP fixes'"></p>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openSubmenu === 5 }"></i>
+                    </button>
+                    <div x-show="openSubmenu === 5" x-collapse>
+                        <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[1-3] Driver Sweeper & Isolasi (Modul 44, 40, 43)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Matikan splwow64, matikan isolasi driver (IsolationPolicy = 0), dan bersihkan driver usang via pnputil.' : 'Kills splwow64, disables driver isolation, and sweeps orphaned driver packages.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[4] Hapus Printer Hantu (Modul 45 & 46)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Hapus printer copy 1, copy 2, dan port USB mati yang tertinggal saat printer dipindah.' : 'Purges duplicate ghost printers (Copy 1, Copy 2) and disconnected USB ports.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[5] Driver V4 & Mode Render (Modul 41 & 42)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Izinkan sharing V4 Class Driver dan alihkan mode rendering antara RAW, PCL, PostScript.' : 'Enables V4 class driver sharing and toggles RAW, PCL, and PostScript render modes.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[6] Perbaiki Cetak Browser & UWP (Modul 47 & 49)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Reset sandbox cetak Chrome/Edge dan atasi dialog cetak UWP Windows yang freeze.' : 'Resets Chrome/Edge print sandbox and unfreezes modern Windows print dialogs.'"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBMENU 6 -->
+                <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm transition">
+                    <button @click="openSubmenu === 6 ? openSubmenu = null : openSubmenu = 6" 
+                            class="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center font-bold text-sm">6</span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Kredensial, Hak Akses & Keamanan Windows' : 'Credentials, Permissions & Windows Security'"></h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Simpan sandi ke Vault, UAC token filter, standarisasi NTLMv2, bypass proteksi ketat' : 'Save credentials to Vault, UAC token filter, NTLMv2 standards, bypass strict security'"></p>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openSubmenu === 6 }"></i>
+                    </button>
+                    <div x-show="openSubmenu === 6" x-collapse>
+                        <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[1-3] Manajemen Kredensial Vault (Modul 60, 61, 63)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Simpan login printer ke Windows Credential Manager, bersihkan sandi usang, atau suntikkan ke semua profil.' : 'Saves printer login to Windows Vault, purges stale entries, or injects to all local user profiles.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[4-5] UAC Token & NTLMv2 (Modul 57 & 58)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Bypass LocalAccountTokenFilterPolicy dan standarisasi tingkat respon otentikasi NTLMv2.' : 'Bypasses LocalAccountTokenFilterPolicy and aligns NTLMv2 response compatibility.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[6-7] Proteksi Ketat & WPP (Modul 54, 55, 62, 59)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Relaksasi pembatasan LSA Protection, SAC, Credential Guard, dan Windows Protected Print.' : 'Relaxes strict LSA Protection, SAC, Credential Guard, and Windows Protected Print.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[8-9] Point and Print & RDP (Modul 56 & 52)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Hilangkan pop-up konfirmasi admin Point and Print dan perbaiki pengalihan printer Remote Desktop.' : 'Bypasses Point and Print admin prompt and enables Remote Desktop printer redirection.'"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBMENU 7 -->
+                <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm transition">
+                    <button @click="openSubmenu === 7 ? openSubmenu = null : openSubmenu = 7" 
+                            class="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold text-sm">7</span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Pemetaan Port & Sambungan Manual (UNC / TCP-IP)' : 'Port Mapping & Manual Connections (UNC / TCP-IP)'"></h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Bypass ampuh 0x00000709 via Local Port UNC, ubah WSD ke TCP/IP, tambah port manual' : 'Ultimate 0x00000709 bypass via Local UNC Port, convert WSD to static IP, add ports'"></p>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openSubmenu === 7 }"></i>
+                    </button>
+                    <div x-show="openSubmenu === 7" x-collapse>
+                        <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30 space-y-3">
+                            <div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 space-y-1">
+                                <span class="font-bold text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-mono font-bold">[1] Modul 86</span>
+                                    <span x-text="lang === 'id' ? 'Petakan Port Lokal ke Jalur UNC (Bypass Paling Ampuh 0x00000709)' : 'Map Local Port to UNC Share (Ultimate 0x00000709 Bypass)'"></span>
+                                </span>
+                                <p class="text-xs text-emerald-700 dark:text-emerald-400" x-text="lang === 'id' ? 'Solusi terbaik jika Windows tetap menolak sharing biasa: membuat port lokal baru langsung ke \\\\IP\\PRINTER via API atau injeksi registri Ports. Pengguna tinggal Add Local Printer dan memilih port ini.' : 'Ultimate solution when Windows rejects normal sharing: creates a direct local port pointing to \\\\IP\\PRINTER via API or Ports registry injection. Simply Add Local Printer and pick this port.'"></p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-1">
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[2] Modul 87: Hapus Port UNC</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Menghapus pemetaan port UNC yang tidak lagi digunakan.' : 'Removes previously injected local UNC ports from spooler.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[3] Modul 26: WSD ke TCP/IP</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Mengonversi printer WSD yang suka offline ke IP statis stabil.' : 'Converts glitchy offline WSD printers into stable raw TCP/IP ports.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[4] Modul 29: Tambah Port TCP/IP</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Membuat port printer standar IP baru via skrip WMI.' : 'Creates a new standard TCP/IP printer port directly using WMI.'"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBMENU 8 -->
+                <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm transition">
+                    <button @click="openSubmenu === 8 ? openSubmenu = null : openSubmenu = 8" 
+                            class="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-sm">8</span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Cadangan (Backup), Diagnostik & Pemulihan Sistem' : 'Backup, Diagnostics & System Recovery'"></h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Cadangkan registri 5 hive, rollback, restore point, SFC/DISM, tes ping, laporan HTML' : '5-hive registry backup, rollback, restore point, SFC/DISM, ping test, HTML report'"></p>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openSubmenu === 8 }"></i>
+                    </button>
+                    <div x-show="openSubmenu === 8" x-collapse>
+                        <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[1-2] Backup & Rollback (Modul 64 & 65)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Ekspor dan pulihkan 5 cabang registri vital: Print, Policy, Lanman, dan LSA.' : 'Exports & restores 5 critical registry hives: Print, Policy, Lanman, and LSA.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[3-4] Restore Point & SFC (Modul 66 & 67)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Buat System Restore Point instan dan perbaiki file OS via SFC & DISM.' : 'Creates immediate System Restore Point and repairs Windows files via SFC & DISM.'"></p>
+                                </div>
+                                <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <strong class="text-slate-900 dark:text-white">[5-7] Tes Port & Laporan HTML (Modul 74, 76, 79)</strong>
+                                    <p class="text-slate-500 mt-0.5" x-text="lang === 'id' ? 'Uji ping port 445/135, baca log PrintService, dan ekspor laporan diagnostik web.' : 'Tests TCP 445/135 ports, parses PrintService logs, and exports HTML diagnostic report.'"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBMENU 9 -->
+                <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm transition">
+                    <button @click="openSubmenu === 9 ? openSubmenu = null : openSubmenu = 9" 
+                            class="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-slate-500/10 text-slate-600 dark:text-slate-400 flex items-center justify-center font-bold text-sm">9</span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="lang === 'id' ? 'Panduan Bantuan Modul Lengkap (Help System)' : 'Complete Module Help & Documentation'"></h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="lang === 'id' ? 'Bantuan per modul interaktif: ketik ? <kode> atau help <kode> di konsol' : 'Interactive per-module help: type ? <code> or help <code> in console'"></p>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openSubmenu === 9 }"></i>
+                    </button>
+                    <div x-show="openSubmenu === 9" x-collapse>
+                        <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30 text-xs space-y-2">
+                            <p class="text-slate-600 dark:text-slate-300" x-text="lang === 'id' ? 'Seluruh 89 modul memiliki dokumentasi bawaan. Anda dapat memanggil informasi modul apa pun secara langsung dari konsol dengan mengetikkan:' : 'All 89 modules have built-in technical documentation. You can query any module description directly from the console by typing:'"></p>
+                            <div class="p-3 bg-slate-900 text-slate-200 rounded-xl font-mono text-xs space-y-1">
+                                <div><span class="text-brand-400">? 84</span> &nbsp;&nbsp;<span class="text-slate-400" x-text="lang === 'id' ? '# Menampilkan rincian modul ALLFIX' : '# Displays ALLFIX module details'"></span></div>
+                                <div><span class="text-brand-400">help 86</span> <span class="text-slate-400" x-text="lang === 'id' ? '# Menampilkan panduan pemetaan port UNC' : '# Displays UNC port mapping guide'"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-            <div class="text-slate-500 dark:text-slate-400 text-sm font-medium">
-                Author:
-                <a href="https://instagram.com/khairudinfahmi" target="_blank"
-                    class="inline-flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:text-brand-600 dark:hover:text-brand-400 transition-all ml-1 border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <i data-lucide="terminal" class="w-3.5 h-3.5"></i> @khairudinfahmi — 2026
-                </a>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
+            <div class="flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-brand-500"></i>
+                <span>Windows Printer Sharing Fix &copy; 2026 khairudinfahmi. Released under GPL-3.0.</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases" target="_blank" class="hover:text-brand-500 transition" x-text="lang === 'id' ? 'Unduh Rilis Terbaru' : 'Download Latest Release'"></a>
+                <span>&bull;</span>
+                <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/issues" target="_blank" class="hover:text-brand-500 transition" x-text="lang === 'id' ? 'Laporkan Masalah' : 'Report Issue'"></a>
             </div>
         </div>
     </footer>
 
-
     <script>
-        function renderFeatures(searchQuery = '') {
-            const container = document.getElementById('featuresList');
-            const searchStats = document.getElementById('searchStats');
-            const visibleCountSpan = document.getElementById('visibleCount');
-            const emptyState = document.getElementById('emptySearchState');
-
-            container.innerHTML = '';
-            let totalVisible = 0;
-            const query = searchQuery.toLowerCase().trim();
-
-            window.__FEATURES_DATA__.forEach(group => {
-                const filteredItems = group.items.filter(item => {
-                    const searchableText = `${item.id} ${item.title} ${item.problem} ${item.solution} ${item.whenToUse} ${item.note || ''} ${item.warning || ''}`.toLowerCase();
-                    return searchableText.includes(query);
-                });
-
-                if (filteredItems.length > 0) {
-                    const categoryHtml = `
-                        <div class="mb-8 mt-14 first:mt-0">
-                            <h3 class="text-xl font-extrabold text-brand-700 dark:text-brand-400 border-b-2 border-brand-100 dark:border-brand-900/50 pb-3.5 tracking-wide flex items-center gap-3">
-                                <i data-lucide="layers" class="w-5 h-5 opacity-70"></i> ${group.category}
-                            </h3>
-                        </div>
-                        <div class="grid xl:grid-cols-2 gap-6">
-                            ${filteredItems.map(item => `
-                                <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-7 hover:shadow-xl hover:-translate-y-1 hover:border-brand-300 dark:hover:border-brand-600 transition-all duration-300 group flex flex-col h-full relative overflow-hidden">
-                                    
-                                    
-                                    <div class="absolute -right-12 -top-12 bg-brand-50 dark:bg-brand-900/20 w-40 h-40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-3xl pointer-events-none"></div>
-                                    
-                                    <div class="flex items-start gap-4 mb-6 relative z-10">
-                                        <span class="shrink-0 bg-slate-50 text-slate-700 dark:bg-slate-700 dark:text-slate-200 font-bold px-3 py-1.5 rounded-xl text-sm group-hover:bg-brand-500 group-hover:text-white transition-colors shadow-sm border border-slate-200 dark:border-slate-600 group-hover:border-brand-500">[${item.id}]</span>
-                                        <h4 class="font-extrabold text-slate-900 dark:text-white text-[1.15rem] leading-tight mt-1">${item.title}</h4>
-                                    </div>
-                                    
-                                    <div class="space-y-4 text-sm flex-grow relative z-10">
-                                        <div class="flex gap-3.5 items-start">
-                                            <span class="shrink-0 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-red-100 dark:border-red-800/30"><i data-lucide="target" class="w-3.5 h-3.5"></i> Issue</span>
-                                            <span class="text-slate-600 dark:text-slate-300 leading-relaxed pt-1">${item.problem}</span>
-                                        </div>
-                                        <div class="flex gap-3.5 items-start">
-                                            <span class="shrink-0 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-emerald-100 dark:border-emerald-800/30"><i data-lucide="wrench" class="w-3.5 h-3.5"></i> Action</span>
-                                            <span class="text-slate-600 dark:text-slate-300 leading-relaxed pt-1">${item.solution}</span>
-                                        </div>
-                                        <div class="flex gap-3.5 items-start">
-                                            <span class="shrink-0 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-blue-100 dark:border-blue-800/30"><i data-lucide="clock" class="w-3.5 h-3.5"></i> When</span>
-                                            <span class="text-slate-600 dark:text-slate-300 leading-relaxed pt-1">${item.whenToUse}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    
-                                    <div class="mt-6 space-y-3 relative z-10">
-                                        ${item.note ? `
-                                        <div class="flex gap-3 items-start p-3.5 bg-amber-50/80 dark:bg-amber-900/20 rounded-xl border border-amber-200/60 dark:border-amber-700/50">
-                                            <i data-lucide="info" class="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5"></i>
-                                            <span class="text-amber-900 dark:text-amber-200 text-xs leading-relaxed font-semibold">${item.note}</span>
-                                        </div>` : ''}
-                                        
-                                        ${item.warning ? `
-                                        <div class="flex gap-3 items-start p-3.5 bg-rose-50/80 dark:bg-rose-900/20 rounded-xl border border-rose-200/60 dark:border-rose-700/50 shadow-sm">
-                                            <i data-lucide="alert-triangle" class="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5"></i>
-                                            <span class="text-rose-900 dark:text-rose-200 text-xs leading-relaxed font-bold tracking-wide uppercase">${item.warning}</span>
-                                        </div>` : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                    container.innerHTML += categoryHtml;
-                    totalVisible += filteredItems.length;
-                }
-            });
-
-            if (totalVisible === 0) {
-                emptyState.classList.remove('hidden');
-                searchStats.classList.add('hidden');
-            } else {
-                emptyState.classList.add('hidden');
-                if (query !== '') {
-                    searchStats.classList.remove('hidden');
-                    visibleCountSpan.textContent = totalVisible;
-                } else {
-                    searchStats.classList.add('hidden');
-                }
-            }
-
-            if (window.lucide) {
-                window.lucide.createIcons();
-            }
-        }
-
-        renderFeatures();
-
-        const searchInput = document.getElementById('searchInput');
-        const mobileSearchInput = document.getElementById('mobileSearchInput');
-
-        searchInput.addEventListener('input', (e) => {
-            mobileSearchInput.value = e.target.value;
-            renderFeatures(e.target.value);
-        });
-        mobileSearchInput.addEventListener('input', (e) => {
-            searchInput.value = e.target.value;
-            renderFeatures(e.target.value);
-        });
-
-        window.addEventListener('DOMContentLoaded', () => {
-            if (window.lucide) {
-                window.lucide.createIcons();
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('all')) {
-                searchInput.value = 'allfix';
-                mobileSearchInput.value = 'allfix';
-                renderFeatures('allfix');
-
-                setTimeout(() => {
-                    const featuresSection = document.getElementById('features');
-                    if (featuresSection) {
-                        featuresSection.scrollIntoView({ behavior: 'smooth' });
-                        featuresSection.classList.add('ring-2', 'ring-brand-500', 'ring-offset-8', 'dark:ring-offset-slate-900', 'rounded-3xl', 'transition-all', 'duration-1000');
-                        setTimeout(() => {
-                            featuresSection.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-8', 'dark:ring-offset-slate-900');
-                        }, 2000);
-                    }
-                }, 500);
-            }
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
         });
     </script>
 </body>
-
 </html>
