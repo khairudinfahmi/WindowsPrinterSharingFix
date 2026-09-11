@@ -3076,7 +3076,7 @@ function Show-Help {
         '60' = @("Save Printer Credentials to Windows Vault (Permanent Login)", "Stores target host credentials directly into Windows Credential Manager.", "Eliminates having to re-enter credentials every time computer reboots.")
         '61' = @("Clean Stale Credentials from Windows Vault", "Purges stored obsolete credentials using cmdkey.", "Password was changed on host PC but client still sends obsolete credentials.")
         '62' = @("Bypass NTLM Blocking by Credential Guard", "Configures LsaCfgFlags registry parameter under Credential Guard.", "Corporate environments with active Credential Guard blocking NTLM sharing.")
-        '63' = @("Deploy Login Credentials to All User Profiles", "Installs RunOnce task across all user profiles via NTUSER.DAT loading.", "Shared office computers utilized by multiple local user accounts.")
+        '63' = @("Deploy Login Credentials to All User Profiles", "Installs RunOnce task across all user profiles via NTUSER.DAT loading.", "Shared office computers used by multiple local user accounts.")
         '64' = @("Backup Printer & Network Registry (Backup Registry)", "Exports Print, Policies, and Network registry hives to C:\WindowsPrinterSharingFixBackup.", "HIGHLY RECOMMENDED as the very first step before applying changes!")
         '65' = @("Rollback Registry from Previous Backup", "Imports previously exported .reg backup snapshots back into the system.", "Restores original system state if any issues occur after repairs.")
         '66' = @("Create System Restore Point", "Creates a full Windows System Restore Point for system rollback.", "Safety milestone before major system-wide modifications.")

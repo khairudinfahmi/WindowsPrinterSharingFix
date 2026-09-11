@@ -80,7 +80,7 @@ Execute specialized playbooks directly via command line:
 
 ## Menu & Submenu Reference (v2.4.0)
 
-The main console organizes all 89 remediation modules into 8 dedicated categories plus an interactive help engine:
+The main console organizes all 89 execution modules into 8 dedicated categories plus an interactive help engine:
 
 ```text
 ======================================================================================
@@ -229,7 +229,7 @@ Safety mechanisms to back up system state prior to modifications and deep diagno
 | **3** | **Create System Restore Point for System Rollback** | `[66]` | Generates an immediate Windows System Restore Point with automatic frequency-limit bypass. |
 | **4** | **Scan & Repair System Files (SFC /scannow & DISM)** | `[67]` | Runs `sfc /scannow` and `dism /online /cleanup-image /restorehealth` to repair corrupted Windows core components. |
 | **5** | **Test Network Connectivity & Scan Ports (Ping & Port 135/445)** | `[74]` | Performs raw ICMP echo and TCP socket handshakes on Port 445 (SMB) and Port 135 (RPC) to verify network route and firewall clearance. |
-| **6** | **Audit & Analyze Print Service Event Logs (Event Log Parser)** | `[76] & [78]` | Inspects Windows Event Logs for print service errors and provides actionable diagnostic guidance based on event IDs. |
+| **6** | **Audit & Analyze Print Service Event Logs (Event Log Parser)** | `[76] & [78]` | Inspects Windows Event Logs for print service errors and maps event IDs to specific recommended fixes. |
 | **7** | **Generate Interactive HTML Diagnostic Report** | `[79]` | Compiles hardware, network, spooler, driver, and registry status into a standalone interactive HTML diagnostic report. |
 | **8** | **Scan Active Directory Domain Policy / GPO Intervention** | `[80]` | Detects whether active Domain Group Policy Objects (GPO) are overriding local printer sharing registry configurations. |
 | **9** | **Backup & Migrate Printers to Another Computer (PrintBRM)** | `[81]` | Backs up or migrates complete printer queues, driver packages, and ports across computers using native Windows `PrintBRM.exe`. |
