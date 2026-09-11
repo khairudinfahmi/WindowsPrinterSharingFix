@@ -97,7 +97,7 @@ The main console organizes all 89 remediation modules into 8 dedicated categorie
   [5] Driver Management & Ghost / USB Printer Cleanup
   [6] Credentials, Access Rights & Security (Vault, LSA, UAC)
   [7] Port Mapping & Manual Connections (UNC Port Map & TCP/IP)
-  [8] Backup, System Diagnostics & Disaster Recovery
+  [8] Backup, System Diagnostics & Recovery
   [9] Help & Usage Guide
 
   [L] Switch Language (English / Indonesia)
@@ -218,7 +218,7 @@ Direct connection methods when standard Windows Network Discovery fails.
 
 ---
 
-### Submenu 8: Backup, System Diagnostics & Disaster Recovery
+### Submenu 8: Backup, System Diagnostics & Recovery
 Safety mechanisms to back up system state prior to modifications and deep diagnostic analysis tools.
 
 | # | Menu Option | Code | Details & Technical Benefit |

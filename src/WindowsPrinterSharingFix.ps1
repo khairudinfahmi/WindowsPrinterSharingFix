@@ -3079,7 +3079,7 @@ function Show-Help {
         '63' = @("Deploy Login Credentials to All User Profiles", "Installs RunOnce task across all user profiles via NTUSER.DAT loading.", "Shared office computers utilized by multiple local user accounts.")
         '64' = @("Backup Printer & Network Registry (Backup Registry)", "Exports Print, Policies, and Network registry hives to C:\WindowsPrinterSharingFixBackup.", "HIGHLY RECOMMENDED as the very first step before applying changes!")
         '65' = @("Rollback Registry from Previous Backup", "Imports previously exported .reg backup snapshots back into the system.", "Restores original system state if any issues occur after repairs.")
-        '66' = @("Create System Restore Point", "Creates a full Windows System Restore Point for disaster recovery.", "Safety milestone before major system-wide modifications.")
+        '66' = @("Create System Restore Point", "Creates a full Windows System Restore Point for system rollback.", "Safety milestone before major system-wide modifications.")
         '67' = @("Scan & Repair System Files (SFC & DISM)", "Runs sfc /scannow and DISM RestoreHealth to repair corrupted Windows files.", "System experiences unexpected blue screens, crashes, or file corruption.")
         '68' = @("Restart Background Intelligent Transfer Service (BITS)", "Restarts BITS service to unblock background file transfers.", "Printer drivers fail to download automatically across the network.")
         '69' = @("Manage Windows Updates & Block Printer-Breaking Patches", "Pauses updates, uninstalls problematic patches, or blocks update regressions.", "Prevents Windows Update from breaking printer sharing configurations.")
@@ -3796,12 +3796,12 @@ function Show-Submenu7 {
 function Show-Submenu8 {
     do {
         $isEN = ($script:lang -eq "EN")
-        Show-Header -SubTitle $(if ($isEN) { "8. Backup, System Diagnostics & Disaster Recovery" } else { "8. Cadangan, Diagnostik & Pemulihan" })
+        Show-Header -SubTitle $(if ($isEN) { "8. Backup, System Diagnostics & Recovery" } else { "8. Cadangan, Diagnostik & Pemulihan" })
         Write-Host ""
         if ($isEN) {
             Write-Host "  [1] Backup Printer & Network Registry (Always Recommended Before Fixes)" -ForegroundColor Green
             Write-Host "  [2] Rollback Registry from Previous Backup Snapshot" -ForegroundColor White
-            Write-Host "  [3] Create System Restore Point for Disaster Recovery" -ForegroundColor White
+            Write-Host "  [3] Create System Restore Point for System Rollback" -ForegroundColor White
             Write-Host "  [4] Scan & Repair System Files (SFC /scannow & DISM)" -ForegroundColor White
             Write-Host "  [5] Test Network Connectivity & Scan Ports (Ping & Port 135/445)" -ForegroundColor White
             Write-Host "  [6] Audit & Analyze Print Service Event Logs (Event Log Parser)" -ForegroundColor White
@@ -3940,7 +3940,7 @@ function Show-MainMenu {
         Write-Host "  [5] Driver Management & Ghost / USB Printer Cleanup" -ForegroundColor White
         Write-Host "  [6] Credentials, Access Rights & Security (Vault, LSA, UAC)" -ForegroundColor White
         Write-Host "  [7] Port Mapping & Manual Connections (UNC Port Map & TCP/IP)" -ForegroundColor White
-        Write-Host "  [8] Backup, System Diagnostics & Disaster Recovery" -ForegroundColor White
+        Write-Host "  [8] Backup, System Diagnostics & Recovery" -ForegroundColor White
         Write-Host ""
         Write-Host "  [9] Help & Usage Guide" -ForegroundColor Cyan
         Write-Host "  [L] Switch to Bahasa Indonesia" -ForegroundColor Yellow
