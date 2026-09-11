@@ -1,4 +1,4 @@
-﻿# Windows Printer Sharing Fix
+# Windows Printer Sharing Fix
 
 [![Windows Compatibility](https://img.shields.io/badge/Windows-10%20%7C%2011%20(24H2%2F25H2%2F26H2)%20%7C%20Server%202025-0078D6?logo=windows&logoColor=white)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases)
 [![Version](https://img.shields.io/badge/version-2.4.0-emerald.svg?style=flat)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.0)
@@ -6,9 +6,9 @@
 [![Architecture](https://img.shields.io/badge/architecture-x64%20%7C%20ARM64-orange.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
 [![Language](https://img.shields.io/badge/language-English%20%7C%20Indonesian-purple.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
 
-**Windows Printer Sharing Fix** is an enterprise-grade, fully automated, and battle-tested utility designed to diagnose, remediate, and eliminate all printer sharing and network printing failures across local Windows networks (Workgroups and Active Directory domains).
+**Windows Printer Sharing Fix** is a fully automated PowerShell utility that diagnoses and fixes printer sharing and network printing failures on Windows networks (Workgroups and Active Directory domains).
 
-Engineered to be intuitive for standard office workstations while offering deep diagnostic telemetry and surgical remediation capabilities for IT administrators, sysadmins, and field engineers.
+Simple enough for general office use, but ships with detailed diagnostics and targeted fix modules for IT admins, sysadmins, and field engineers.
 
 Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **ARM64**, and **Windows Server 2016 / 2019 / 2022 / 2025**.
 
@@ -20,18 +20,18 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
    - Toggle the interface language dynamically on the fly by pressing **`[L]`** at any menu or prompt.
    - User language preference is persisted across sessions in the registry (`HKCU:\Software\WindowsPrinterSharingFix\Language`).
 2. **Real-Time System Health Banner**:
-   - The console header proactively audits and displays the real-time status of the four foundational pillars of Windows printer sharing every time a menu renders:
+   - The console header checks and displays the live status of the four core Windows printer sharing components every time a menu renders:
      ```text
      SYSTEM HEALTH: Spooler [ACTIVE] | Network [PRIVATE] | SMB Signing [MATCHED] | Password Sharing [OFF]
      ```
-   - Enables engineers to identify root network misconfigurations in under one second.
-3. **Ergonomic Terminal Architecture (Human-Friendly UI)**:
-   - Transformed the legacy monolithic display into **8 structured action categories + 1 interactive help system**, optimized for standard 86-column console buffers.
+   - Lets you spot network misconfigurations at a glance.
+3. **Reorganized Console Layout (Human-Friendly UI)**:
+   - Replaced the old single-screen menu with **8 categorized submenus + 1 interactive help system**, sized for standard 86-column console buffers.
 4. **Role-Based Optimization Playbooks**:
    - **Printer Host / Server Playbook (`[3]` in Submenu 1)**: Tailored for machines with direct USB or local printer attachments.
    - **Client Workstation Playbook (`[4]` in Submenu 1)**: Tailored for employee PCs connecting across the LAN.
 5. **Modern Windows 11 Security Mitigations**:
-   - Neutralizes modern RPC over Named Pipes restrictions (`RpcOverNamedPipes`, `RegisterSpoolerRemoteRpcEndPoint`).
+   - Works around modern RPC over Named Pipes restrictions (`RpcOverNamedPipes`, `RegisterSpoolerRemoteRpcEndPoint`).
    - Mitigates mandatory SMB Signing enforcement introduced in Windows 11 24H2.
    - Configures NTLMv2 fallback for non-domain Workgroup topologies.
 6. **Direct Action Shortcuts**:
@@ -98,7 +98,7 @@ The main console organizes all 89 remediation modules into 8 dedicated categorie
   [6] Credentials, Permissions & Windows Security
   [7] Port Mapping & Manual Connections (UNC / TCP-IP)
   [8] Backup, Diagnostics & System Recovery
-  [9] Comprehensive Module Help System
+  [9] Module Help System
 
   [L] Switch Language (English / Indonesia)
   [?] Display Module Help (e.g., ? 84 or help 86)
@@ -108,7 +108,7 @@ The main console organizes all 89 remediation modules into 8 dedicated categorie
 ---
 
 ### Submenu 1: Quick & Automated Solutions (ALLFIX & Modern Windows 11)
-One-click comprehensive remediation routines designed to resolve common and complex sharing failures rapidly.
+One-click fix routines that cover the most common and complex sharing failures.
 
 | # | Solution / Module Name | Code | Technical Description & Scope |
 | :---: | :--- | :---: | :--- |
@@ -122,7 +122,7 @@ One-click comprehensive remediation routines designed to resolve common and comp
 ---
 
 ### Submenu 2: Fix by Specific Error Code (Error 0x...)
-Surgical remediation modules mapped directly to hexadecimal Windows network print error codes.
+Targeted fix modules mapped to specific hexadecimal Windows network print error codes.
 
 | # | Error Code | Code | Root Cause & Technical Fix |
 | :---: | :--- | :---: | :--- |
@@ -206,13 +206,13 @@ Manages multi-machine authentication, Windows Vault credentials, and Windows 11 
 ---
 
 ### Submenu 7: Port Mapping & Manual Connections (UNC / TCP-IP)
-Definitive bypass mechanisms when standard Windows Network Discovery fails to establish a printer connection.
+Direct connection methods when standard Windows Network Discovery fails.
 
 | # | Menu Option | Code | Details & Technical Benefit |
 | :---: | :--- | :---: | :--- |
-| **1** | **Map Local Port to UNC Path (Ultimate 0x709 Bypass)** | `[86]` | **Definitive Bypass**: Creates a local port mapped directly to a host UNC path (e.g., `\\192.168.1.50\PRINTER`). Bypasses all client-side Point & Print driver restrictions! |
+| **1** | **Map Local Port to UNC Path (Ultimate 0x709 Bypass)** | `[86]` | Creates a local port mapped directly to a host UNC path (e.g., `\\192.168.1.50\PRINTER`). Bypasses all client-side Point & Print driver restrictions. |
 | **2** | **Remove Injected Local UNC Port** | `[87]` | Removes previously injected UNC local ports cleanly from the spooler and registry port enumeration keys. |
-| **3** | **Convert WSD Port to Standard TCP/IP Port** | `[26]` | Converts erratic WSD ports (which frequently display printers as *Offline*) into rock-solid static TCP/IP raw ports. |
+| **3** | **Convert WSD Port to Standard TCP/IP Port** | `[26]` | Converts unreliable WSD ports (which frequently display printers as *Offline*) to stable static TCP/IP raw ports. |
 | **4** | **Add Standard TCP/IP Port Manually** | `[29]` | Creates a direct Raw TCP/IP printing port (Port 9100) via WMI using the printer's static IP address. |
 | **5** | **Scan Shared Printers on Target Host** | `[25]` | Interrogates the target network computer and displays all currently exposed printer shares. |
 
@@ -229,7 +229,7 @@ Safety mechanisms to back up system state prior to modifications and deep diagno
 | **4** | **Check & Repair System Integrity (SFC & DISM)** | `[67]` | Executes `sfc /scannow` and `dism /online /cleanup-image /restorehealth` to repair corrupted Windows core components. |
 | **5** | **Network Reachability & Port Connectivity Test** | `[74]` | Performs raw TCP socket handshakes on Port 445 (SMB) and Port 135 (RPC) to verify firewall clearance to the target host. |
 | **6** | **Analyze Print Service Event Logs (PrintService/Admin)** | `[76] & [78]` | Inspects Windows Event Logs for print service errors and provides actionable diagnostic guidance based on event IDs. |
-| **7** | **Generate Interactive HTML Diagnostic Report** | `[79]` | Compiles a comprehensive audit of system configuration, spooler health, ports, and registry states into an interactive HTML report. |
+| **7** | **Generate Interactive HTML Diagnostic Report** | `[79]` | Collects system configuration, spooler health, ports, and registry states into a single interactive HTML report. |
 | **8** | **Audit Active Directory / Domain GPO Interventions** | `[80]` | Detects whether domain Group Policies are actively overriding local printer sharing registry configurations. |
 | **9** | **Printer Migration Utility (PrintBRM Export/Import)** | `[81]` | Backs up or restores complete printer queues, driver packages, and ports across machines using native Windows PrintBRM. |
 | **10** | **Force Stalled Printer to Online State** | `[71]` | Sends WMI instructions to the print queue to clear hung error flags and force offline printers back to *Online*. |
@@ -237,8 +237,8 @@ Safety mechanisms to back up system state prior to modifications and deep diagno
 
 ---
 
-### Submenu 9: Comprehensive Module Help System
-In-depth technical manual and interactive guidance for every module in the suite.
+### Submenu 9: Module Help System
+Built-in technical reference and usage guidance for every module.
 - Type **`? <module_code>`** or **`help <module_code>`** directly from the Main Menu (e.g., `? 84` or `help 86`) for instant console documentation.
 - Opens offline documentation in your default browser.
 
@@ -249,7 +249,7 @@ In-depth technical manual and interactive guidance for every module in the suite
 When automated playbooks (**ALLFIX [84]** or **Extreme Path [83]**) are executed, the engine applies multiple safety and persistence mechanisms:
 
 1. **Group Policy Synchronization (`gpupdate /force`)**: Refreshes local Group Policy before writing registry overrides to prevent immediate policy rollback.
-2. **Proactive Registry Protection**: Backs up 5 vital registry hives to `C:\WindowsPrinterSharingFixBackup` prior to performing modifications.
+2. **Pre-Change Registry Backup**: Backs up 5 critical registry hives to `C:\WindowsPrinterSharingFixBackup` before making any modifications.
 3. **Resilient Scheduled Tasks**:
    - `PrinterFixPostUpdate` (triggered at system boot) & `PrinterFixDaily` (daily at 10:00 AM): Re-applies critical sharing parameters if monthly Windows Updates (*Patch Tuesday*) revert configurations.
    - `SpoolerWatchdog` (runs every 5 minutes): Actively monitors the Print Spooler service and restarts it if terminated by buggy third-party drivers.
