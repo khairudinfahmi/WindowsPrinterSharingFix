@@ -125,9 +125,15 @@ function Restart-Elevated {
         Start-Process -FilePath $exePath -ArgumentList $cmdArgs -Verb RunAs
     }
     else {
-        $cmdArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
-        if ($script:silentNuke) { $cmdArgs += " -nuke" }
-        Start-Process powershell -Verb RunAs -ArgumentList $cmdArgs
+        $targetScript = if ($PSCommandPath) { $PSCommandPath } elseif ($MyInvocation.MyCommand.Path) { $MyInvocation.MyCommand.Path } else { "" }
+        if ($targetScript) {
+            $cmdArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$targetScript`""
+            if ($script:silentNuke) { $cmdArgs += " -nuke" }
+            Start-Process powershell -Verb RunAs -ArgumentList $cmdArgs
+        } else {
+            Write-Host "  [-] Please run this script in an elevated Administrator PowerShell prompt." -ForegroundColor Red
+            Pause-User
+        }
     }
     exit
 }
@@ -2406,7 +2412,7 @@ function Remove-LocalPortUNC {
 
 
 function Fix-HostServerRole {
-    cls
+    Clear-Screen
     $isEN = ($script:lang -eq "EN")
     $title = if ($isEN) { "OPTIMIZING HOST / PRINT SERVER PC (USB-CONNECTED)" } else { "OPTIMASI KOMPUTER HOST / SERVER PRINTER (TERHUBUNG USB)" }
     Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
@@ -2452,7 +2458,7 @@ function Fix-HostServerRole {
 }
 
 function Fix-ClientWorkstationRole {
-    cls
+    Clear-Screen
     $isEN = ($script:lang -eq "EN")
     $title = if ($isEN) { "OPTIMIZING CLIENT PC (CONNECTING TO SHARED PRINTER)" } else { "OPTIMASI KOMPUTER KLIEN (MENYAMBUNG KE PRINTER SHARING)" }
     Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
@@ -2556,7 +2562,7 @@ function Get-SystemHealthSummary {
 }
 
 function AllFix-Core {
-    cls
+    Clear-Screen
     $isEN = ($script:lang -eq "EN")
     $title = if ($isEN) { "EXECUTING ALLFIX (50 AUTOMATED FIXES)" } else { "MENJALANKAN ALLFIX (50 PERBAIKAN OTOMATIS SEKALIGUS)" }
     Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
@@ -2747,7 +2753,7 @@ function AllFix-Core {
         Write-Host $rebootMsg -ForegroundColor Green
         Write-Host "  ===================================================================================================`n" -ForegroundColor Cyan
         Start-Sleep -Seconds 3
-        Restart-Computer -Force
+        Invoke-SystemReboot
     }
 
     Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
@@ -2778,7 +2784,7 @@ function AllFix-Core {
     $allFixRestart = Read-Host $promptReboot
     if ($allFixRestart -match '^[yY]') {
         Write-Host $(if ($isEN) { "  [*] Proceeding, rebooting in 5 seconds..." } else { "  [*] Mempersiapkan restart dalam 5 detik..." }) -ForegroundColor Cyan
-        Restart-Computer -Force
+        Invoke-SystemReboot
     }
     else {
         Write-Host $(if ($isEN) { "  [*] Reboot manually to commit all security changes." } else { "  [*] Silakan restart komputer secara manual saat santai agar seluruh perbaikan aktif." }) -ForegroundColor Cyan
@@ -2786,7 +2792,7 @@ function AllFix-Core {
 }
 
 function Extreme-25H2 {
-    cls
+    Clear-Screen
     $isEN = ($script:lang -eq "EN")
     Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
     $extremeTitle = if ($isEN) { "        EXTREME PATH FOR WIN 11 24H2 / 25H2 / 26H2+ & ARM64" } else { "        SOLUSI KOMPREHENSIF WINDOWS 11 VERSI TERBARU (24H2 / 25H2 / 26H2+ & ARM64)" }
@@ -2854,14 +2860,14 @@ function Extreme-25H2 {
     Write-Host $(if ($isEN) { "  [+] Extreme security changes completed. System reboot is recommended." } else { "  [+] Konfigurasi keamanan Windows 11 berhasil disesuaikan. Disarankan merestart komputer." }) -ForegroundColor Green
 
     $extremeRestart = Read-Host $(if ($isEN) { "`n   [?] Execute immediate system reboot now? (Y/N)" } else { "`n   [?] Restart komputer sekarang? (Y/N)" })
-    if ($extremeRestart -match '^[yY]') { Restart-Computer -Force }
+    if ($extremeRestart -match '^[yY]') { Invoke-SystemReboot }
 }
 
 function Restart-PC {
     $msg = if ($script:lang -eq "EN") { "`n  [*] System rebooting in 5 seconds..." } else { "`n  [*] Komputer akan merestart dalam 5 detik..." }
     Write-Host $msg -ForegroundColor Yellow
     Start-Sleep -Seconds 5
-    Restart-Computer -Force
+    Invoke-SystemReboot
 }
 
 function Detect-Win {
@@ -3084,7 +3090,7 @@ function Show-Help {
             Write-Host "  ======================================================================================" -ForegroundColor Cyan
             Write-Host ""
             Write-Host "  HOW TO USE THIS UTILITY:" -ForegroundColor Yellow
-            Write-Host "    - Choose a category number (1 - 8) to open targeted repair submenus."
+            Write-Host "    - Choose a category number (1 - 9) to open targeted repair submenus."
             Write-Host "    - You can also type classic module codes directly (e.g. '84', '83', '64', '86')."
             Write-Host "    - Type 'L' at any time to switch language between Indonesian and English."
             Write-Host "    - Type '?' to view this guide at any time."
@@ -3115,7 +3121,7 @@ function Show-Help {
             Write-Host "  ======================================================================================" -ForegroundColor Cyan
             Write-Host ""
             Write-Host "  CARA MENGGUNAKAN APLIKASI:" -ForegroundColor Yellow
-            Write-Host "    - Pilih nomor kategori (1 - 8) untuk membuka submenu perbaikan terarah."
+            Write-Host "    - Pilih nomor kategori (1 - 9) untuk membuka submenu perbaikan terarah."
             Write-Host "    - Anda juga bisa langsung mengetik kode modul klasik (misal: '84', '83', '64', '86')."
             Write-Host "    - Ketik 'L' kapan saja untuk berganti bahasa antara Indonesia dan Inggris."
             Write-Host "    - Ketik '?' untuk melihat panduan ini kapan saja."
@@ -3210,6 +3216,23 @@ function Show-Help {
     }
 }
 
+function Clear-Screen {
+    try { [System.Console]::Clear() } catch { try { Clear-Host } catch {} }
+}
+
+function Invoke-SystemReboot {
+    try {
+        Restart-Computer -Force -ErrorAction Stop
+    } catch {
+        try {
+            & shutdown.exe /r /t 0 /f > $null 2>&1
+        } catch {
+            Write-Log "Failed to trigger automatic reboot: $($_.Exception.Message)" -Type "WARNING"
+            Write-Host "  [-] Please reboot your computer manually." -ForegroundColor Yellow
+        }
+    }
+}
+
 function Pause-User {
     Write-Host ""
     if ($script:lang -eq "EN") {
@@ -3217,7 +3240,11 @@ function Pause-User {
     } else {
         Write-Host "  [>] Tekan ENTER untuk kembali..." -ForegroundColor Yellow
     }
-    [void][System.Console]::ReadLine()
+    try {
+        [void][System.Console]::ReadLine()
+    } catch {
+        try { [void](Read-Host) } catch {}
+    }
 }
 
 function Show-Header {
@@ -3312,6 +3339,7 @@ function Show-Submenu1 {
             Write-Host "Pilih nomor [1-6], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
+        if ($null -eq $sub) { return }
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
@@ -3371,6 +3399,7 @@ function Show-Submenu2 {
             Write-Host "Pilih nomor error [1-9], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
+        if ($null -eq $sub) { return }
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
@@ -3433,6 +3462,7 @@ function Show-Submenu3 {
             Write-Host "Pilih nomor [1-10], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
+        if ($null -eq $sub) { return }
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
@@ -3518,6 +3548,7 @@ function Show-Submenu4 {
             Write-Host "Pilih nomor [1-6], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
+        if ($null -eq $sub) { return }
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
@@ -3585,6 +3616,7 @@ function Show-Submenu5 {
             Write-Host "Pilih nomor [1-11], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
+        if ($null -eq $sub) { return }
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
@@ -3661,6 +3693,7 @@ function Show-Submenu6 {
             Write-Host "Pilih nomor [1-9], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
+        if ($null -eq $sub) { return }
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
@@ -3718,6 +3751,7 @@ function Show-Submenu7 {
             Write-Host "Pilih nomor [1-5], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
+        if ($null -eq $sub) { return }
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
@@ -3780,6 +3814,7 @@ function Show-Submenu8 {
             Write-Host "Pilih nomor [1-13], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
+        if ($null -eq $sub) { return }
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
@@ -3836,6 +3871,7 @@ function Show-Submenu9 {
             Write-Host "Pilih nomor [1-4], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
+        if ($null -eq $sub) { return }
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
@@ -3920,7 +3956,7 @@ function Invoke-Module {
     $num = $Code.TrimStart('0')
     if (-not $num) { return }
 
-    Clear-Host
+    Clear-Screen
     $isEN = ($script:lang -eq "EN")
     Write-Host ("=" * 86) -ForegroundColor Cyan
     Write-Host $(if ($isEN) { "  EXECUTING REPAIR MODULE [$Code]" } else { "  MENJALANKAN MODUL PERBAIKAN [$Code]" }) -ForegroundColor Yellow
@@ -4030,6 +4066,7 @@ if ($script:skipInteractiveLoop -ne $true) {
     do {
         Show-MainMenu
         $choice = Read-Host
+        if ($null -eq $choice) { exit }
         if ([string]::IsNullOrWhiteSpace($choice)) { continue }
         $choice = $choice.Trim()
 
