@@ -127,14 +127,14 @@
                 "note": "Run on both the Printer Host and Client PCs for best results."
             },
             {
-                "id": "87",
+                "id": "Host",
                 "title": "Optimize Host / Print Server PC (Connected directly to printer)",
                 "problem": "The computer physically connected to the printer via USB or direct cable is rejecting network print jobs from client PCs.",
                 "solution": "Configures remote RPC spooler endpoint, sets Private network profile, enables guest sharing, opens firewall/WSD ports (445, 135, 3702, 5353), sanitizes share names, and deploys Spooler Watchdog.",
                 "whenToUse": "Execute directly on the PC that has the physical printer plugged in."
             },
             {
-                "id": "88",
+                "id": "Client",
                 "title": "Optimize Client PC (Connecting to shared printer over network)",
                 "problem": "Client PCs fail to connect to the shared printer or encounter Point & Print elevation prompts.",
                 "solution": "Enforces RPC over Named Pipes, disables Point and Print elevation restrictions, disables client SMB signing requirement, repairs HKCU registry permissions, enables device discovery, and flushes DNS.",
@@ -1145,7 +1145,7 @@
                                 class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                         </span>
-                        Showing <span id="visibleCount" class="text-brand-600 dark:text-brand-400 font-bold">89</span>
+                        Showing <span id="visibleCount" class="text-brand-600 dark:text-brand-400 font-bold">87</span>
                         tools
                     </div>
                 </div>

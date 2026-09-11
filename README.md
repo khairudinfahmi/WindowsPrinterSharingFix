@@ -80,7 +80,7 @@ Execute specialized playbooks directly via command line:
 
 ## Menu & Submenu Reference (v2.4.0)
 
-The main console organizes all 89 execution modules into 8 dedicated categories plus an interactive help engine:
+The main console provides 89 direct execution module codes (`1`–`89`), structured into 8 dedicated categories (73 interactive submenu options) plus an interactive help engine:
 
 ```text
 ======================================================================================
@@ -114,8 +114,8 @@ One-click fix routines that cover the most common and complex sharing failures.
 | :---: | :--- | :---: | :--- |
 | **1** | **ALLFIX - Run 50 Automated Fixes Simultaneously** | `[84]` | **Primary Recommendation**: Runs 50 successive repair steps across registry, Group Policy, RPC, SMB, firewall, and spooler. Resolves 98% of office network printing issues. |
 | **2** | **Extreme Path for Modern Windows 11 (24H2 / 25H2 / 26H2 & ARM64)** | `[83]` | Deploys deep hardening mitigations for recent Windows 11 builds: enables RPC over Named Pipes, relaxes strict SMB signing, and configures non-domain Kerberos fallback. |
-| **3** | **Optimize Host / Print Server PC (Connected directly to printer)** | `[87]` | Dedicated playbook for the PC physically connected to the printer: enables remote RPC spooler endpoint, sets Private network, opens guest access, configures firewall/WSD, and deploys Watchdog. |
-| **4** | **Optimize Client PC (Connecting to shared printer over network)** | `[88]` | Dedicated playbook for client PCs connecting to shared printers: enables RPC Named Pipes, bypasses Point & Print elevation, disables client SMB signing, and flushes DNS. |
+| **3** | **Optimize Host / Print Server PC (Connected directly to printer)** | `Playbook` | Dedicated playbook for the PC physically connected to the printer: enables remote RPC spooler endpoint, sets Private network, opens guest access, configures firewall/WSD, and deploys Watchdog. |
+| **4** | **Optimize Client PC (Connecting to shared printer over network)** | `Playbook` | Dedicated playbook for client PCs connecting to shared printers: enables RPC Named Pipes, bypasses Point & Print elevation, disables client SMB signing, and flushes DNS. |
 | **5** | **Silent ALLFIX (Automated Fixes + Immediate Reboot)** | `[85]` | Executes the 50-step ALLFIX routine without interactive prompts and immediately reboots the computer upon completion (ideal for sysadmins and unattended deployment). |
 | **6** | **Manage Windows Updates & Block Printer-Breaking Patches** | `[69]` | Pauses updates for 35 days, provides tools to roll back breaking cumulative updates, or toggles Windows Update services to protect working print configurations. |
 
