@@ -3324,7 +3324,7 @@ function Show-Header {
 function Show-Submenu1 {
     do {
         $isEN = ($script:lang -eq "EN")
-        Show-Header -SubTitle $(if ($isEN) { "1. Quick & Automated Solutions" } else { "1. Solusi Cepat & Otomatis" })
+        Show-Header -SubTitle $(if ($isEN) { "1. Quick & Automated Solutions (ALLFIX & Modern Win 11)" } else { "1. Solusi Cepat & Otomatis (ALLFIX & Windows 11 Terbaru)" })
         Write-Host ""
         if ($isEN) {
             Write-Host "  [1] ALLFIX - Run 50 Automated Fixes Simultaneously" -ForegroundColor Green
@@ -3390,7 +3390,7 @@ function Show-Submenu1 {
 function Show-Submenu2 {
     do {
         $isEN = ($script:lang -eq "EN")
-        Show-Header -SubTitle $(if ($isEN) { "2. Fix Specific Error Codes" } else { "2. Perbaikan Berdasarkan Kode Error" })
+        Show-Header -SubTitle $(if ($isEN) { "2. Fix Specific Error Codes (0x11b, 0x709, 0xbc4, 0x040, etc.)" } else { "2. Perbaikan Kode Error Spesifik (0x11b, 0x709, 0xbc4, 0x040, dll.)" })
         Write-Host ""
         if ($isEN) {
             Write-Host "  [1] Error 0x0000011b - Patch RPC Authentication Block (RpcAuthnLevelPrivacy)" -ForegroundColor White
@@ -3602,7 +3602,7 @@ function Show-Submenu4 {
 function Show-Submenu5 {
     do {
         $isEN = ($script:lang -eq "EN")
-        Show-Header -SubTitle $(if ($isEN) { "5. Driver Management & Printer Cleanup" } else { "5. Pengelolaan Driver & Pembersihan Printer" })
+        Show-Header -SubTitle $(if ($isEN) { "5. Driver Management & Ghost / USB Printer Cleanup" } else { "5. Pengelolaan Driver & Pembersihan Printer Hantu/USB" })
         Write-Host ""
         if ($isEN) {
             Write-Host "  [1] Force-Kill Locking Driver Processes ('Driver is in use')" -ForegroundColor White
@@ -3683,7 +3683,7 @@ function Show-Submenu5 {
 function Show-Submenu6 {
     do {
         $isEN = ($script:lang -eq "EN")
-        Show-Header -SubTitle $(if ($isEN) { "6. Credentials, Access Rights & Security" } else { "6. Kredensial, Hak Akses & Keamanan" })
+        Show-Header -SubTitle $(if ($isEN) { "6. Credentials, Access Rights & Security (Vault, LSA, UAC)" } else { "6. Kredensial, Hak Akses & Keamanan (Vault, LSA, UAC)" })
         Write-Host ""
         if ($isEN) {
             Write-Host "  [1] Save Printer Credentials (Username & Password) to Windows Vault" -ForegroundColor White
@@ -3747,7 +3747,7 @@ function Show-Submenu6 {
 function Show-Submenu7 {
     do {
         $isEN = ($script:lang -eq "EN")
-        Show-Header -SubTitle $(if ($isEN) { "7. Port Mapping & Manual Connections" } else { "7. Pemetaan Port & Sambungan Manual" })
+        Show-Header -SubTitle $(if ($isEN) { "7. Port Mapping & Manual Connections (UNC Port Map & TCP/IP)" } else { "7. Pemetaan Port & Sambungan Manual (UNC Port Map & TCP/IP)" })
         Write-Host ""
         if ($isEN) {
             Write-Host "  [1] Map Local Port to UNC Share (Ultimate Bypass for Error 0x00000709)" -ForegroundColor Green
