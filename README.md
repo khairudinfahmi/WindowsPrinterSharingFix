@@ -14,7 +14,7 @@ Seamlessly supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**
 
 ---
 
-## 🌟 What's New in Version 2.4.0?
+## What's New in Version 2.4.0
 
 1. **Native Bilingual Engine (English & Indonesian)**:
    - Toggle the interface language dynamically on the fly by pressing **`[L]`** at any menu or prompt.
@@ -39,7 +39,7 @@ Seamlessly supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**
 
 ---
 
-## 🚀 Quick Start Guide
+## Quick Start Guide
 
 ### Option 1: Official Windows Installer (Recommended)
 1. Download `WindowsPrinterSharingFix_Installer.exe` from the latest [GitHub Release](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases).
@@ -78,7 +78,7 @@ Execute specialized playbooks directly via command line:
 
 ---
 
-## 📋 Menu & Submenu Reference (v2.4.0)
+## Menu & Submenu Reference (v2.4.0)
 
 The main console organizes all 89 remediation modules into 8 dedicated categories plus an interactive help engine:
 
@@ -244,7 +244,7 @@ In-depth technical manual and interactive guidance for every module in the suite
 
 ---
 
-## ⚙️ Under the Hood: Resilience & Persistence
+## Under the Hood: Resilience and Persistence
 
 When automated playbooks (**ALLFIX [84]** or **Extreme Path [83]**) are executed, the engine applies multiple safety and persistence mechanisms:
 
@@ -258,7 +258,7 @@ When automated playbooks (**ALLFIX [84]** or **Extreme Path [83]**) are executed
 
 ---
 
-## 🛠️ Building & Compiling from Source
+## Building and Compiling from Source
 
 ### Prerequisites
 - Windows 10 / 11 / Server (x64 or ARM64)
@@ -280,7 +280,7 @@ This compiles `release\WindowsPrinterSharingFix_Installer.exe` and applies a tru
 
 ---
 
-## 📄 License & Contribution
+## License and Contribution
 
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. Free to use, modify, and distribute for both personal and enterprise environments.
 
