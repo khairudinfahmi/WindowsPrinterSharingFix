@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-09-11
+
+### Refaktor UI & Bahasa Manusiawi
+- **Antarmuka Console Baru**: Menata ulang antarmuka dari tampilan 180 kolom yang padat menjadi 8 Kategori Inti yang rapi dan nyaman dibaca pada ukuran terminal standar (86 kolom).
+- **Submenu Terarah**: Mengelompokkan 89 modul teknis ke dalam 8 submenu logis dengan penjelasan yang mudah dimengerti.
+- **Konsolidasi Fitur Duplikat**: Menyatukan opsi yang berkaitan erat (seperti Reset Spooler + Hapus Antrean, Buka Akses Berbagi Tanpa Sandi + Guest, serta Pembersihan Printer Hantu) ke dalam alur yang lebih praktis.
+- **Dukungan Pintasan Langsung (Direct Shortcuts)**: Mempertahankan 100% kompatibilitas dengan kebiasaan lama; pengguna tetap dapat mengetikkan kode modul klasik (84, 83, 64, 86, 31, dll.) langsung dari Menu Utama.
+- **Bahasa Manusiawi Komunikatif**: Memperbarui seluruh teks panduan, deskripsi, pesan eksekusi AllFix, dan bantuan modul menggunakan bahasa Indonesia yang natural, lugas, dan bebas dari terjemahan mesin / anomali AI.
+
+---
+
 ## [2.3.2] - 2026-06-16
 
 ### Security & Reliability Fixes
