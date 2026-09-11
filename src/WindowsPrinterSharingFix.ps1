@@ -398,9 +398,11 @@ function Enable-SMBGuest {
     Write-Log "Enabling SMB Guest access (LanmanWorkstation & LanmanServer)..." -Type "INFO"
     try {
         $path = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"
+        if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
         Set-ItemProperty -Path $path -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -ErrorAction Stop
 
         $pathServer = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
+        if (-not (Test-Path $pathServer)) { New-Item -Path $pathServer -Force | Out-Null }
         Set-ItemProperty -Path $pathServer -Name EnableSecuritySignature -Value 0 -Type DWord -Force -ErrorAction Stop
 
         Write-Log "Guest access enabled." -Type "SUCCESS"
@@ -748,7 +750,9 @@ function Rollback-Registry {
 function Disable-IPv6 {
     Write-Log "Disabling IPv6 Stack..." -Type "INFO"
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name DisabledComponents -Value 0xffffffff -Type DWord -Force -ErrorAction Stop
+        $tcp6Path = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters"
+        if (-not (Test-Path $tcp6Path)) { New-Item -Path $tcp6Path -Force | Out-Null }
+        Set-ItemProperty -Path $tcp6Path -Name DisabledComponents -Value 0xffffffff -Type DWord -Force -ErrorAction Stop
         Write-Log "IPv6 disabled via registry change." -Type "SUCCESS"
         Write-Host "  [+] IPv6 disabled to prevent routing conflicts. System reboot required." -ForegroundColor Green
     }
@@ -1154,7 +1158,9 @@ function Fix-NTLMv2 {
 function Fix-Network0x00000040 {
     Write-Log "Fixing Error 0x00000040 (Network connection timeout)..." -Type "INFO"
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name KeepConn -Value 65535 -Type DWord -Force -ErrorAction Stop
+        $lanParam = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"
+        if (-not (Test-Path $lanParam)) { New-Item -Path $lanParam -Force | Out-Null }
+        Set-ItemProperty -Path $lanParam -Name KeepConn -Value 65535 -Type DWord -Force -ErrorAction Stop
         try {
             Get-Service -Name Browser -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Running' } | Stop-Service -Force -ErrorAction SilentlyContinue
             Restart-Service LanmanWorkstation -Force -ErrorAction SilentlyContinue
@@ -1278,7 +1284,7 @@ function Manage-DefaultPrinter {
 function Set-SpoolerWatchdog {
     Write-Log "Injecting Spooler Watchdog Task..." -Type "INFO"
     try {
-        $cmd = "powershell.exe -WindowStyle Hidden -Command \`"if((Get-Service spooler).Status -ne 'Running'){ Start-Service spooler }\`""
+        $cmd = "powershell.exe -WindowStyle Hidden -Command \`"`$s = Get-Service spooler -ErrorAction SilentlyContinue; if (`$s -and `$s.Status -ne 'Running'){ Start-Service spooler -ErrorAction SilentlyContinue }\`""
         & schtasks.exe /create /tn "SpoolerWatchdog" /tr $cmd /sc minute /mo 5 /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
         if ($LASTEXITCODE -ne 0) { throw "schtasks returned exit code $LASTEXITCODE" }
         
@@ -1672,9 +1678,11 @@ function Manage-WindowsUpdate {
                     Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue | Out-Null
                 }
 
-                # Disable WaaSMedicSvc via registry bypass (sc config WaaSMedicSvc start= disabled returns Access Denied)
-                Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" -Name Start -Value 4 -Type DWord -Force -ErrorAction Stop
-                Stop-Service -Name "WaaSMedicSvc" -Force -ErrorAction SilentlyContinue | Out-Null
+                # Disable WaaSMedicSvc via registry bypass if present (sc config WaaSMedicSvc start= disabled returns Access Denied)
+                if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc") {
+                    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" -Name Start -Value 4 -Type DWord -Force -ErrorAction SilentlyContinue
+                    Stop-Service -Name "WaaSMedicSvc" -Force -ErrorAction SilentlyContinue | Out-Null
+                }
 
                 # Configure NoAutoUpdate in Policies registry
                 $auPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
@@ -1695,8 +1703,10 @@ function Manage-WindowsUpdate {
                 & sc.exe config UsoSvc start= auto > $null 2>&1
                 & sc.exe config bits start= demand > $null 2>&1
 
-                # Restore WaaSMedicSvc to manual
-                Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" -Name Start -Value 3 -Type DWord -Force -ErrorAction Stop
+                # Restore WaaSMedicSvc to manual if present
+                if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc") {
+                    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" -Name Start -Value 3 -Type DWord -Force -ErrorAction SilentlyContinue
+                }
 
                 # Remove NoAutoUpdate restriction
                 $auPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
@@ -1760,7 +1770,7 @@ function Sweep-OrphanedDrivers {
             Write-Host "  [!] Found $($orphans.Count) printer driver package(s) in Driver Store:" -ForegroundColor Yellow
             $orphans | Format-Table OemInf, Provider -AutoSize
             $confirm = Read-Host "  [?] Force-delete ALL orphaned printer drivers? (Y/N)"
-            if ($confirm -eq 'Y') {
+            if ($confirm -match '^[yY]') {
                 foreach ($o in $orphans) {
                     Write-Host "  [*] Removing $($o.OemInf)..." -ForegroundColor Cyan
                     & pnputil /delete-driver $o.OemInf /force 2>&1 | Out-Null
@@ -1784,7 +1794,7 @@ function Force-KillDriverProcess {
     Write-Log "Force-killing driver isolation processes..." -Type "INFO"
     Write-Host "  [!] WARNING: This will terminate all active print processing." -ForegroundColor Red
     $confirm = Read-Host "  [?] Proceed? (Y/N)"
-    if ($confirm -ne 'Y') { return }
+    if ($confirm -notmatch '^[yY]') { return }
     try {
         Write-Host "  [*] Stopping Print Spooler..." -ForegroundColor Cyan
         Stop-Service spooler -Force -ErrorAction SilentlyContinue
@@ -1884,7 +1894,7 @@ function Rescue-NetworkProfile {
         }
         if (-not $publicFound) { Write-Host "  [+] All profiles are already Private/Domain. No action needed." -ForegroundColor Green }
         $deployWatchdog = Read-Host "`n  [?] Deploy Network Profile Watchdog (checks every 10 min)? (Y/N)"
-        if ($deployWatchdog -eq 'Y') {
+        if ($deployWatchdog -match '^[yY]') {
             $cmd = "powershell.exe -WindowStyle Hidden -Command \`"Get-NetConnectionProfile | Where-Object { `$_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private\`""
             & schtasks.exe /create /tn "NetworkProfileWatchdog" /tr $cmd /sc minute /mo 10 /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
             if ($LASTEXITCODE -eq 0) {
@@ -1909,10 +1919,10 @@ function Remove-GhostUSBPrinters {
     Write-Host "  ======================================================================"
     Write-Log "Scanning for ghost USB printers and duplicates..." -Type "INFO"
     try {
-        $allPrinters = Get-Printer -ErrorAction SilentlyContinue
-        $ghosts = $allPrinters | Where-Object { $_.Name -match '\(Copy \d+\)' -or $_.Name -match ' - Copy' -or $_.Name -match 'Copy \d+$' }
-        $activePorts = ($allPrinters | Where-Object { $_.Name -notmatch 'Copy' }).PortName
-        $deadUSB = Get-PrinterPort -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "USB*" -and $_.Name -notin $activePorts }
+        $allPrinters = @(Get-Printer -ErrorAction SilentlyContinue)
+        $ghosts = @($allPrinters | Where-Object { $_.Name -match '\(Copy \d+\)' -or $_.Name -match ' - Copy' -or $_.Name -match 'Copy \d+$' })
+        $activePorts = @(($allPrinters | Where-Object { $_.Name -notmatch 'Copy' }).PortName)
+        $deadUSB = @(Get-PrinterPort -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "USB*" -and $_.Name -notin $activePorts })
         if ($ghosts.Count -eq 0 -and $deadUSB.Count -eq 0) {
             Write-Host "  [+] No ghost printers or dead USB ports detected." -ForegroundColor Green
             Write-Log "No ghost devices found." -Type "SUCCESS"
@@ -1927,7 +1937,7 @@ function Remove-GhostUSBPrinters {
             foreach ($u in $deadUSB) { Write-Host "      - $($u.Name)" -ForegroundColor Red }
         }
         $confirm = Read-Host "`n  [?] Remove all ghost printers and dead USB ports? (Y/N)"
-        if ($confirm -eq 'Y') {
+        if ($confirm -match '^[yY]') {
             foreach ($g in $ghosts) {
                 Remove-Printer -Name $g.Name -ErrorAction SilentlyContinue
                 Write-Host "  [+] Removed printer: $($g.Name)" -ForegroundColor Green
@@ -2015,6 +2025,7 @@ function Inject-CrossUserCredentials {
 
                         # Inject RunOnce to execute the script (script self-deletes after running)
                         $runOncePath = "Registry::HKEY_USERS\$sid\Software\Microsoft\Windows\CurrentVersion\RunOnce"
+                        if (-not (Test-Path $runOncePath)) { New-Item -Path $runOncePath -Force | Out-Null }
                         Set-ItemProperty -Path $runOncePath -Name "PrinterCredFix" -Value "`"$credScript`"" -Force -ErrorAction Stop
                         Write-Log "Injected RunOnce credential command for $userName." -Type "SUCCESS"
                     } catch {
@@ -2054,9 +2065,10 @@ function Force-DefaultPrinterRegistry {
     Write-Host "  ======================================================================"
     Write-Log "Force-setting default printer via registry injection..." -Type "INFO"
     try {
-        Set-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-        $printers = Get-Printer -ErrorAction Stop
-        if (-not $printers) { Write-Host "  [-] No printers found." -ForegroundColor Red; return }
+        $regWin = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows"
+        Set-ItemProperty -Path $regWin -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        $printers = @(Get-Printer -ErrorAction Stop)
+        if (-not $printers -or $printers.Count -eq 0) { Write-Host "  [-] No printers found." -ForegroundColor Red; return }
         $idx = 1
         foreach ($p in $printers) {
             Write-Host "  [$idx] $($p.Name) | Port: $($p.PortName)" -ForegroundColor Cyan
@@ -2068,7 +2080,7 @@ function Force-DefaultPrinterRegistry {
         if ($selIdx -lt 0 -or $selIdx -ge $printers.Count) { Write-Host "  [-] Invalid selection." -ForegroundColor Red; return }
         $target = $printers[$selIdx]
         $deviceStr = "$($target.Name),winspool,$($target.PortName):"
-        Set-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" -Name Device -Value $deviceStr -Type String -Force -ErrorAction Stop
+        Set-ItemProperty -Path $regWin -Name Device -Value $deviceStr -Type String -Force -ErrorAction Stop
         Write-Log "Default printer forced via registry: $($target.Name)" -Type "SUCCESS"
         Write-Host "  [+] Default printer set to: $($target.Name) (Registry bypass applied)." -ForegroundColor Green
     }
@@ -2324,7 +2336,7 @@ function Map-LocalPortUNC {
             Write-Host "  [*] Standard method blocked by Windows. Deploying Registry Bypass..." -ForegroundColor Yellow
             try {
                 $portRegPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Ports"
-
+                if (-not (Test-Path $portRegPath)) { New-Item -Path $portRegPath -Force | Out-Null }
                 Set-ItemProperty -Path $portRegPath -Name $uncPath -Value "" -Type String -Force -ErrorAction Stop
 
                 Write-Host "  [*] Port injected. Restarting Print Spooler to finalize..." -ForegroundColor Cyan
@@ -2723,7 +2735,8 @@ function AllFix-Core {
 
     Write-Host $(if ($isEN) { "  [*] [50/50] Parsing PrintService Event Log & Final Spooler Validation..." } else { "  [*] [50/50] Menganalisis Log Peristiwa Cetak & Validasi Akhir Spooler..." }) -ForegroundColor Cyan
     Parse-PrintEventLog
-    if ((Get-Service spooler).Status -ne 'Running') { Start-Service spooler -ErrorAction SilentlyContinue }
+    $sp = Get-Service spooler -ErrorAction SilentlyContinue
+    if ($sp -and $sp.Status -ne 'Running') { Start-Service spooler -ErrorAction SilentlyContinue }
     Write-Host $(if ($isEN) { "  [+] All validations passed. Print Spooler running smoothly." } else { "  [+] Seluruh validasi selesai. Layanan Spooler berjalan sempurna." }) -ForegroundColor Green
 
     Write-Log $(if ($isEN) { "ALLFIX CONCLUDED" } else { "ALLFIX SELESAI" }) -Type "SUCCESS"
@@ -3299,7 +3312,7 @@ function Show-Submenu1 {
             Write-Host "Pilih nomor [1-6], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
-        if ($null -eq $sub) { continue }
+        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
         if ($sub -match '^(b|0|back|kembali)$') { return }
@@ -3358,7 +3371,7 @@ function Show-Submenu2 {
             Write-Host "Pilih nomor error [1-9], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
-        if ($null -eq $sub) { continue }
+        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
         if ($sub -match '^(b|0|back|kembali)$') { return }
@@ -3420,7 +3433,7 @@ function Show-Submenu3 {
             Write-Host "Pilih nomor [1-10], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
-        if ($null -eq $sub) { continue }
+        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
         if ($sub -match '^(b|0|back|kembali)$') { return }
@@ -3505,7 +3518,7 @@ function Show-Submenu4 {
             Write-Host "Pilih nomor [1-6], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
-        if ($null -eq $sub) { continue }
+        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
         if ($sub -match '^(b|0|back|kembali)$') { return }
@@ -3572,7 +3585,7 @@ function Show-Submenu5 {
             Write-Host "Pilih nomor [1-11], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
-        if ($null -eq $sub) { continue }
+        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
         if ($sub -match '^(b|0|back|kembali)$') { return }
@@ -3648,7 +3661,7 @@ function Show-Submenu6 {
             Write-Host "Pilih nomor [1-9], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
-        if ($null -eq $sub) { continue }
+        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
         if ($sub -match '^(b|0|back|kembali)$') { return }
@@ -3705,7 +3718,7 @@ function Show-Submenu7 {
             Write-Host "Pilih nomor [1-5], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
-        if ($null -eq $sub) { continue }
+        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
         if ($sub -match '^(b|0|back|kembali)$') { return }
@@ -3767,7 +3780,7 @@ function Show-Submenu8 {
             Write-Host "Pilih nomor [1-13], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
-        if ($null -eq $sub) { continue }
+        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
         if ($sub -match '^(b|0|back|kembali)$') { return }
@@ -3823,7 +3836,7 @@ function Show-Submenu9 {
             Write-Host "Pilih nomor [1-4], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
-        if ($null -eq $sub) { continue }
+        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         $sub = $sub.Trim()
         if ($sub -match '^(l|lang|language)$') { Toggle-AppLanguage; continue }
         if ($sub -match '^(b|0|back|kembali)$') { return }
@@ -4017,7 +4030,7 @@ if ($script:skipInteractiveLoop -ne $true) {
     do {
         Show-MainMenu
         $choice = Read-Host
-        if ($null -eq $choice) { continue }
+        if ([string]::IsNullOrWhiteSpace($choice)) { continue }
         $choice = $choice.Trim()
 
         if ($choice -match '^(l|lang|language)$') {
