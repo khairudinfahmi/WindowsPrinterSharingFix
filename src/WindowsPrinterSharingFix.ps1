@@ -278,13 +278,16 @@ function Set-PostPatchTuesdayTask {
         
         $scriptPath = Join-Path $script:backupDir "PrinterFixReapply.ps1"
         $fixScript = @'
+if (-not (Test-Path "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC")) { New-Item "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Name ForceKerberosForRpc -Value 0 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Name RpcProtocols -Value 7 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name RpcAuthnLevelPrivacyEnabled -Value 0 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name RpcOverNamedPipes -Value 1 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name RpcOverTcp -Value 1 -Type DWord -Force -EA SilentlyContinue
+if (-not (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP")) { New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP" -Name Enabled -Value 0 -Type DWord -Force -EA SilentlyContinue
+if (-not (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")) { New-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord -Force -EA SilentlyContinue
 Restart-Service spooler -Force -EA SilentlyContinue
 '@
@@ -1095,7 +1098,9 @@ function Set-SpoolerRecovery {
 function Fix-UACTokenFilter {
     Write-Log "Bypassing UAC Network Administrator restrictions..." -Type "INFO"
     try {
-        Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord -Force -ErrorAction Stop
+        $sysPol = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+        if (-not (Test-Path $sysPol)) { New-Item -Path $sysPol -Force | Out-Null }
+        Set-ItemProperty -Path $sysPol -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord -Force -ErrorAction Stop
         Write-Log "LocalAccountTokenFilterPolicy set to 1." -Type "SUCCESS"
         Write-Host "  [+] UAC network administration token filtering disabled." -ForegroundColor Green
     }
@@ -1179,7 +1184,9 @@ function Fix-DriverCopy0x00000002 {
 function Fix-RpcBitness0x0000007e {
     Write-Log "Fixing Error 0x0000007e (RPC Bitness/Auth error)..." -Type "INFO"
     try {
-        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC" -Name RpcAuthenticationLevel -Value 0 -Type DWord -Force -ErrorAction Stop
+        $rpcPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC"
+        if (-not (Test-Path $rpcPath)) { New-Item -Path $rpcPath -Force | Out-Null }
+        Set-ItemProperty -Path $rpcPath -Name RpcAuthenticationLevel -Value 0 -Type DWord -Force -ErrorAction Stop
         Write-Log "RPC Authentication downgraded." -Type "SUCCESS"
         Write-Host "  [+] RPC Auth limitations removed to facilitate cross-architecture communication." -ForegroundColor Green
     }
@@ -1292,8 +1299,10 @@ function Set-SpoolerWatchdog {
 function Fix-RDPPrinter {
     Write-Log "Repairing RDP Printer Terminal Services Redirection..." -Type "INFO"
     try {
-        Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Windows NT\Terminal Services" -Name fDisableCpm -Value 0 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Windows NT\Terminal Services" -Name fEnablePrintRDR -Value 1 -Type DWord -Force -ErrorAction Stop
+        $tsPath = "HKLM:\Software\Policies\Microsoft\Windows NT\Terminal Services"
+        if (-not (Test-Path $tsPath)) { New-Item -Path $tsPath -Force | Out-Null }
+        Set-ItemProperty -Path $tsPath -Name fDisableCpm -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-ItemProperty -Path $tsPath -Name fEnablePrintRDR -Value 1 -Type DWord -Force -ErrorAction Stop
         Write-Log "RDP Redirection activated." -Type "SUCCESS"
         Write-Host "  [+] Local printers are now visible during Remote Desktop (RDP) sessions." -ForegroundColor Green
     }
@@ -2631,7 +2640,9 @@ function AllFix-Core {
 
     Write-Host $(if ($isEN) { "  [*] [25/50] Disabling WPP (Allowing Legacy Network Printer Drivers)..." } else { "  [*] [25/50] Menonaktifkan WPP untuk Mengizinkan Driver Jaringan..." }) -ForegroundColor Cyan
     try {
-        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP" -Name Enabled -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        $wppKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP"
+        if (-not (Test-Path $wppKey)) { New-Item -Path $wppKey -Force | Out-Null }
+        Set-ItemProperty -Path $wppKey -Name Enabled -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
     }
     catch {}
 
@@ -2806,16 +2817,20 @@ function Extreme-25H2 {
     Sanitize-PrinterShareName
 
     try {
-        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP" -Name Enabled -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        $wppKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP"
+        if (-not (Test-Path $wppKey)) { New-Item -Path $wppKey -Force | Out-Null }
+        Set-ItemProperty -Path $wppKey -Name Enabled -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
         Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name DnsOnWire -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
         Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name DisableStrictNameChecking -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name NtlmMinClientSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name NtlmMinServerSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        $lsaMsv = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"
+        if (-not (Test-Path $lsaMsv)) { New-Item -Path $lsaMsv -Force | Out-Null }
+        Set-ItemProperty -Path $lsaMsv -Name NtlmMinClientSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $lsaMsv -Name NtlmMinServerSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
     }
     catch {}
 
     try {
-        $LASTEXITCODE = 0; cmdkey /list | Select-String $env:COMPUTERNAME | ForEach-Object { $t = $_.ToString() -replace '(?i)^\s*Target:\s*', ''; cmdkey /delete:$t > $null 2>&1 }
+        $LASTEXITCODE = 0; cmdkey /list | Select-String $env:COMPUTERNAME | ForEach-Object { $t = ($_.ToString() -replace '(?i)^\s*Target:\s*', '').Trim(); if ($t) { cmdkey /delete:"$t" > $null 2>&1 } }
         $LASTEXITCODE = 0; klist purge > $null 2>&1
         $LASTEXITCODE = 0; ipconfig /flushdns > $null 2>&1
         $LASTEXITCODE = 0; nbtstat -RR > $null 2>&1
