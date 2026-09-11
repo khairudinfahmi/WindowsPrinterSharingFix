@@ -385,7 +385,10 @@ function Reset-Spooler {
         Start-Sleep -Seconds 1
 
         Write-Log "Purging stale print spool files..." -Type "INFO"
-        Remove-Item -Path "$env:SystemRoot\System32\Spool\Printers\*" -Force -Recurse -ErrorAction SilentlyContinue
+        $spoolDir = "$env:SystemRoot\System32\Spool\Printers"
+        if (-not (Test-Path $spoolDir)) { New-Item -ItemType Directory -Path $spoolDir -Force | Out-Null }
+        Remove-Item -Path "$spoolDir\*" -Force -Recurse -ErrorAction SilentlyContinue
+        if (-not (Test-Path $spoolDir)) { New-Item -ItemType Directory -Path $spoolDir -Force | Out-Null }
 
         Start-Sleep -Seconds 1
 
@@ -531,6 +534,9 @@ function Open-Firewall {
 function Backup-Registry {
     Write-Log "Executing Printer Registry Backup..." -Type "INFO"
     try {
+        if (-not (Test-Path $script:backupDir)) {
+            New-Item -ItemType Directory -Path $script:backupDir -Force | Out-Null
+        }
         $backupCount = 0
         $backupTotal = 5
 
@@ -560,20 +566,20 @@ function Backup-Registry {
 function Check-RPC {
     Write-Log "Auditing RPC & DCOM service states..." -Type "INFO"
     $rpc = Get-Service -Name RpcSs -ErrorAction SilentlyContinue
-    if ($rpc.Status -ne 'Running') {
+    if ($rpc -and $rpc.Status -ne 'Running') {
         Start-Service RpcSs -ErrorAction SilentlyContinue
         Write-Host "  [*] RpcSs offline. Re-initializing service." -ForegroundColor Yellow
     }
-    else {
+    elseif ($rpc) {
         Write-Host "  [+] RpcSs operational." -ForegroundColor Green
     }
 
     $dcom = Get-Service -Name DcomLaunch -ErrorAction SilentlyContinue
-    if ($dcom.Status -ne 'Running') {
+    if ($dcom -and $dcom.Status -ne 'Running') {
         Start-Service DcomLaunch -ErrorAction SilentlyContinue
         Write-Host "  [*] DcomLaunch offline. Re-initializing service." -ForegroundColor Yellow
     }
-    else {
+    elseif ($dcom) {
         Write-Host "  [+] DcomLaunch operational." -ForegroundColor Green
     }
 }
@@ -598,8 +604,10 @@ function Manage-Drivers {
 function Reset-SpoolerPerm {
     Write-Log "Resetting Spooler directory ACL permissions..." -Type "INFO"
     try {
-        & icacls "$env:SystemRoot\System32\Spool\Printers" /reset /t /c /q > $null 2>&1
-        & icacls "$env:SystemRoot\System32\Spool\Printers" /grant "*S-1-1-0:(OI)(CI)F" /T /C /Q > $null 2>&1
+        $spoolDir = "$env:SystemRoot\System32\Spool\Printers"
+        if (-not (Test-Path $spoolDir)) { New-Item -ItemType Directory -Path $spoolDir -Force | Out-Null }
+        & icacls "$spoolDir" /reset /t /c /q > $null 2>&1
+        & icacls "$spoolDir" /grant "*S-1-1-0:(OI)(CI)F" /T /C /Q > $null 2>&1
         Write-Log "Spooler ACL reset & Everyone (S-1-1-0) grant complete." -Type "SUCCESS"
         Write-Host "  [+] Print queue directory permissions reset and granted to Everyone." -ForegroundColor Green
     }
@@ -722,19 +730,23 @@ function Open-Services {
 
 function Rollback-Registry {
     Write-Log "Restoring Registry from Backup..." -Type "INFO"
-    if (Test-Path "$script:backupDir\Print.reg") {
+    $restoreFiles = @(
+        @{ File = "Print.reg"; Label = "Print" },
+        @{ File = "PrintersPolicy.reg"; Label = "PrintersPolicy" },
+        @{ File = "LanmanWorkstation.reg"; Label = "LanmanWorkstation" },
+        @{ File = "LanmanServer.reg"; Label = "LanmanServer" },
+        @{ File = "Lsa.reg"; Label = "LSA" }
+    )
+    $hasAnyBackup = $false
+    foreach ($entry in $restoreFiles) {
+        if (Test-Path (Join-Path $script:backupDir $entry.File)) { $hasAnyBackup = $true; break }
+    }
+    if ($hasAnyBackup) {
         $restoreCount = 0
-        $restoreFiles = @(
-            @{ File = "Print.reg"; Label = "Print" },
-            @{ File = "PrintersPolicy.reg"; Label = "PrintersPolicy" },
-            @{ File = "LanmanWorkstation.reg"; Label = "LanmanWorkstation" },
-            @{ File = "LanmanServer.reg"; Label = "LanmanServer" },
-            @{ File = "Lsa.reg"; Label = "LSA" }
-        )
         foreach ($entry in $restoreFiles) {
             $filePath = Join-Path $script:backupDir $entry.File
             if (Test-Path $filePath) {
-                & reg import $filePath > $null 2>&1
+                & reg import "$filePath" > $null 2>&1
                 if ($LASTEXITCODE -eq 0) {
                     $restoreCount++
                 } else {
@@ -991,6 +1003,19 @@ function Fix-mDNS {
     catch {
         Write-Log "Failed to configure mDNS: $($_.Exception.Message)" -Type "ERROR"
     }
+}
+
+function Enable-WSDDiscovery {
+    Write-Log "Enabling WSD (Web Services on Devices) Discovery Services..." -Type "INFO"
+    $wsdServices = @("fdPHost", "FDResPub", "SSDPSRV", "upnphost")
+    foreach ($s in $wsdServices) {
+        try {
+            Set-Service -Name $s -StartupType Automatic -ErrorAction SilentlyContinue
+            Start-Service -Name $s -ErrorAction SilentlyContinue
+        } catch {}
+    }
+    Write-Log "WSD discovery services (fdPHost, FDResPub, SSDPSRV) activated." -Type "SUCCESS"
+    Write-Host $(if ($script:lang -eq "EN") { "  [+] WSD & Network Discovery services successfully enabled." } else { "  [+] Layanan penemuan WSD & jaringan berhasil diaktifkan." }) -ForegroundColor Green
 }
 
 function Fix-WSDFirewall {
@@ -1970,12 +1995,14 @@ function Nuke-PrintQueue {
         Get-Process -Name "PrintIsolationHost", "printfilterpipelinesvc", "splwow64" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 1
         $spoolDir = "$env:SystemRoot\System32\Spool\Printers"
+        if (-not (Test-Path $spoolDir)) { New-Item -ItemType Directory -Path $spoolDir -Force | Out-Null }
         $shdFiles = Get-ChildItem "$spoolDir\*.shd" -ErrorAction SilentlyContinue
         $splFiles = Get-ChildItem "$spoolDir\*.spl" -ErrorAction SilentlyContinue
         $totalFiles = 0
         if ($shdFiles) { $totalFiles += $shdFiles.Count; Remove-Item "$spoolDir\*.shd" -Force -ErrorAction SilentlyContinue }
         if ($splFiles) { $totalFiles += $splFiles.Count; Remove-Item "$spoolDir\*.spl" -Force -ErrorAction SilentlyContinue }
         Remove-Item "$spoolDir\*" -Force -Recurse -ErrorAction SilentlyContinue
+        if (-not (Test-Path $spoolDir)) { New-Item -ItemType Directory -Path $spoolDir -Force | Out-Null }
         Start-Sleep -Seconds 1
         Start-Service spooler -ErrorAction Stop
         Write-Log "Force Purge complete. $totalFiles corrupt spool files cleared." -Type "SUCCESS"
@@ -2924,7 +2951,7 @@ function Show-Help {
         '27' = @("Bersihkan Soket Koneksi Jaringan yang Nyangkut", "Merestart layanan workstation/server dan membersihkan sesi port 445/135 yang menggantung.", "Koneksi printer terblokir setelah perubahan IP atau disconnect VPN.")
         '28' = @("Penjaga Profil Jaringan Otomatis (Rescue Network Profile)", "Memastikan status jaringan tetap Private dan memasang watchdog pencegah kembali ke Public.", "Profil jaringan sering otomatis berubah menjadi Public setelah restart.")
         '29' = @("Tambah Port Printer Standar TCP/IP Secara Manual", "Membuat port TCP/IP baru menggunakan skrip WMI.", "Menghubungkan printer jaringan melalui alamat IP statis.")
-        '30' = @("Aktifkan Layanan WSD Print Device", "Menjalankan layanan WSDPrintDevice untuk penemuan printer berbasis web services.", "Printer jaringan WSD tidak muncul di daftar pencarian.")
+        '30' = @("Aktifkan Penemuan Printer WSD (Web Services on Devices)", "Mengaktifkan dan menjalankan layanan penemuan WSD (fdPHost, FDResPub, SSDPSRV) agar printer jaringan terdeteksi.", "Printer jaringan WSD/modern tidak muncul di daftar pencarian.")
         '31' = @("Reset Layanan Spooler & Bersihkan Antrean Cetak", "Menghentikan spooler, menghapus antrean macet di folder PRINTERS, dan menyalakan kembali.", "Antrean cetak macet total dan dokumen tidak mau keluar.")
         '32' = @("Restart Layanan Sistem RPC & DCOM", "Memeriksa dan merestart layanan inti RpcSs dan DcomLaunch.", "Muncul pesan error 'RPC server is unavailable'.")
         '33' = @("Restart Spooler Komputer Lain dari Jarak Jauh (Remote)", "Mengeksekusi perintah restart spooler pada komputer remote via PowerShell WinRM/DCOM.", "Spooler di komputer server printer hang tanpa harus datang langsung ke lokasi.")
@@ -3016,7 +3043,7 @@ function Show-Help {
         '27' = @("Purge Stale Network Connection Sockets", "Restarts Workstation/Server services and clears lingering sessions on ports 445/135.", "Printer connection deadlocked after IP change or VPN disconnection.")
         '28' = @("Rescue Network Profile (Auto-Enforce Private)", "Ensures current profile is Private and registers a scheduled task to prevent reverts.", "Windows periodically reverts network connection to Public after rebooting.")
         '29' = @("Add Standard TCP/IP Printer Port Manually", "Creates a new raw standard TCP/IP printer port using WMI scripting.", "Directly connects network printers via static IP address.")
-        '30' = @("Enable WSD Print Device Service", "Starts and configures WSDPrintDevice service for web services printer discovery.", "WSD network printers missing from Windows discovery wizard.")
+        '30' = @("Enable WSD Printer Discovery Services", "Starts and configures WSD discovery services (fdPHost, FDResPub, SSDPSRV) so modern network printers are discovered.", "WSD network printers missing from Windows discovery wizard.")
         '31' = @("Reset Spooler & Purge Print Queue", "Stops spooler, purges stuck documents in PRINTERS folder, and cleanly restarts.", "Print queue completely frozen with stuck documents refusing to cancel.")
         '32' = @("Restart Core RPC & DCOM Services", "Audits and restarts foundational RpcSs and DcomLaunch services.", "Displays 'The RPC server is unavailable' during printer access.")
         '33' = @("Restart Remote Spooler on Network Host", "Executes remote spooler restart on target computer via PowerShell WinRM/DCOM.", "Restarts printer server spooler remotely without physical access.")
@@ -3488,8 +3515,7 @@ function Show-Submenu3 {
             }
             '6' {
                 Fix-mDNS
-                Start-Service WSDPrintDevice -ErrorAction SilentlyContinue
-                Write-Host $(if ($isEN) { "  [+] WSD Print Device Discovery Enabled." } else { "  [+] Penemuan Perangkat Cetak WSD Diaktifkan." }) -ForegroundColor Green
+                Enable-WSDDiscovery
                 Pause-User
             }
             '7' {
@@ -3993,7 +4019,7 @@ function Invoke-Module {
         '27' { Reset-NetworkSockets }
         '28' { Rescue-NetworkProfile }
         '29' { Manage-TCPPort }
-        '30' { Start-Service WSDPrintDevice -ErrorAction SilentlyContinue; Write-Host $(if ($isEN) { "  [+] WSD Discovery Enabled." } else { "  [+] WSD Discovery Diaktifkan." }) -ForegroundColor Green }
+        '30' { Enable-WSDDiscovery }
         '31' { Reset-Spooler }
         '32' { Check-RPC }
         '33' { Remote-SpoolerReset }
