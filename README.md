@@ -15,6 +15,17 @@ Windows updates often break network printing with cryptic errors. This tool fixe
 
 ---
 
+## Fitur Baru: Pilihan Bahasa (Bilingual ID / EN) & Live Health Banner
+
+- **Ganti Bahasa Instan (Tekan `[L]`):** Pengguna dapat memilih dan berganti bahasa antara **Bahasa Indonesia** dan **English** kapan saja dengan menekan huruf `[L]` pada Menu Utama maupun Submenu. Preferensi bahasa tersimpan permanen di registry pengguna.
+- **Indikator Kesehatan Sistem Waktu-Nyata (*Live Health Banner*):** Header di setiap menu langsung menampilkan status 4 pilar penting sistem:
+  ```text
+  STATUS: Spooler [AKTIF] | Jaringan [PRIVATE] | SMB Signing [SESUAI] | Sandi Sharing [OFF]
+  ```
+  Teknisi dapat langsung mengidentifikasi sumber masalah hanya dalam 1 detik.
+
+---
+
 ## Struktur Menu & Kategori Perbaikan (8 Kategori Utama Berbahasa Manusia)
 
 Aplikasi kini dirancang ramah pengguna dengan struktur menu dan submenu yang bersih, komunikatif, dan mudah dipahami oleh staf kantor maupun teknisi IT. Tidak ada lagi tampilan berjejal 180 kolom.
