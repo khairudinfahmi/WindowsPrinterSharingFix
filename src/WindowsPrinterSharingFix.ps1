@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Windows Printer Sharing Fix - v2.3.2
@@ -179,6 +179,10 @@ function Fix-Deep0x00000709 {
         Set-ItemProperty -Path $rpcPath -Name RpcOverNamedPipes       -Value 1 -Type DWord -Force
         Set-ItemProperty -Path $rpcPath -Name RpcAuthenticationLevel  -Value 0 -Type DWord -Force
         Set-ItemProperty -Path $rpcPath -Name ForceKerberosForRpc     -Value 0 -Type DWord -Force
+
+        $polPrinters = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
+        if (-not (Test-Path $polPrinters)) { New-Item -Path $polPrinters -Force | Out-Null }
+        Set-ItemProperty -Path $polPrinters -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
         $printPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Print"
         Set-ItemProperty -Path $printPath -Name RpcAuthnLevelPrivacyEnabled -Value 0 -Type DWord -Force
@@ -479,6 +483,11 @@ function Fix-NamedPipes {
         Set-ItemProperty -Path $rpcPath -Name RpcTcpEnable -Value 1 -Type DWord -Force
         Set-ItemProperty -Path $rpcPath -Name RpcProtocols -Value 0x7 -Type DWord -Force
         Set-ItemProperty -Path $rpcPath -Name RpcOverNamedPipes -Value 1 -Type DWord -Force
+        Set-ItemProperty -Path $rpcPath -Name ForceKerberosForRpc -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+
+        $polPrinters = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
+        if (-not (Test-Path $polPrinters)) { New-Item -Path $polPrinters -Force | Out-Null }
+        Set-ItemProperty -Path $polPrinters -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
         $printPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Print"
         Set-ItemProperty -Path $printPath -Name RpcOverNamedPipes -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
@@ -914,9 +923,23 @@ function Uninstall-Printer {
 function Fix-SMBSigning {
     Write-Log "Disabling SMB Signing enforcement & Mutual Auth..." -Type "INFO"
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireMutualAuthentication -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireMutualAuthentication -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+
+        $polLanman = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation"
+        if (-not (Test-Path $polLanman)) { New-Item -Path $polLanman -Force | Out-Null }
+        Set-ItemProperty -Path $polLanman -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $polLanman -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+
+        try {
+            if (Get-Command Set-SmbClientConfiguration -ErrorAction SilentlyContinue) {
+                Set-SmbClientConfiguration -RequireSecuritySignature $false -EnableSecuritySignature $false -Confirm:$false -Force -ErrorAction SilentlyContinue
+            }
+            if (Get-Command Set-SmbServerConfiguration -ErrorAction SilentlyContinue) {
+                Set-SmbServerConfiguration -RequireSecuritySignature $false -EnableSecuritySignature $false -Confirm:$false -Force -ErrorAction SilentlyContinue
+            }
+        } catch {}
 
         Write-Log "SMB Signing enforcement disabled." -Type "SUCCESS"
         Write-Host "  [+] SMB Signature requirements dropped (Resolves Win 11 NAS/Legacy connectivity)." -ForegroundColor Green
@@ -2340,6 +2363,92 @@ function Remove-LocalPortUNC {
 }
 
 
+function Fix-HostServerRole {
+    cls
+    $isEN = ($script:lang -eq "EN")
+    $title = if ($isEN) { "OPTIMIZING HOST / PRINT SERVER PC (USB-CONNECTED)" } else { "OPTIMASI KOMPUTER HOST / SERVER PRINTER (TERHUBUNG USB)" }
+    Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
+    Write-Host "                    $title" -ForegroundColor Yellow
+    Write-Host "  ===================================================================================================`n" -ForegroundColor Cyan
+    Write-Log "Running Host/Print Server Optimization (LANG=$script:lang)" -Type "INFO"
+
+    Write-Host $(if ($isEN) { "  [*] [1/8] Securing Registry Backup..." } else { "  [*] [1/8] Mengamankan Cadangan Registri (Backup)..." }) -ForegroundColor Cyan
+    Backup-Registry
+
+    Write-Host $(if ($isEN) { "  [*] [2/8] Enforcing Spooler Remote RPC Endpoint (Accepting Client Connections)..." } else { "  [*] [2/8] Mengizinkan Spooler Menerima Koneksi RPC Klien Jaringan..." }) -ForegroundColor Cyan
+    try {
+        $polPrint = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
+        if (-not (Test-Path $polPrint)) { New-Item -Path $polPrint -Force | Out-Null }
+        Set-ItemProperty -Path $polPrint -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+    } catch {}
+
+    Write-Host $(if ($isEN) { "  [*] [3/8] Enforcing Network Connection Profile to Private..." } else { "  [*] [3/8] Mengubah Profil Jaringan ke Mode Private..." }) -ForegroundColor Cyan
+    Set-NetworkPrivate
+
+    Write-Host $(if ($isEN) { "  [*] [4/8] Opening Passwordless Sharing & Guest Access Permissions..." } else { "  [*] [4/8] Membuka Akses Berbagi Tanpa Sandi & Izin Guest..." }) -ForegroundColor Cyan
+    Disable-PasswordSharing
+    Enable-SMBGuest
+
+    Write-Host $(if ($isEN) { "  [*] [5/8] Opening Windows Firewall for File & Printer Sharing and WSD Discovery..." } else { "  [*] [5/8] Membuka Akses Firewall untuk Printer & Penemuan WSD..." }) -ForegroundColor Cyan
+    Open-Firewall
+    Fix-WSDFirewall
+
+    Write-Host $(if ($isEN) { "  [*] [6/8] Disabling SMB Server Security Signing Enforcement..." } else { "  [*] [6/8] Mematikan Wajib SMB Server Signing..." }) -ForegroundColor Cyan
+    Fix-SMBSigning
+
+    Write-Host $(if ($isEN) { "  [*] [7/8] Sanitizing Printer Share Names (Removing illegal characters & spaces)..." } else { "  [*] [7/8] Merapikan Nama Share Printer dari Spasi & Karakter Ilegal..." }) -ForegroundColor Cyan
+    Sanitize-PrinterShareName
+
+    Write-Host $(if ($isEN) { "  [*] [8/8] Deploying Spooler Watchdog Scheduled Task & Restarting Spooler..." } else { "  [*] [8/8] Memasang Tugas Pemantau Spooler Otomatis (Watchdog) & Restart..." }) -ForegroundColor Cyan
+    Set-SpoolerWatchdog
+    Reset-Spooler
+
+    Write-Log "Host Server Optimization concluded." -Type "SUCCESS"
+    Write-Host ""
+    Write-Host $(if ($isEN) { "  [+] Host / Print Server optimization completed successfully!" } else { "  [+] Optimasi Komputer Host / Server Printer berhasil diterapkan!" }) -ForegroundColor Green
+    Write-Host $(if ($isEN) { "  [i] Other PCs on the network can now connect to printers shared by this computer." } else { "  [i] Komputer lain di jaringan kini dapat mendeteksi dan tersambung ke printer PC ini." }) -ForegroundColor Cyan
+}
+
+function Fix-ClientWorkstationRole {
+    cls
+    $isEN = ($script:lang -eq "EN")
+    $title = if ($isEN) { "OPTIMIZING CLIENT PC (CONNECTING TO SHARED PRINTER)" } else { "OPTIMASI KOMPUTER KLIEN (MENYAMBUNG KE PRINTER SHARING)" }
+    Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
+    Write-Host "                    $title" -ForegroundColor Yellow
+    Write-Host "  ===================================================================================================`n" -ForegroundColor Cyan
+    Write-Log "Running Client Workstation Optimization (LANG=$script:lang)" -Type "INFO"
+
+    Write-Host $(if ($isEN) { "  [*] [1/7] Securing Registry Backup..." } else { "  [*] [1/7] Mengamankan Cadangan Registri (Backup)..." }) -ForegroundColor Cyan
+    Backup-Registry
+
+    Write-Host $(if ($isEN) { "  [*] [2/7] Activating RPC Named Pipes & TCP Protocol Pathways..." } else { "  [*] [2/7] Mengaktifkan Jalur Protokol RPC Named Pipes & TCP..." }) -ForegroundColor Cyan
+    Fix-NamedPipes
+
+    Write-Host $(if ($isEN) { "  [*] [3/7] Applying Point & Print Driver Elevation Bypass (PrintNightmare Override)..." } else { "  [*] [3/7] Menerapkan Bypass Elevasi Point and Print (Driver Install)..." }) -ForegroundColor Cyan
+    Fix-AdvancedPointAndPrint
+
+    Write-Host $(if ($isEN) { "  [*] [4/7] Disabling SMB Client Signing Enforcement (Resolving 24H2/25H2 block)..." } else { "  [*] [4/7] Mematikan Wajib SMB Client Signing (Atasi Blokir Win 11)..." }) -ForegroundColor Cyan
+    Fix-SMBSigning
+
+    Write-Host $(if ($isEN) { "  [*] [5/7] Fixing HKCU Printer Registry Key Permissions..." } else { "  [*] [5/7] Memperbaiki Izin Kunci Registri Printer HKCU..." }) -ForegroundColor Cyan
+    Fix-HKCU-PrinterKeyPerms
+
+    Write-Host $(if ($isEN) { "  [*] [6/7] Enabling Network Discovery Services (mDNS, LLMNR, SSDP)..." } else { "  [*] [6/7] Mengaktifkan Layanan Penemuan Perangkat Jaringan (mDNS, WSD)..." }) -ForegroundColor Cyan
+    Fix-mDNS
+    Fix-NetworkServices
+
+    Write-Host $(if ($isEN) { "  [*] [7/7] Opening Firewall Rules & Flushing DNS Cache..." } else { "  [*] [7/7] Membuka Port Firewall & Menyegarkan Cache DNS..." }) -ForegroundColor Cyan
+    Open-Firewall
+    try { $LASTEXITCODE = 0; ipconfig /flushdns > $null 2>&1 } catch {}
+
+    Write-Log "Client Workstation Optimization concluded." -Type "SUCCESS"
+    Write-Host ""
+    Write-Host $(if ($isEN) { "  [+] Client Workstation optimization completed successfully!" } else { "  [+] Optimasi Komputer Klien berhasil diterapkan!" }) -ForegroundColor Green
+    Write-Host $(if ($isEN) { "  [i] Try connecting to the shared printer now (e.g. \\ComputerName\PrinterName)." } else { "  [i] Silakan coba sambungkan kembali printer sharing sekarang (contoh: \\NamaKomputer\NamaPrinter)." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [i] If still prompted for password, save credentials via Menu 6 -> 1." } else { "  [i] Jika masih meminta sandi, simpan kredensial via Menu 6 -> 1." }) -ForegroundColor Yellow
+    Write-Host $(if ($isEN) { "  [i] If error 0x709 persists, use Local Port UNC Mapping via Menu 7 -> 1." } else { "  [i] Jika masih muncul error 0x709, gunakan Pemetaan Port UNC via Menu 7 -> 1." }) -ForegroundColor Yellow
+}
+
 # Windows Printer Sharing Fix - Interactive Engine & Bilingual UI
 # Supports Bahasa Indonesia (ID) and English (EN)
 
@@ -3119,31 +3228,39 @@ function Show-Submenu1 {
             Write-Host "      (Most reliable one-click fix for almost all network printer problems)" -ForegroundColor Gray
             Write-Host "  [2] Extreme Path for Modern Windows 11 (24H2 / 25H2 / 26H2 & ARM64)" -ForegroundColor Yellow
             Write-Host "      (Bypasses RPC restrictions, SMB Signing, and new Win 11 security policies)" -ForegroundColor Gray
-            Write-Host "  [3] Silent ALLFIX (Automated Fixes + Immediate Reboot)" -ForegroundColor Red
+            Write-Host "  [3] Optimize Host / Print Server PC (Connected directly to printer)" -ForegroundColor White
+            Write-Host "      (Enforce remote RPC endpoint, Private network, guest sharing, and watchdog)" -ForegroundColor Gray
+            Write-Host "  [4] Optimize Client PC (Connecting to shared printer over network)" -ForegroundColor White
+            Write-Host "      (RPC Named Pipes, Point and Print bypass, SMB signing fix, HKCU permissions)" -ForegroundColor Gray
+            Write-Host "  [5] Silent ALLFIX (Automated Fixes + Immediate Reboot)" -ForegroundColor Red
             Write-Host "      (For technicians/unattended deployment - WARNING: PC reboots immediately!)" -ForegroundColor Gray
-            Write-Host "  [4] Manage Windows Updates & Block Printer-Breaking Patches" -ForegroundColor White
+            Write-Host "  [6] Manage Windows Updates & Block Printer-Breaking Patches" -ForegroundColor White
             Write-Host "      (Pause updates 35 days, uninstall bad patches, prevent setting reverts)" -ForegroundColor Gray
             Write-Host ""
             Write-Host "  [L] Switch Language / Ganti Bahasa" -ForegroundColor DarkCyan
             Write-Host "  [B] Back to Main Menu" -ForegroundColor Cyan
             Write-Host ""
             Write-Host ("-" * 86) -ForegroundColor Cyan
-            Write-Host "Select option [1-4], L, or B: " -NoNewline -ForegroundColor Yellow
+            Write-Host "Select option [1-6], L, or B: " -NoNewline -ForegroundColor Yellow
         } else {
             Write-Host "  [1] ALLFIX - Jalankan 50 Perbaikan Otomatis Sekaligus" -ForegroundColor Green
             Write-Host "      (Solusi paling ampuh untuk hampir seluruh masalah sharing printer kantor)" -ForegroundColor Gray
             Write-Host "  [2] Solusi Khusus Windows 11 Versi Terbaru (24H2 / 25H2 / 26H2 & ARM64)" -ForegroundColor Yellow
             Write-Host "      (Bypass proteksi RPC, SMB Signing, dan kebijakan baru Windows 11)" -ForegroundColor Gray
-            Write-Host "  [3] Silent ALLFIX (Perbaikan Otomatis + Langsung Reboot Otomatis)" -ForegroundColor Red
+            Write-Host "  [3] Optimasi Komputer Host / Server Printer (PC yang terhubung kabel printer)" -ForegroundColor White
+            Write-Host "      (Izinkan RPC remote spooler, mode Private, akses tamu, dan pemantau otomatis)" -ForegroundColor Gray
+            Write-Host "  [4] Optimasi Komputer Klien (PC staf yang ingin menyambung ke printer)" -ForegroundColor White
+            Write-Host "      (RPC Named Pipes, bypass Point & Print, nonaktifkan SMB Signing, izin HKCU)" -ForegroundColor Gray
+            Write-Host "  [5] Silent ALLFIX (Perbaikan Otomatis + Langsung Reboot Otomatis)" -ForegroundColor Red
             Write-Host "      (Cocok untuk teknisi/unattended - PERINGATAN: PC langsung restart!)" -ForegroundColor Gray
-            Write-Host "  [4] Kelola Pembaruan Windows & Blokir Update Perusak Printer" -ForegroundColor White
+            Write-Host "  [6] Kelola Pembaruan Windows & Blokir Update Perusak Printer" -ForegroundColor White
             Write-Host "      (Jeda update 35 hari, hapus update bermasalah, atau cegah update reset setting)" -ForegroundColor Gray
             Write-Host ""
             Write-Host "  [L] Ganti Bahasa / Switch to English" -ForegroundColor DarkCyan
             Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
             Write-Host ""
             Write-Host ("-" * 86) -ForegroundColor Cyan
-            Write-Host "Pilih nomor [1-4], L, atau B: " -NoNewline -ForegroundColor Yellow
+            Write-Host "Pilih nomor [1-6], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
         if ($null -eq $sub) { continue }
@@ -3153,8 +3270,10 @@ function Show-Submenu1 {
         switch ($sub) {
             '1'  { AllFix-Core; Pause-User }
             '2'  { Extreme-25H2; Pause-User }
-            '3'  { $script:silentNuke = $true; AllFix-Core }
-            '4'  { Manage-WindowsUpdate; Pause-User }
+            '3'  { Fix-HostServerRole; Pause-User }
+            '4'  { Fix-ClientWorkstationRole; Pause-User }
+            '5'  { $script:silentNuke = $true; AllFix-Core }
+            '6'  { Manage-WindowsUpdate; Pause-User }
             '84' { AllFix-Core; Pause-User }
             '83' { Extreme-25H2; Pause-User }
             '85' { $script:silentNuke = $true; AllFix-Core }

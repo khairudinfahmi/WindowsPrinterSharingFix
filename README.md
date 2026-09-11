@@ -37,8 +37,10 @@ Aplikasi kini dirancang ramah pengguna dengan struktur menu dan submenu yang ber
 ### 1. Solusi Cepat & Otomatis (ALLFIX & Windows 11 Terbaru)
 * **[1] ALLFIX - 50 Perbaikan Otomatis Sekaligus** (Modul 84) — *Rekomendasi Utama: perbaikan menyeluruh yang menyelesaikan hampir seluruh masalah printer sharing kantor.*
 * **[2] Solusi Khusus Windows 11 Versi Terbaru (24H2/25H2/26H2 & ARM64)** (Modul 83) — *Mengatasi proteksi ketat RPC over Named Pipes, SMB Signing, dan kebijakan driver baru Windows 11.*
-* **[3] Silent ALLFIX (Otomatis + Langsung Reboot)** (Modul 85) — *Mode cepat untuk teknisi tanpa konfirmasi interaktif.*
-* **[4] Kelola Pembaruan Windows & Blokir Update Perusak Printer** (Modul 69) — *Jeda update 35 hari atau cegah update Windows mereset setelan sharing.*
+* **[3] Optimasi Komputer Host / Server Printer** — *Khusus PC yang tercolok kabel USB printer: izinkan remote RPC endpoint spooler, set Private network, guest sharing, buka port firewall & WSD, dan pasang Spooler Watchdog.*
+* **[4] Optimasi Komputer Klien** — *Khusus PC staf yang menyambung ke printer: aktifkan RPC Named Pipes, bypass Point & Print elevation, nonaktifkan SMB Signing, perbaiki izin HKCU, dan flush DNS.*
+* **[5] Silent ALLFIX (Otomatis + Langsung Reboot)** (Modul 85) — *Mode cepat untuk teknisi tanpa konfirmasi interaktif.*
+* **[6] Kelola Pembaruan Windows & Blokir Update Perusak Printer** (Modul 69) — *Jeda update 35 hari atau cegah update Windows mereset setelan sharing.*
 
 ### 2. Perbaikan Berdasarkan Kode Error Spesifik
 * **[1] Error 0x0000011b** — Atasi pemblokiran otentikasi RPC (RpcAuthnLevelPrivacy) (Modul 01)
