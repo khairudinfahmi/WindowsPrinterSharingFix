@@ -1,8 +1,7 @@
 # Windows Printer Sharing Fix
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011%20%7C%20Server-0078D6?logo=windows&logoColor=white)
-![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)
-![Version](https://img.shields.io/badge/Version-2.3.2-blue)
+[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases)
 
 A simple but powerful tool to fix common Windows printer sharing problems. Works on Windows 10, 11 (including 24H2+), ARM64, and Windows Server 2025.
 
@@ -203,8 +202,9 @@ Pre-compiled binaries are available in the **[Releases](../../releases)** tab:
 ```text
 ======================================================================================
    WINDOWS PRINTER SHARING FIX  |  Solusi Berbagi Printer Windows
-   Versi: 2.3.2  |  Sistem: WINDOWS 11 PRO 26100 64-BIT
+   Versi: 2.4.0  |  Sistem: WINDOWS 11 PRO 26100 64-BIT
    Komputer: PC-KANTOR-01  |  Pengguna: Administrator
+   STATUS SISTEM: Spooler [AKTIF] | Jaringan [PRIVATE] | SMB Signing [SESUAI] | Sandi Sharing [OFF]
 ======================================================================================
 
   PILIH KATEGORI PERBAIKAN:
@@ -219,11 +219,12 @@ Pre-compiled binaries are available in the **[Releases](../../releases)** tab:
   [8] Cadangan (Backup), Diagnostik & Pemulihan Sistem
 
   [9] Panduan & Bantuan Penggunaan
+  [L] Ganti ke English
   [0] Keluar dari Aplikasi
 
 --------------------------------------------------------------------------------------
-  [Tips Pintasan]: Ketik nomor menu (1-9) atau ketik langsung kode modul klasik
-                   seperti 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC Port).
+  [Tips Pintasan]: Ketik nomor menu (1-9), tekan [L] ganti bahasa, atau ketik langsung
+                   kode modul seperti 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC).
 --------------------------------------------------------------------------------------
 Pilih nomor menu: _
 ```
