@@ -2048,7 +2048,7 @@ function Inject-CrossUserCredentials {
             Write-Host "  [*] Injecting credential for user: $userName ($sid)..." -ForegroundColor Cyan
             $ntuser = Join-Path $profilePath "NTUSER.DAT"
             if (Test-Path $ntuser) {
-                $LASTEXITCODE = 0; & reg load "HKU\$sid" $ntuser > $null 2>&1
+                $LASTEXITCODE = 0; & reg load "HKU\$sid" "$ntuser" > $null 2>&1
                 if ($LASTEXITCODE -eq 0) {
                     try {
                         # Create self-deleting cmd script with credential command

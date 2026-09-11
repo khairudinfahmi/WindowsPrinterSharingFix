@@ -25,7 +25,7 @@ Windows updates often break network printing with cryptic errors. This tool fixe
 
 ---
 
-## Struktur Menu & Kategori Perbaikan (8 Kategori Utama Berbahasa Manusia)
+## Struktur Menu & Kategori Perbaikan (8 Kategori Aksi + 1 Panduan Bantuan)
 
 Aplikasi kini dirancang ramah pengguna dengan struktur menu dan submenu yang bersih, komunikatif, dan mudah dipahami oleh staf kantor maupun teknisi IT. Tidak ada lagi tampilan berjejal 180 kolom.
 
