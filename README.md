@@ -1,4 +1,4 @@
-# Windows Printer Sharing Fix
+﻿# Windows Printer Sharing Fix
 
 [![Windows Compatibility](https://img.shields.io/badge/Windows-10%20%7C%2011%20(24H2%2F25H2%2F26H2)%20%7C%20Server%202025-0078D6?logo=windows&logoColor=white)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases)
 [![Version](https://img.shields.io/badge/version-2.4.0-emerald.svg?style=flat)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.0)
@@ -10,7 +10,7 @@
 
 Engineered to be intuitive for standard office workstations while offering deep diagnostic telemetry and surgical remediation capabilities for IT administrators, sysadmins, and field engineers.
 
-Seamlessly supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **ARM64**, and **Windows Server 2016 / 2019 / 2022 / 2025**.
+Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **ARM64**, and **Windows Server 2016 / 2019 / 2022 / 2025**.
 
 ---
 
@@ -33,7 +33,7 @@ Seamlessly supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**
 5. **Modern Windows 11 Security Mitigations**:
    - Neutralizes modern RPC over Named Pipes restrictions (`RpcOverNamedPipes`, `RegisterSpoolerRemoteRpcEndPoint`).
    - Mitigates mandatory SMB Signing enforcement introduced in Windows 11 24H2.
-   - Configures robust NTLMv2 fallback for non-domain Workgroup topologies.
+   - Configures NTLMv2 fallback for non-domain Workgroup topologies.
 6. **Direct Action Shortcuts**:
    - Execute any classic module directly from the Main Menu (e.g., enter `84` for ALLFIX, `83` for Extreme Path, `86` for UNC Port Mapping, `31` for Spooler Reset) without drilling into submenus.
 
@@ -144,7 +144,7 @@ Ensures underlying network connectivity, protocol compatibility, and firewall po
 | # | Menu Option | Code | Details & Technical Benefit |
 | :---: | :--- | :---: | :--- |
 | **1** | **Switch Network Profile to Private** | `[11]` | Changes current network connection profile from Public to Private, enabling Windows sharing and file/printer discovery. |
-| **2** | **Enable Passwordless Sharing & Guest Auth** | `[12]` | Sets `AllowInsecureGuestAuth = 1`, `everyoneincludesanonymous = 1`, and `LimitBlankPasswordUse = 0` for seamless local LAN access. |
+| **2** | **Enable Passwordless Sharing & Guest Auth** | `[12]` | Sets `AllowInsecureGuestAuth = 1`, `everyoneincludesanonymous = 1`, and `LimitBlankPasswordUse = 0` for local LAN access. |
 | **3** | **Disable Mandatory SMB Signing Requirement** | `[16]` | Disables `RequireSecuritySignature` on LanmanWorkstation and LanmanServer to resolve connection refusals on Windows 11 24H2+. |
 | **4** | **Manage SMB Protocols (SMB2/SMB3 & SMB 1.0)** | `[15] & [17]` | Manages modern SMB2/SMB3 protocol engines and provides an emergency toggle for legacy SMBv1 for vintage print equipment. |
 | **5** | **Open Firewall Ports for File & Printer Sharing** | `[14] & [21]` | Authorizes inbound TCP 445, 139, 135 and UDP 137, 138, 3702 (WSD), 5353 (mDNS) through Windows Defender Firewall. |
@@ -193,11 +193,11 @@ Manages multi-machine authentication, Windows Vault credentials, and Windows 11 
 
 | # | Menu Option | Code | Details & Technical Benefit |
 | :---: | :--- | :---: | :--- |
-| **1** | **Store Target Machine Credentials in Vault** | `[60]` | Writes target machine credentials directly into the *Windows Credential Manager* (`cmdkey`) for permanent, seamless access. |
+| **1** | **Store Target Machine Credentials in Vault** | `[60]` | Writes target machine credentials directly into the *Windows Credential Manager* (`cmdkey`) for permanent access. |
 | **2** | **Purge Stale Credentials from Windows Vault** | `[61]` | Scans and deletes expired or conflicting target machine credentials stored in Vault that cause persistent access denied errors. |
 | **3** | **Deploy Credentials Across All Local Profiles** | `[63]` | Injects printer credentials across all user profiles on the workstation via multi-user RunOnce deployment with automatic self-cleanup. |
 | **4** | **Bypass Local Administrator UAC Token Filter** | `[57]` | Enables `LocalAccountTokenFilterPolicy = 1` to prevent Windows from stripping administrative tokens during remote network access. |
-| **5** | **Standardize NTLMv2 Authentication Level** | `[58]` | Aligns NTLM authentication (`LmCompatibilityLevel = 2` or `3`) to ensure seamless interoperability across heterogeneous Windows editions. |
+| **5** | **Standardize NTLMv2 Authentication Level** | `[58]` | Aligns NTLM authentication (`LmCompatibilityLevel = 2` or `3`) to ensure interoperability across heterogeneous Windows editions. |
 | **6** | **Bypass Strict Security (LSA, SAC, Credential Guard)** | `[54], [55], [62]` | Adapts strict Windows 11 enterprise mitigations that block legacy network authentication tokens on Workgroup LANs. |
 | **7** | **Manage Windows Protected Print (WPP)** | `[59]` | Configures Windows 11 *Windows Protected Print* mode to prevent unilateral disabling of third-party V3 print drivers. |
 | **8** | **Bypass Point and Print Elevation Prompts** | `[56]` | Eliminates Administrator elevation UAC prompts when client workstations automatically download drivers from the host printer PC. |
@@ -285,3 +285,4 @@ This compiles `release\WindowsPrinterSharingFix_Installer.exe` and applies a tru
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. Free to use, modify, and distribute for both personal and enterprise environments.
 
 Contributions and feedback are welcome! Please submit bug reports or feature requests via [GitHub Issues](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/issues) or submit a Pull Request following our [CONTRIBUTING.md](CONTRIBUTING.md).
+
