@@ -90,15 +90,15 @@ The main console organizes all 89 remediation modules into 8 dedicated categorie
    SYSTEM HEALTH: Spooler [ACTIVE] | Network [PRIVATE] | SMB Signing [MATCHED] | Password Sharing [OFF]
 ======================================================================================
 
-  [1] Quick & Automated Solutions (ALLFIX & Modern Windows 11)
-  [2] Fix by Specific Error Code (Error 0x...)
-  [3] Network Configuration, Sharing (SMB) & Firewall
-  [4] Spooler Service & Print Queue Management
-  [5] Printer Driver Handling & Compatibility
-  [6] Credentials, Permissions & Windows Security
-  [7] Port Mapping & Manual Connections (UNC / TCP-IP)
-  [8] Backup, Diagnostics & System Recovery
-  [9] Module Help System
+  [1] Quick & Automated Solutions (ALLFIX & Modern Win 11)
+  [2] Fix Specific Error Codes (0x11b, 0x709, 0xbc4, 0x040, etc.)
+  [3] Network, File & Printer Sharing (SMB) & Firewall
+  [4] Print Spooler Service & Print Queue Maintenance
+  [5] Driver Management & Ghost / USB Printer Cleanup
+  [6] Credentials, Access Rights & Security (Vault, LSA, UAC)
+  [7] Port Mapping & Manual Connections (UNC Port Map & TCP/IP)
+  [8] Backup, System Diagnostics & Disaster Recovery
+  [9] Help & Usage Guide
 
   [L] Switch Language (English / Indonesia)
   [?] Display Module Help (e.g., ? 84 or help 86)
@@ -107,7 +107,7 @@ The main console organizes all 89 remediation modules into 8 dedicated categorie
 
 ---
 
-### Submenu 1: Quick & Automated Solutions (ALLFIX & Modern Windows 11)
+### Submenu 1: Quick & Automated Solutions (ALLFIX & Modern Win 11)
 One-click fix routines that cover the most common and complex sharing failures.
 
 | # | Solution / Module Name | Code | Technical Description & Scope |
@@ -121,7 +121,7 @@ One-click fix routines that cover the most common and complex sharing failures.
 
 ---
 
-### Submenu 2: Fix by Specific Error Code (Error 0x...)
+### Submenu 2: Fix Specific Error Codes (0x11b, 0x709, 0xbc4, 0x040, etc.)
 Targeted fix modules mapped to specific hexadecimal Windows network print error codes.
 
 | # | Error Code | Code | Root Cause & Technical Fix |
@@ -138,7 +138,7 @@ Targeted fix modules mapped to specific hexadecimal Windows network print error 
 
 ---
 
-### Submenu 3: Network Configuration, Sharing (SMB) & Firewall
+### Submenu 3: Network, File & Printer Sharing (SMB) & Firewall
 Ensures underlying network connectivity, protocol compatibility, and firewall port clearance.
 
 | # | Menu Option | Code | Details & Technical Benefit |
@@ -156,7 +156,7 @@ Ensures underlying network connectivity, protocol compatibility, and firewall po
 
 ---
 
-### Submenu 4: Spooler Service & Print Queue Management
+### Submenu 4: Print Spooler Service & Print Queue Maintenance
 Resolves Print Spooler service crashes, clears jammed documents, and establishes automated self-healing.
 
 | # | Menu Option | Code | Details & Technical Benefit |
@@ -170,7 +170,7 @@ Resolves Print Spooler service crashes, clears jammed documents, and establishes
 
 ---
 
-### Submenu 5: Printer Driver Handling & Compatibility
+### Submenu 5: Driver Management & Ghost / USB Printer Cleanup
 Manages driver locks, uninstalls legacy driver packages cleanly, and mitigates Windows 11 driver isolation issues.
 
 | # | Menu Option | Code | Details & Technical Benefit |
@@ -188,7 +188,7 @@ Manages driver locks, uninstalls legacy driver packages cleanly, and mitigates W
 
 ---
 
-### Submenu 6: Credentials, Permissions & Windows Security
+### Submenu 6: Credentials, Access Rights & Security (Vault, LSA, UAC)
 Manages multi-machine authentication, Windows Vault credentials, and Windows 11 security policies.
 
 | # | Menu Option | Code | Details & Technical Benefit |
@@ -205,7 +205,7 @@ Manages multi-machine authentication, Windows Vault credentials, and Windows 11 
 
 ---
 
-### Submenu 7: Port Mapping & Manual Connections (UNC / TCP-IP)
+### Submenu 7: Port Mapping & Manual Connections (UNC Port Map & TCP/IP)
 Direct connection methods when standard Windows Network Discovery fails.
 
 | # | Menu Option | Code | Details & Technical Benefit |
@@ -218,7 +218,7 @@ Direct connection methods when standard Windows Network Discovery fails.
 
 ---
 
-### Submenu 8: Backup, Diagnostics & System Recovery
+### Submenu 8: Backup, System Diagnostics & Disaster Recovery
 Safety mechanisms to back up system state prior to modifications and deep diagnostic analysis tools.
 
 | # | Menu Option | Code | Details & Technical Benefit |
@@ -237,7 +237,7 @@ Safety mechanisms to back up system state prior to modifications and deep diagno
 
 ---
 
-### Submenu 9: Module Help System
+### Submenu 9: Help & Usage Guide
 Built-in technical reference and usage guidance for every module.
 - Type **`? <module_code>`** or **`help <module_code>`** directly from the Main Menu (e.g., `? 84` or `help 86`) for instant console documentation.
 - Opens offline documentation in your default browser.
