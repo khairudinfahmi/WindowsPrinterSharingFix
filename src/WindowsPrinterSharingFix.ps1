@@ -597,7 +597,7 @@ function Run-SfcDism {
 
 function Manage-Drivers {
     Write-Log "Launching Print Server Properties..." -Type "INFO"
-    Write-Host "  [!] Print Server Properties dialog opening. Purge anomalous drivers manually." -ForegroundColor Yellow
+    Write-Host "  [!] Print Server Properties dialog opening. Remove corrupted or unneeded drivers manually." -ForegroundColor Yellow
     Start-Process printui -ArgumentList '/s /t2' -NoNewWindow
 }
 
@@ -1225,7 +1225,7 @@ function Fix-RpcBitness0x0000007e {
         if (-not (Test-Path $rpcPath)) { New-Item -Path $rpcPath -Force | Out-Null }
         Set-ItemProperty -Path $rpcPath -Name RpcAuthenticationLevel -Value 0 -Type DWord -Force -ErrorAction Stop
         Write-Log "RPC Authentication downgraded." -Type "SUCCESS"
-        Write-Host "  [+] RPC Auth limitations removed to facilitate cross-architecture communication." -ForegroundColor Green
+        Write-Host "  [+] RPC Auth limitations removed for cross-architecture communication." -ForegroundColor Green
     }
     catch {
         Write-Log "Failed to fix 0x0000007e: $($_.Exception.Message)" -Type "ERROR"
@@ -2814,7 +2814,7 @@ function AllFix-Core {
         Invoke-SystemReboot
     }
     else {
-        Write-Host $(if ($isEN) { "  [*] Reboot manually to commit all security changes." } else { "  [*] Silakan restart komputer secara manual saat santai agar seluruh perbaikan aktif." }) -ForegroundColor Cyan
+        Write-Host $(if ($isEN) { "  [*] Reboot manually to apply all security changes." } else { "  [*] Silakan restart komputer secara manual nanti agar seluruh perbaikan aktif." }) -ForegroundColor Cyan
     }
 }
 
@@ -2822,7 +2822,7 @@ function Extreme-25H2 {
     Clear-Screen
     $isEN = ($script:lang -eq "EN")
     Write-Host "`n  ===================================================================================================" -ForegroundColor Cyan
-    $extremeTitle = if ($isEN) { "        EXTREME PATH FOR WIN 11 24H2 / 25H2 / 26H2+ & ARM64" } else { "        SOLUSI KOMPREHENSIF WINDOWS 11 VERSI TERBARU (24H2 / 25H2 / 26H2+ & ARM64)" }
+    $extremeTitle = if ($isEN) { "        EXTREME PATH FOR WIN 11 24H2 / 25H2 / 26H2+ & ARM64" } else { "        PERBAIKAN MENDALAM WINDOWS 11 TERBARU (24H2 / 25H2 / 26H2+ & ARM64)" }
     Write-Host $extremeTitle -ForegroundColor Yellow
     Write-Host "  ===================================================================================================" -ForegroundColor Cyan
     Write-Host $(if ($isEN) { "  [*] Applying deep policy modifications for strict security Windows 11 environments." } else { "  [*] Menerapkan penyesuaian menyeluruh untuk sistem Windows 11 dengan kebijakan keamanan ketat." }) -ForegroundColor Gray
@@ -2883,7 +2883,7 @@ function Extreme-25H2 {
     }
     catch {}
 
-    Write-Log $(if ($isEN) { "Extreme Path concluded!" } else { "Solusi Komprehensif Windows 11 Selesai!" }) -Type "SUCCESS"
+    Write-Log $(if ($isEN) { "Extreme Path completed!" } else { "Perbaikan Mendalam Windows 11 Selesai!" }) -Type "SUCCESS"
     Write-Host $(if ($isEN) { "  [+] Extreme security changes completed. System reboot is recommended." } else { "  [+] Konfigurasi keamanan Windows 11 berhasil disesuaikan. Disarankan merestart komputer." }) -ForegroundColor Green
 
     $extremeRestart = Read-Host $(if ($isEN) { "`n   [?] Execute immediate system reboot now? (Y/N)" } else { "`n   [?] Restart komputer sekarang? (Y/N)" })
@@ -3028,7 +3028,7 @@ function Show-Help {
         '12' = @("Disable Password Protected Network Sharing", "Configures LSA registry (limitblankpassworduse=0, everyoneincludesanonymous=1).", "Continuous login prompt even when printer sharing was configured without password requirement.")
         '13' = @("Enforce RPC via Named Pipes & TCP", "Forces printer RPC communication through standard Named Pipes and TCP endpoints.", "Printer connections fail due to restrictive RPC protocol restrictions.")
         '14' = @("Open Windows Firewall Rules for File & Printer Sharing", "Enables 'File and Printer Sharing' and 'Network Discovery' rule groups across all active profiles.", "Target PC cannot be reached or sharing traffic is dropped by firewall.")
-        '15' = @("Manage Legacy SMB 1.0 Protocol (ON/OFF)", "Enables or disables the legacy SMB 1.0/CIFS optional Windows feature.", "Required only when connecting to legacy legacy network devices or OS (Win XP/7).")
+        '15' = @("Manage Legacy SMB 1.0 Protocol (ON/OFF)", "Enables or disables the legacy SMB 1.0/CIFS optional Windows feature.", "Required only when connecting to legacy network devices or older OS (Win XP/7).")
         '16' = @("Disable SMB Signing Requirement (Fix Win 11 Access)", "Sets RequireSecuritySignature=0 on SMB client and server parameters.", "Windows 11 24H2+ fails to access shared printers or office NAS devices.")
         '17' = @("Enforce Modern SMB2 / SMB3 Topology", "Verifies and enables SMB2/SMB3 protocol stacks.", "Keeps shared printing stable and fast over modern SMB protocols.")
         '18' = @("Prioritize SMB in Network Provider Order", "Elevates LanmanWorkstation to the top position in system network provider order.", "Network printer sharing browsing feels sluggish or delayed.")

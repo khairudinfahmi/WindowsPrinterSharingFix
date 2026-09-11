@@ -76,6 +76,50 @@ try {
         Write-Host "Signing failed: $($sig.StatusMessage)" -ForegroundColor Red
     }
 
+    # Inno Setup Installer Compilation
+    Write-Host "`nChecking for Inno Setup compiler (ISCC.exe)..." -ForegroundColor Magenta
+    $isccPath = $null
+    $candidatePaths = @(
+        "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+        "C:\Users\Dina\AppData\Local\Programs\Inno Setup 6\ISCC.exe",
+        "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+        "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+    )
+    foreach ($cand in $candidatePaths) {
+        if ($cand -and (Test-Path $cand)) {
+            $isccPath = $cand
+            break
+        }
+    }
+    if (-not $isccPath) {
+        $cmd = Get-Command iscc.exe -ErrorAction SilentlyContinue
+        if ($cmd) { $isccPath = $cmd.Source }
+    }
+
+    $issScript = Join-Path $ProjectRoot "build\installer.iss"
+    $installerExe = Join-Path $OutputDir "WindowsPrinterSharingFix_Installer.exe"
+
+    if ($isccPath -and (Test-Path $issScript)) {
+        Write-Host "Inno Setup compiler found: $isccPath" -ForegroundColor Green
+        Write-Host "Compiling setup installer: $issScript..." -ForegroundColor Cyan
+        & $isccPath $issScript
+        
+        if (Test-Path $installerExe) {
+            Write-Host "Installer compiled successfully at: $installerExe" -ForegroundColor Green
+            Write-Host "Injecting digital signature into $installerExe..." -ForegroundColor Cyan
+            $sigInstaller = Set-AuthenticodeSignature -FilePath $installerExe -Certificate $cert -TimestampServer "http://timestamp.sectigo.com"
+            if ($sigInstaller.Status -eq "Valid" -or $sigInstaller.Status -eq "UnknownError") {
+                Write-Host "Installer signature injected! (Status: $($sigInstaller.Status))" -ForegroundColor Green
+            } else {
+                Write-Host "Installer signing failed: $($sigInstaller.StatusMessage)" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "Installer build failed: output file not found." -ForegroundColor Red
+        }
+    } else {
+        Write-Host "ISCC.exe not found or installer.iss missing. Skipping installer compilation." -ForegroundColor Yellow
+    }
+
 } catch {
     Write-Host "Process Failed: $_" -ForegroundColor Red
 }

@@ -28,8 +28,8 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
 3. **Reorganized Console Layout (Human-Friendly UI)**:
    - Replaced the old single-screen menu with **8 categorized submenus + 1 interactive help system**, sized for standard 86-column console buffers.
 4. **Role-Based Optimization Playbooks**:
-   - **Printer Host / Server Playbook (`[3]` in Submenu 1)**: Tailored for machines with direct USB or local printer attachments.
-   - **Client Workstation Playbook (`[4]` in Submenu 1)**: Tailored for employee PCs connecting across the LAN.
+   - **Printer Host / Server Playbook (`[3]` in Submenu 1)**: Configured for host PCs with direct USB or local printer connections.
+   - **Client Workstation Playbook (`[4]` in Submenu 1)**: Configured for client PCs connecting over the local network.
 5. **Modern Windows 11 Security Mitigations**:
    - Works around modern RPC over Named Pipes restrictions (`RpcOverNamedPipes`, `RegisterSpoolerRemoteRpcEndPoint`).
    - Mitigates mandatory SMB Signing enforcement introduced in Windows 11 24H2.
@@ -223,7 +223,7 @@ Safety mechanisms to back up system state prior to modifications and deep diagno
 
 | # | Menu Option | Code | Details & Technical Benefit |
 | :---: | :--- | :---: | :--- |
-| **1** | **Back Up 5 Critical Printer & Network Registry Hives** | `[64]` | Exports 5 vital hives (Print, PrintersPolicy, LanmanWorkstation, LanmanServer, Lsa) to `C:\WindowsPrinterSharingFixBackup`. |
+| **1** | **Back Up 5 Critical Printer & Network Registry Hives** | `[64]` | Exports 5 core hives (Print, PrintersPolicy, LanmanWorkstation, LanmanServer, Lsa) to `C:\WindowsPrinterSharingFixBackup`. |
 | **2** | **Restore Registry from Backup (Rollback)** | `[65]` | Re-imports the backup `.reg` hives to restore original system state whenever needed. |
 | **3** | **Create Windows System Restore Point** | `[66]` | Creates an immediate Windows System Restore Point with automatic frequency-limit bypass. |
 | **4** | **Check & Repair System Integrity (SFC & DISM)** | `[67]` | Executes `sfc /scannow` and `dism /online /cleanup-image /restorehealth` to repair corrupted Windows core components. |
@@ -265,18 +265,11 @@ When automated playbooks (**ALLFIX [84]** or **Extreme Path [83]**) are executed
 - PowerShell 5.1+
 - Inno Setup 6 (for building the installer)
 
-### Compile Portable Executable
+### Compile Portable Executable & Setup Installer
 ```powershell
 powershell -ExecutionPolicy Bypass -File build\Compile-ToExe.ps1
 ```
-This builds `release\WindowsPrinterSharingFix.exe` embedded with application metadata, an administrator manifest, icon resources, and Authenticode digital signatures.
-
-### Compile Windows Setup Installer
-```powershell
-& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\installer.iss
-powershell -ExecutionPolicy Bypass -File scratch\sign_installer.ps1
-```
-This compiles `release\WindowsPrinterSharingFix_Installer.exe` and applies a trusted Authenticode signature.
+This builds `release\WindowsPrinterSharingFix.exe`, generates `release\WindowsPrinterSharingFix_Installer.exe` using Inno Setup, bundles the latest offline documentation, and applies Authenticode digital signatures to both executables.
 
 ---
 

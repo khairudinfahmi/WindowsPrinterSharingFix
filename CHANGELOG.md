@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Typo Crash Protection**: Added automatic protections to the menu selection. Accidentally typing letters instead of numbers will no longer crash the script.
 - **HTML Report Fix**: Updated the logging system so that special characters (`<`, `>`, `&`) no longer break the HTML diagnostic report's layout.
 - **IP Input Validation**: Fixed an issue in `Test-Connectivity` that caused the tool to crash if you pressed Enter without typing an IP address.
-- **Stronger Registry Backup**: The Backup function is now much more comprehensive (backing up 5 full hives). This ensures all critical system changes are safely backed up before AllFix runs.
+- **Stronger Registry Backup**: The Backup function now backs up 5 full registry hives, ensuring all critical system configurations are safely saved before AllFix runs.
 - **Flawless Registry Rollback**: Tightened the registry restore system. The Rollback feature now validates each restored file individually, preventing it from falsely reporting success if a file fails to restore.
 - **Accurate Credential Validation**: The `Add-Credential` feature can now accurately detect and report failures from `cmdkey` instead of always displaying a "Success" message.
 - **Improved Password Security**: Revamped the `Inject-CrossUserCredentials` system. Passwords are no longer stored permanently as plaintext in the Registry. It now uses a single-use script that automatically deletes itself immediately after execution.
