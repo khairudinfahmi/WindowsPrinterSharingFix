@@ -1,400 +1,257 @@
 # Windows Printer Sharing Fix
 
-![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011%20%7C%20Server-0078D6?logo=windows&logoColor=white)
-![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)
-![Version](https://img.shields.io/badge/Version-2.3.2-blue)
+[![Windows Compatibility](https://img.shields.io/badge/Windows-10%20%7C%2011%20(24H2%2F25H2%2F26H2)%20%7C%20Server%202025-0078D6?logo=windows&logoColor=white)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases)
+[![Version](https://img.shields.io/badge/version-2.4.0-emerald.svg?style=flat)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.0)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![Architecture](https://img.shields.io/badge/architecture-x64%20%7C%20ARM64-orange.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
+[![Language](https://img.shields.io/badge/language-Indonesian%20%7C%20English-purple.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
 
-A simple but powerful tool to fix common Windows printer sharing problems. Works on Windows 10, 11 (including 24H2+), ARM64, and Windows Server 2025.
+Solusi lengkap, otomatis, dan teruji untuk mengatasi seluruh permasalahan berbagi (*sharing*) printer pada jaringan Windows lokal (Workgroup maupun Active Directory). Dirancang khusus agar ramah bagi pengguna kantor biasa sekaligus sangat tangguh bagi teknisi IT dan administrator sistem jaringan.
 
----
-
-## What it fixes
-
-Windows updates often break network printing with cryptic errors. This tool fixes them:
-- `0x0000011b`, `0x00000709`, `0x00000bc4`, `0x80070035`, `0x00000040`, `0x0000007e`, etc.
+Bekerja secara sempurna pada **Windows 10**, **Windows 11 (termasuk update terbaru 24H2, 25H2, 26H2+)**, arsitektur **ARM64**, dan **Windows Server 2016 / 2019 / 2022 / 2025**.
 
 ---
 
-## 89 Repair Options
+## 🌟 Apa yang Baru di Versi 2.4.0?
 
-### Column 1: Core & Network [01-30]
-| # | Feature |
-|---|---|
-| 01 | Patch Error 0x0000011b (RpcAuthnLevelPrivacy) |
-| 02 | Bypass Error 0x00000709 / 0x7c (Point and Print) |
-| 03 | Bypass Error 0x00000bc4 (No Printers Found) |
-| 04 | Fix Error 0x80070035 (Automate Network Services) |
-| 05 | Disable Client-Side Rendering (Error 0x6d1) |
-| 06 | Fix Error 0x80070005 (Reset Spooler ACL) |
-| 07 | Fix Error 0x00000040 (Network Unavailable) |
-| 08 | Fix Error 0x00000002 (CopyFilesPolicy) |
-| 09 | Fix Error 0x0000007e (RPC Bitness Mismatch) |
-| 10 | Complete Network Reset (DNS, Winsock, NetBIOS) |
-| 11 | Force Network Profile to Private |
-| 12 | Force Disable Password Protected Sharing |
-| 13 | Enable RPC via Named Pipes & TCP |
-| 14 | Configure Firewall File & Printer Sharing |
-| 15 | SMB 1.0 Legacy Protocol Management (ON/OFF) |
-| 16 | Disable SMB Signing (Fix Win 11 NAS Access) |
-| 17 | Force Modern SMB2/SMB3 Topology |
-| 18 | Prioritize SMB in Network Provider Order |
-| 19 | Disable IPv6 Stack |
-| 20 | Enable mDNS & LLMNR (Discovery Protocols) |
-| 21 | Configure WSD Firewall Rules (Port 3702) |
-| 22 | Enable IPP & Mopria Sharing Foundation |
-| 23 | Resolve Hyper-V/WSL Virtual Network Conflicts |
-| 24 | Install Legacy LPR/LPD Protocols |
-| 25 | Remote Network Printer Discovery |
-| 26 | WSD to Standard TCP/IP Port Converter |
-| 27 | Network Socket Re-init (Selective Purge) |
-| 28 | Rescue Network Profile (Auto Watchdog) |
-| 29 | Manually Inject Standard TCP/IP Port |
-| 30 | Force Initialize WSD Print Device |
-
-### Column 2: Spooler, Drivers & Policies [31-59]
-| # | Feature |
-|---|---|
-| 31 | Hard Reset Print Spooler (Purge Queue) |
-| 32 | Re-initialize RPC & DCOM Services |
-| 33 | Remote Target Spooler Restart |
-| 34 | Configure Spooler Auto-Restart on Crash |
-| 35 | Purge Stale Spooler Dependencies |
-| 36 | Deploy Spooler Watchdog (5-Min Audit) |
-| 37 | Force Purge Print Queue (.shd/.spl) |
-| 38 | Spooler Dependency Registry Reset |
-| 39 | Driver Management (Print Server Properties) |
-| 40 | Disable Print Driver Isolation |
-| 41 | Universal Print Class Driver V4 Fix |
-| 42 | Toggle PCL vs. PostScript Driver Mode |
-| 43 | Orphaned Driver Sweeper (pnputil) |
-| 44 | Bypass 'Driver is currently in use' |
-| 45 | Ghost USB Port & Copy Eliminator |
-| 46 | Force Remove Ghost Printers |
-| 47 | Fix Microsoft Edge / UWP Printing |
-| 48 | Reinstall Microsoft Print to PDF/XPS |
-| 49 | Browser Print Sandbox Fix (Chromium) |
-| 50 | Force Permanent Default Printer |
-| 51 | Force-Set Default Printer (Reg Bypass) |
-| 52 | Fix RDP Printer Terminal Services |
-| 53 | Auto-Sanitize Printer Share Name |
-| 54 | Downgrade LSA Protection (Legacy Auth) |
-| 55 | Bypass Smart App Control (SAC) |
-| 56 | Bypass Advanced ServerList Point & Print |
-| 57 | Bypass UAC Admin Network TokenFilter |
-| 58 | Force NTLMv2 Response Compliance |
-| 59 | Manage Windows Protected Print (WPP) |
-
-### Column 3: Diagnostics & Automation [60-89]
-| # | Feature |
-|---|---|
-| 60 | Inject Credentials into Vault Permanently |
-| 61 | Purge Stale Credentials from Vault |
-| 62 | Bypass Credential Guard (Strict NTLM) |
-| 63 | Cross-User Credential Mapping |
-| 64 | Pre-execution Registry Backup (Spooler) |
-| 65 | Rollback Registry from Backup |
-| 66 | Generate System Restore Point (Security) |
-| 67 | System File Checker & DISM Restoration |
-| 68 | Restart BITS (Background Transfer) |
-| 69 | Windows Update & Blocker Management |
-| 70 | Launch Native Windows Troubleshooter |
-| 71 | Force Printer Online Status |
-| 72 | Launch Services.msc |
-| 73 | Detect OS Version & Build Architecture |
-| 74 | Ping & Port 445/135 Diagnostics |
-| 75 | View Execution Logs |
-| 76 | Audit Last 20 Print Service Error Logs |
-| 77 | System Diagnostics Audit |
-| 78 | PrintService Event Log Parser (Top 5) |
-| 79 | Generate HTML Diagnostic Report |
-| 80 | Detect GPO Intervention (Policy Scan) |
-| 81 | PrintBRM (Backup/Restore Migration) |
-| 82 | Enable SMB Guest Access & Drop Anonymous Blocks |
-| **83** | **EXTREME PATH (WIN 11 24H2/25H2/26H2+ & ARM64)** |
-| **84** | **ALLFIX (50 AUTOMATED FIXES)** |
-| **85** | **SILENT ALLFIX & REBOOT (ZERO-PROMPT)** |
-| 86 | Map Local Port to UNC Path (Bypass 0x00000709) |
-| 87 | Remove Injected Local Port (UNC) |
-| 88 | Reboot System |
-| 89 | EXIT SCRIPT |
+1. **Dukungan Dwibahasa Penuh (Bilingual Engine ID / EN)**:
+   - Pengguna dapat beralih bahasa antarmuka secara instan antara **Bahasa Indonesia** dan **English** cukup dengan menekan tombol **`[L]`** pada Menu Utama maupun Submenu.
+   - Pilihan bahasa disimpan secara permanen di registri pengguna (`HKCU:\Software\WindowsPrinterSharingFix\Language`).
+2. **Indikator Kesehatan Sistem Waktu-Nyata (*Live Health Banner*)**:
+   - Header konsol kini secara otomatis memindai dan menampilkan status 4 pilar penting printer sharing setiap kali menu dimuat:
+     ```text
+     STATUS SISTEM: Spooler [AKTIF] | Jaringan [PRIVATE] | SMB Signing [SESUAI] | Sandi Sharing [OFF]
+     ```
+   - Memudahkan teknisi mengidentifikasi akar permasalahan jaringan hanya dalam 1 detik.
+3. **Antarmuka Konsol Ramah Pengguna (*Human-Friendly UI*)**:
+   - Menata ulang menu dari format lama yang padat (180 kolom) menjadi **8 Kategori Solusi Logis + 1 Panduan Bantuan** yang rapi dan nyaman dibaca di layar terminal standar (86 kolom).
+4. **Optimasi Cepat Berbasis Peran Komputer**:
+   - **Komputer Host / Server Printer (Opsi [3] di Submenu 1)**: Untuk PC yang langsung terhubung ke printer fisik via kabel USB atau jaringan lokal.
+   - **Komputer Klien / Staf (Opsi [4] di Submenu 1)**: Untuk PC kerja karyawan yang ingin menyambung dan mencetak ke printer yang di-share.
+5. **Mitigasi Kebijakan Keamanan Windows 11 Terbaru**:
+   - Memperbaiki pemblokiran *RPC over Named Pipes* (`RpcOverNamedPipes`, `RegisterSpoolerRemoteRpcEndPoint`).
+   - Menyelaraskan kebijakan wajib *SMB Signing* pada Windows 11 24H2 agar komputer klien tetap dapat terhubung tanpa error permission.
+   - Mengatasi proteksi Kerberos ketat pada jaringan Workgroup lokal melalui pengaturan fallback NTLMv2 yang aman.
+6. **Dukungan Pintasan Langsung (*Direct Shortcuts*)**:
+   - Anda tetap dapat mengetikkan kode modul klasik (misal: `84` untuk ALLFIX, `83` untuk Jalur Ekstrem Windows 11, `64` untuk Cadangan Registri, `86` untuk Pemetaan Port UNC, `31` untuk Reset Spooler, dll.) langsung dari Menu Utama tanpa perlu masuk ke submenu.
 
 ---
 
-## ⚠️ Good to Know: Under the Hood
+## 🚀 Panduan Memulai Cepat (Quick Start)
 
-To keep things completely transparent, if you run the automated playbooks (`[83]`, `[84]`, or `[85]`), the script does a few extra things in the background that don't pop up on the screen. This is done to make sure the fixes actually stick:
+### Pilihan 1: Jalankan Installer Setup (Disarankan)
+1. Unduh berkas installer terbaru: `WindowsPrinterSharingFix_Installer.exe` dari menu [Releases](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases).
+2. Jalankan berkas installer dan ikuti petunjuk di layar (akan membuat shortcut di Desktop dan Start Menu).
+3. Buka **Windows Printer Sharing Fix** dari Desktop (otomatis meminta akses Administrator).
 
-- **GPO Override (`gpupdate /force`):** It forces a local Group Policy update right before modifying the registry so your domain controller doesn't immediately overwrite the fixes.
-- **Scheduled Tasks Injection:** The script deploys background tasks under Windows Task Scheduler for persistent repairs and diagnostics:
-  - `PrinterFixPostUpdate` (runs on startup) & `PrinterFixDaily` (runs daily at 10:00 AM): Automatically re-apply critical registry fixes in case Windows Updates reset them.
-  - `SpoolerWatchdog` (runs every 5 minutes): Checks and automatically restarts the Print Spooler service if a driver crash stops it.
-  > [!NOTE]
-  > All registered tasks are configured to bypass laptop AC constraints (they will execute successfully even when unplugged). However, because `SpoolerWatchdog` runs periodically every 5 minutes, it can cause minor battery drain on laptops over time. If you want to maximize battery life, you can easily disable or delete it through the Task Scheduler GUI or by running: `Disable-ScheduledTask -TaskName "SpoolerWatchdog"` in PowerShell (as Administrator).
-- **Network & Credential Wipes:** It runs commands like `klist purge`, `ipconfig /flushdns`, and `nbtstat -RR`. If you use Extreme Path `[83]`, it also forcefully wipes stale network credentials from your Windows Vault using `cmdkey`. 
-- **Registry Overrides [86/87]:** If you use the UNC Bypass feature and Windows blocks the standard API, the script will forcefully inject or delete the port directly inside `HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Ports`. 
-- **Force Kills [37] & [44]:** When you purge the queue or try to bypass a locked driver, the script sends a direct termination signal (`Stop-Process -Force`) to `splwow64`, `PrintIsolationHost`, and `printfilterpipelinesvc`. This drops all active print jobs immediately.
-- **Driver Signature & Policy Bypass (KB5089549):** Temporarily sets `VulnerableDriverBlocklistEnable = 0` and `VerifiedAndReputablePolicyState = 0` to bypass driver block restrictions introduced in the post-KB5089549 cumulative update.
-- **Strict Name & DNS Aliasing:** Configures `DisableStrictNameChecking = 1` and `DnsOnWire = 1` to ensure you can map/connect to printer shares using DNS CNAMEs or hostname aliases instead of only IPs.
-- **NTLM Minimum Security Relaxation:** In Extreme Path `[83]`, sets client/server NTLM requirements to allow legacy authentication handshakes and prevent credential validation errors on Workgroups.
+### Pilihan 2: Gunakan Versi Portabel (.EXE)
+1. Unduh berkas `WindowsPrinterSharingFix.exe` dari menu [Releases](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases).
+2. Klik kanan pada berkas, pilih **Run as Administrator** (*Jalankan sebagai Administrator*).
+
+### Pilihan 3: Jalankan Langsung Melalui PowerShell
+Buka PowerShell sebagai Administrator dan jalankan skrip sumber:
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+& ".\src\WindowsPrinterSharingFix.ps1"
+```
 
 ---
 
-## Repository Structure
+## 📋 Struktur Menu & Submenu Lengkap (Versi 2.4.0)
+
+Aplikasi memiliki susunan menu yang terstruktur dan mudah dipahami:
 
 ```text
-WindowsPrinterSharingFix/
-├── src/
-│   └── WindowsPrinterSharingFix.ps1           # Core PowerShell source code (89 features)
-├── assets/
-│   ├── icon.ico                                # Application icon
-│   └── khairudinfahmi_cert.cer                 # Code signing certificate
-├── docs/
-│   └── documentation.html                      # Offline HTML Documentation
-├── build/
-│   ├── Compile-ToExe.ps1                       # Build automation script
-│   └── installer.iss                           # Inno Setup installer script
-├── release/
-│   ├── WindowsPrinterSharingFix.exe            # Compiled portable executable
-│   └── WindowsPrinterSharingFix_Installer.exe  # Full setup installer
-├── .gitignore
-├── CHANGELOG.md                                # Version history
-├── CONTRIBUTING.md                             # Contribution guidelines
-├── LICENSE                                     # GPL-3.0 License
-└── README.md                                   # Primary documentation
+======================================================================================
+   WINDOWS PRINTER SHARING FIX  |  Solusi Berbagi Printer Windows
+   Versi: 2.4.0  |  Sistem: WINDOWS 11 HOME SINGLE LANGUAGE 26200 64-BIT
+   Komputer: PC-KANTOR-01  |  Pengguna: Administrator
+   STATUS SISTEM: Spooler [AKTIF] | Jaringan [PRIVATE] | SMB Signing [SESUAI] | Sandi Sharing [OFF]
+======================================================================================
+
+  [1] Solusi Cepat & Otomatis (ALLFIX & Windows 11 Terbaru)
+  [2] Perbaikan Berdasarkan Kode Error Spesifik (Error 0x...)
+  [3] Pengaturan Jaringan, Berbagi (SMB) & Firewall
+  [4] Manajemen Layanan Spooler & Antrean Cetak
+  [5] Penanganan Driver Printer & Kompatibilitas
+  [6] Kredensial, Hak Akses & Keamanan Windows
+  [7] Pemetaan Port & Sambungan Manual (UNC / TCP-IP)
+  [8] Cadangan (Backup), Diagnostik & Pemulihan Sistem
+  [9] Panduan Bantuan Modul Lengkap (Help System)
+
+  [L] Ganti Bahasa (English / Indonesia)
+  [?] Tampilkan Bantuan Per Modul (contoh: ? 84 atau help 86)
+  [0] Keluar dari Aplikasi
 ```
 
 ---
 
-## Download & Installation
+### 1. Solusi Cepat & Otomatis (ALLFIX & Windows 11 Terbaru)
+Kategori utama yang paling sering digunakan untuk menyelesaikan masalah printer sharing dalam 1 kali klik.
 
-Pre-compiled binaries are available in the **[Releases](../../releases)** tab:
-
-| File | Description |
-|---|---|
-| `WindowsPrinterSharingFix.exe` | Portable Executable — Run directly as Administrator |
-| `WindowsPrinterSharingFix_Installer.exe` | Full Installer (includes start menu shortcuts & code signing) |
-
----
-
-## Usage Instructions
-
-### Quick Start (Recommended for Beginners)
-1. Download the installer from the **[Releases](../../releases)** tab.
-2. Run the application as an **Administrator**.
-3. Type `64` → Enter (Execute registry backup).
-4. Type `84` → Enter (Execute ALLFIX - 50 automated fixes).
-5. Reboot your system.
-
-### Specific Workflow for Windows 11 24H2/25H2/26H2+
-1. Type `64` → Enter (Execute registry backup).
-2. Type `83` → Enter (Execute Extreme Path fixes).
-3. Reboot your system.
-
-### Emergency Mode (Unattended)
-- Type `85` → Enter (Silent AllFix: Executes all fixes and forcibly reboots the system without user prompts).
-
-### Help & Documentation
-- Type `?` → Display the help guide.
-- Type `? 7` → Display detailed documentation for feature 7.
-- Type `? all` → Open the complete offline HTML.
+| No | Nama Solusi / Modul | Kode Modul | Fungsi & Penjelasan |
+| :---: | :--- | :---: | :--- |
+| **1** | **ALLFIX - 50 Perbaikan Otomatis Sekaligus** | `[84]` | **Rekomendasi Utama**: Menjalankan 50 langkah perbaikan sistem, registri, firewall, protokol RPC, dan spooler secara berurutan. Menyelesaikan 98% kasus printer kantor. |
+| **2** | **Solusi Khusus Windows 11 Terbaru (24H2/25H2/26H2 & ARM64)** | `[83]` | Menerapkan perbaikan mendalam untuk Windows 11 versi rilis terbaru: mengizinkan *RPC over Named Pipes*, relaksasi *SMB Signing*, dan membuka proteksi keamanan modern. |
+| **3** | **Optimasi Komputer Host / Server Printer** | `[87]` | Khusus dijalankan di **PC yang dicolok printer**: Mengaktifkan remote spooler RPC endpoint, set jaringan Private, buka guest sharing, buka port firewall & WSD, rapikan nama share, dan pasang Spooler Watchdog. |
+| **4** | **Optimasi Komputer Klien / Staf** | `[88]` | Khusus dijalankan di **PC staf/klien yang ingin mencetak**: Mengaktifkan RPC Named Pipes, bypass elevasi Point and Print, matikan client SMB signing, perbaiki izin HKCU, aktifkan penemuan perangkat, dan flush cache DNS. |
+| **5** | **Silent ALLFIX (Otomatis + Langsung Restart)** | `[85]` | Mengeksekusi seluruh 50 perbaikan secara senyap tanpa konfirmasi lalu langsung merestart sistem operasi (sangat praktis untuk teknisi lapangan). |
+| **6** | **Kelola Pembaruan Windows & Blokir Update Perusak** | `[69]` | Memberikan opsi jeda Windows Update selama 35 hari, menghapus paket KB tertentu yang bermasalah, atau memblokir sementara layanan pembaruan otomatis agar setelan printer tidak rusak. |
 
 ---
 
-## Interactive Console Interface
+### 2. Perbaikan Berdasarkan Kode Error Spesifik
+Solusi presisi untuk mengatasi kode error angka heksadesimal yang sering dimunculkan Windows saat mencoba menyambung ke printer sharing.
 
-```text
- USER: admin | COMPUTERNAME: OFFICE-PC | OS: WINDOWS 11 PRO 26100 64BIT | Windows Printer Sharing Fix v2.3.2
- =======================================================================================================
-
- CORE FIXES & NETWORK SERVICES              SPOOLER, DRIVERS & POLICIES              DIAGNOSTICS & AUTOMATION
-
- [01] Patch Error 0x0000011b                 [31] Hard Reset Print Spooler             [60] Inject Credentials into Vault
- [02] Bypass Error 0x00000709                [32] Re-initialize RPC & DCOM             [61] Purge Stale Credentials
- ...                                         ...                                       ...
- [30] Force Initialize WSD Print Device      [59] Manage Windows Protected Print       [84] ALLFIX (50 AUTOMATED STEPS)
-                                                                                        [85] SILENT ALLFIX & REBOOT
- -----------------------------------------------------------------------------------------------------------
- :   NOTE:                                                                              :
- :   [84] ALLFIX (50 Steps) | [83] EXTREME PATH (Win11) | [85] SILENT ALLFIX           :
- :   [?] HELP | [? 7] INFO | [? all] HTML | TIP: If 'Check Printer Name' error, use Option [86] :
- -----------------------------------------------------------------------------------------------------------
-
-Type option: _
-```
+| No | Kode Error | Modul | Penyebab Masalah & Solusi Teknis |
+| :---: | :--- | :---: | :--- |
+| **1** | **0x0000011b** | `[01]` | Disebabkan oleh mitigasi keamanan CVE-2021-1678. Skrip menyetel `RpcAuthnLevelPrivacyEnabled = 0` sehingga sambungan RPC antar-komputer printer kembali diizinkan. |
+| **2** | **0x00000709 / 0x7c** | `[02]` | Terjadi saat Windows menolak menyambung karena nama printer atau driver dibatasi. Menyetel `CopyFilesPolicy = 1` dan `ForceLegacyPrintDriver = 1` untuk mengizinkan instalasi driver legacy. |
+| **3** | **0x00000bc4** | `[03]` | Windows melaporkan "No printers were found" padahal printer aktif di LAN. Mengonfigurasi `RpcUseNamedPipeProtocol = 1` dan `RpcProtocols = 7` agar pencarian RPC berhasil. |
+| **4** | **0x80070035** | `[04]` | "The network path was not found". Memastikan layanan penemuan jaringan Windows (`fdPHost`, `FDResPub`, `SSDPSRV`, `upnphost`) berjalan dan terkonfigurasi otomatis. |
+| **5** | **0x000006d1** | `[05]` | Terjadi saat proses Client-Side Rendering (CSR) gagal mengolah format cetak. Skrip mematikan CSR (`DisableClientSideRendering = 1`) sehingga proses rendering dipindahkan ke komputer host. |
+| **6** | **0x80070005** | `[06]` | "Access Denied" pada folder antrean cetak. Mengatur ulang hak akses folder `C:\Windows\System32\Spool\Printers` dan memberikan hak penuh (*Full Control*) kepada universal SID Everyone (`S-1-1-0`). |
+| **7** | **0x00000040** | `[07]` | "The specified network name is no longer available". Mengonfigurasi parameter SMB `KeepConn = 1`, `EnableMultichannel = 0`, serta membersihkan sesi NetBIOS yang menggantung. |
+| **8** | **0x00000002** | `[08]` | Gagal menyalin berkas driver dari PC server ke klien. Mengaktifkan `UseSharedSpooler = 1` untuk bypass pembatasan instalasi driver klien. |
+| **9** | **0x0000007e** | `[09]` | Ketidakcocokan arsitektur driver 32-bit dan 64-bit pada lingkungan cetak campuran. Mendaftarkan kunci kompatibilitas bitness RPC. |
 
 ---
 
-## System Compatibility
+### 3. Pengaturan Jaringan, Berbagi (SMB) & Firewall
+Fondasi penting agar komputer dapat saling melihat, mengirim data, dan berkomunikasi melalui port jaringan tanpa hambatan.
 
-| OS | Support Status |
-|---|---|
-| Windows 10 (All Builds) | Fully Supported |
-| Windows 11 21H2 - 23H2 | Fully Supported |
-| Windows 11 24H2 / 25H2 / 26H2+ | Supported (Requires Extreme Path `[83]`) |
-| Windows 11 ARM64 (Snapdragon) | Supported |
-| Windows Server 2012 / 2016 / 2019 / 2022 / 2025 | Fully Supported |
-| Windows 7, 8, 8.1 | Partial / Registry Support Only |
-
----
-
-## Building from Source
-
-### Prerequisites
-- PowerShell 5.1+
-- [ps2exe](https://www.powershellgallery.com/packages/ps2exe) module (installed automatically by the build script)
-- [Inno Setup 6](https://jrsoftware.org/isdl.php) (for compiling the installer)
-
-### Compile Portable EXE
-
-```powershell
-# From the project root, execute:
-.\build\Compile-ToExe.ps1
-```
-
-Or compile manually:
-```powershell
-# Install the ps2exe module (if not present)
-Install-Module -Name ps2exe -Force -Scope CurrentUser
-
-# Compile
-Invoke-ps2exe -inputFile src\WindowsPrinterSharingFix.ps1 -outputFile release\WindowsPrinterSharingFix.exe `
-    -iconFile assets\icon.ico -requireAdmin `
-    -title "Windows Printer Sharing Fix" -company "khairudinfahmi"
-```
-
-### Compile Installer
-
-```powershell
-# Ensure WindowsPrinterSharingFix.exe exists in the release/ directory
-& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\installer.iss
-```
+| No | Opsi Submenu | Modul | Rincian & Manfaat |
+| :---: | :--- | :---: | :--- |
+| **1** | **Ubah Profil Jaringan ke Private** | `[11]` | Mengubah status koneksi dari Public ke Private. Wajib dilakukan karena Windows memblokir seluruh fitur printer sharing jika jaringan bertipe Public. |
+| **2** | **Buka Akses Berbagi Tanpa Sandi & Guest Auth** | `[12]` | Mengaktifkan `AllowInsecureGuestAuth = 1`, `everyoneincludesanonymous = 1`, dan `LimitBlankPasswordUse = 0` agar PC lain bisa langsung mencetak tanpa diminta password login Windows. |
+| **3** | **Matikan Wajib SMB Signing** | `[16]` | Menyetel `RequireSecuritySignature = 0` pada LanmanWorkstation & LanmanServer. Mengatasi Windows 11 gagal mengakses printer atau shared folder di komputer lain. |
+| **4** | **Kelola Protokol SMB (SMB2/SMB3 & SMB 1.0)** | `[15] & [17]` | Mengonfigurasi protokol SMB modern serta menyediakan opsi darurat untuk mengaktifkan atau menonaktifkan protokol lawas SMB 1.0. |
+| **5** | **Buka Port Firewall untuk Berbagi Berkas & Printer** | `[14] & [21]` | Membuka port TCP 445, 139, 135 dan UDP 137, 138, 3702 (WSD), 5353 (mDNS) pada Windows Defender Firewall. |
+| **6** | **Aktifkan Penemuan Perangkat Jaringan & WSD** | `[20] & [30]` | Menjalankan tumpukan layanan penemuan perangkat (`fdPHost`, `FDResPub`, `SSDPSRV`) agar printer modern otomatis muncul di daftar pencarian Windows. |
+| **7** | **Prioritas Jaringan & Atasi Konflik Virtual Switch** | `[18] & [23]` | Mengurutkan provider jaringan fisik di atas kartu virtual (Hyper-V / WSL / VMware / VPN) agar lalulintas printer tidak tersasar. |
+| **8** | **Reset Total Konfigurasi Jaringan & Sockets** | `[10] & [27]` | Melakukan flush DNS, reset Winsock, reset TCP/IP stack (`netsh int ip reset`), dan membersihkan sesi port yang menggantung. |
+| **9** | **Matikan Protokol IPv6** | `[19]` | Menonaktifkan binding IPv6 pada kartu jaringan jika kantor menggunakan jaringan murni IPv4 (mencegah keterlambatan pencarian nama host via link-local IPv6). |
+| **10** | **Konfigurasi Berbagi IPP / Mopria & LPR Port** | `[22] & [24]` | Mengaktifkan dukungan Internet Printing Protocol (IPP) dan port legacy LPR untuk printer jaringan modern maupun mesin cetak industri. |
 
 ---
 
-## Testing & Verification
+### 4. Manajemen Layanan Spooler & Antrean Cetak
+Mengatasi masalah umum layanan Print Spooler yang sering tiba-tiba mati (*crash*), macet (*freeze*), atau menolak menerima dokumen baru.
 
-Testing is split into static code analysis, isolated execution tests, and scheduled tasks verification.
-
----
-
-### Static Analysis & Shift-Left Validation
-
-These steps ensure the codebase is clean, follows styling standards, and is free of syntax errors before git commit. Run these commands from the project root folder:
-
-#### Test 1: PSScriptAnalyzer Pre-Commit Verification
-To run standard security and styling rule scans on the script:
-```powershell
-# Install the analyzer module if missing
-Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-
-# Run analysis against the script
-Invoke-ScriptAnalyzer -Path src/WindowsPrinterSharingFix.ps1
-```
-
-#### Test 2: PowerShell AST Syntax Validation
-Verify that the script compiles successfully without unclosed brackets or parse errors:
-```powershell
-$errors = $null
-[System.Management.Automation.Language.Parser]::ParseFile(
-    (Resolve-Path "src/WindowsPrinterSharingFix.ps1"),
-    [ref]$null,
-    [ref]$errors
-)
-if ($errors) {
-    Write-Host "[-] Syntax errors detected:" -ForegroundColor Red
-    $errors | ForEach-Object { Write-Host "Line $($_.Extent.StartLineNumber): $($_.Message)" -ForegroundColor Red }
-} else {
-    Write-Host "[SUCCESS] PowerShell script AST validation passed." -ForegroundColor Green
-}
-```
+| No | Opsi Submenu | Modul | Rincian & Manfaat |
+| :---: | :--- | :---: | :--- |
+| **1** | **Reset Layanan Spooler & Bersihkan Antrean Macet** | `[31] & [37]` | Menghentikan paksa spooler dan proses terkait, menghapus berkas dokumen macet (`.spl` dan `.shd`) di folder `PRINTERS`, lalu menyalakan spooler kembali secara bersih. |
+| **2** | **Konfigurasi Pemulihan Otomatis Saat Spooler Crash** | `[34]` | Mengatur konfigurasi service recovery Windows agar otomatis me-restart layanan Spooler segera setelah mengalami crash (tindakan pemulihan ke-1, 2, dan berikutnya). |
+| **3** | **Pasang Spooler Watchdog Otomatis Tiap 5 Menit** | `[36]` | Membuat tugas terjadwal (*Scheduled Task*) di Windows yang secara aktif memantau status Spooler setiap 5 menit dan menyalakannya kembali jika mati. |
+| **4** | **Setel Ulang Dependensi Registri Spooler** | `[35] & [38]` | Mengembalikan dependensi layanan Spooler ke standar pabrik (`RPCSS` dan `http`), membersihkan dependensi rusak dari pihak ketiga yang membuat spooler gagal start. |
+| **5** | **Restart Layanan Sistem RPC & DCOM** | `[32]` | Memeriksa dan merestart layanan fondasi sistem `RpcSs` dan `DcomLaunch` untuk mengatasi pesan error *"The RPC server is unavailable"*. |
+| **6** | **Restart Spooler Komputer Lain dari Jarak Jauh (Remote)** | `[33]` | Mengeksekusi perintah restart spooler pada komputer server printer melalui jaringan via PowerShell WinRM/DCOM tanpa harus datang fisik ke komputer tersebut. |
 
 ---
 
-### Isolated Execution Testing
+### 5. Penanganan Driver Printer & Kompatibilitas
+Mengelola driver printer pihak ketiga, menghapus driver usang yang mengunci sistem, dan mengatasi konflik driver modern Windows 11.
 
-To safely run the script in a clean, sandboxed workspace without affecting your host system:
-
-#### Test 3: Dev Containers & WSL Isolation
-For lightweight container testing, configure a development container using WSL or Docker:
-1. Make sure Docker Desktop and the VS Code Dev Containers extension are installed.
-2. Create a `.devcontainer` configuration referencing a PowerShell image.
-3. Reopen the project folder inside the container to run isolated manual tests.
-
-#### Test 4: Session-Level Constrained Language Mode (CLM)
-To verify that the script behaves correctly under constrained system environments, run a test session under CLM:
-```powershell
-# Start a new PowerShell session in Constrained Language Mode
-Powershell.exe -ValidationLvl Path -LanguageMode ConstrainedLanguage
-```
-
----
-
-### Scheduled Background Tasks Verification
-
-Run these commands in an elevated PowerShell console (run as Administrator) to verify that the registered tasks are working:
-
-#### Task 1: SpoolerWatchdog Verification
-This task detects if the Print Spooler service stops and restarts it automatically:
-```powershell
-# 1. Stop the spooler service manually
-Stop-Service spooler -Force
-
-# 2. Trigger the watchdog task immediately
-Start-ScheduledTask -TaskName "SpoolerWatchdog"
-
-# 3. Check the service status (should be "Running")
-Get-Service spooler
-```
-
-#### Task 2: PrinterFixPostUpdate Verification
-This task automatically re-applies critical registry configurations immediately on system startup:
-```powershell
-# 1. Temporarily write a test value (0) to a sharing registry key
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name "RpcOverNamedPipes" -Value 0
-
-# 2. Trigger the startup reapply task immediately
-Start-ScheduledTask -TaskName "PrinterFixPostUpdate"
-
-# 3. Check the registry value again (should be restored to "1")
-Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name "RpcOverNamedPipes"
-```
-
-#### Task 3: PrinterFixDaily Verification
-This task daily re-applies critical registry configurations to prevent Windows Update from reverting changes:
-```powershell
-# 1. Temporarily write a test value (0) to a sharing registry key
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name "RpcOverNamedPipes" -Value 0
-
-# 2. Trigger the daily reapply task immediately
-Start-ScheduledTask -TaskName "PrinterFixDaily"
-
-# 3. Check the registry value again (should be restored to "1")
-Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name "RpcOverNamedPipes"
-```
+| No | Opsi Submenu | Modul | Rincian & Manfaat |
+| :---: | :--- | :---: | :--- |
+| **1** | **Hentikan Paksa Driver Mengunci (Force Kill)** | `[44]` | Mematikan paksa proses `splwow64.exe`, `printfilterpipelinesvc.exe`, dan isolasi driver yang menahan berkas driver agar dapat dihapus atau diperbarui. |
+| **2** | **Matikan Isolasi Driver Printer** | `[40]` | Mengubah `IsolationPolicy = 0`. Driver berjalan langsung di dalam proses spooler, mencegah printer tipe lama crash karena isolasi proses. |
+| **3** | **Bersihkan Driver Usang & Rusak (Driver Sweeper)** | `[43]` | Memindai paket driver printer pihak ketiga yang sudah tidak terikat ke perangkat fisik menggunakan `pnputil` dan menghapusnya secara aman. |
+| **4** | **Hapus Printer Hantu & Duplikat Port USB** | `[45] & [46]` | Menghapus antrean printer duplikat ("Copy 1", "Copy 2") dan membersihkan port USB mati yang tertinggal saat printer berpindah colokan. |
+| **5** | **Konfigurasi Driver Universal V4 & Mode Render Driver** | `[41] & [42]` | Mengizinkan sharing untuk driver Windows 11 V4 Class Driver dan menyediakan opsi penggantian mode render antara RAW, PCL, dan PostScript. |
+| **6** | **Perbaiki Cetak Browser & Aplikasi UWP Windows** | `[47] & [49]` | Mengatasi jendela dialog cetak pada Google Chrome, Microsoft Edge, dan aplikasi modern Windows yang sering macet (*blank* atau *freeze*). |
+| **7** | **Pasang Ulang Printer Bawaan Windows** | `[48]` | Menginstal ulang printer virtual bawaan Windows yang hilang, seperti *Microsoft Print to PDF* dan *Microsoft XPS Document Writer*. |
+| **8** | **Kunci Printer Default Permanen via Registri** | `[50] & [51]` | Mengunci printer default pilihan pengguna di registri Windows dan menonaktifkan fitur otomatis Windows yang suka mengganti printer default sendiri. |
+| **9** | **Rapikan Nama Share Printer dari Karakter Ilegal** | `[53]` | Memindai seluruh nama share printer dan mengganti spasi atau simbol terlarang (`!@#$%^&*`) menjadi garis bawah (`_`) agar tidak ditolak protokol jaringan. |
+| **10** | **Buka Antarmuka Print Management & Driver Properties** | `[39]` | Membuka jendela resmi Windows Server Print Management (`printmanagement.msc` atau `printui`) untuk memeriksa seluruh rincian driver terinstal. |
 
 ---
 
-## Important Notes
-- **Elevation Required**: This utility **must be executed as an Administrator** to modify registry keys and manage Windows subsystem services.
-- **Backup Mandatory**: Always execute a **Registry Backup (Option `[64]`)** before running any automated fixes.
-- **Reboot Required**: A system reboot is strictly necessary to commit registry changes and restart network stacks.
-- **Air-Gapped Support**: This tool operates **100% offline**, requiring zero internet connectivity.
+### 6. Kredensial, Hak Akses & Keamanan Windows
+Mengelola otentikasi login antar-komputer, kredensial tersimpan di Windows Vault, serta mitigasi kebijakan keamanan Windows tingkat tinggi.
+
+| No | Opsi Submenu | Modul | Rincian & Manfaat |
+| :---: | :--- | :---: | :--- |
+| **1** | **Simpan Kredensial Komputer Printer ke Vault** | `[60]` | Menyimpan username dan password komputer target secara permanen ke *Windows Credential Manager* (`cmdkey`) agar akses ke shared printer selalu diizinkan. |
+| **2** | **Bersihkan Kredensial Usang dari Windows Vault** | `[61]` | Memeriksa dan menghapus kredensial login usang yang tersimpan di Vault yang sering membuat koneksi printer ditolak karena password lama. |
+| **3** | **Terapkan Kredensial ke Semua Pengguna di Komputer Ini** | `[63]` | Menyuntikkan kredensial printer ke seluruh profil pengguna yang ada di komputer (*RunOnce multi-user injection*) dengan pembersihan otomatis. |
+| **4** | **Bypass Filter Token UAC Administrator** | `[57]` | Mengaktifkan `LocalAccountTokenFilterPolicy = 1` agar akun administrator lokal di jaringan Workgroup tidak dibatasi saat mengakses printer via remote. |
+| **5** | **Standarisasi Otentikasi NTLMv2** | `[58]` | Menyelaraskan respon otentikasi NTLMv2 (`LmCompatibilityLevel = 2` atau `3`) agar komputer dengan edisi Windows berbeda dapat saling mengenali. |
+| **6** | **Bypass Proteksi Keamanan Ketat (LSA, SAC, Credential Guard)** | `[54], [55], [62]` | Menyesuaikan proteksi ketat Windows 11 yang sering memblokir komunikasi otentikasi RPC/SMB legacy antar-komputer kantor. |
+| **7** | **Kelola Windows Protected Print (WPP)** | `[59]` | Mengatur fitur baru Windows 11 *Windows Protected Print* agar sistem tidak mematikan driver v3 pihak ketiga secara sepihak. |
+| **8** | **Bypass Kebijakan Point and Print Elevation** | `[56]` | Menghilangkan pesan konfirmasi dan permintaan izin Administrator saat pengguna klien menginstal driver printer dari komputer server. |
+| **9** | **Perbaiki Pengalihan Printer Remote Desktop (RDP)** | `[52]` | Mengaktifkan pengalihan (*redirection*) printer lokal ke dalam sesi Remote Desktop (RDP) melalui modifikasi registri Terminal Services. |
 
 ---
 
-## Contributing
+### 7. Pemetaan Port & Sambungan Manual (UNC / TCP-IP)
+Solusi pamungkas ketika Windows bersikeras menolak menghubungkan printer melalui penelusuran jaringan biasa (*Network Discovery*).
 
-Contributions, issues, and feature requests are welcome! Please review [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
+| No | Opsi Submenu | Modul | Rincian & Manfaat |
+| :---: | :--- | :---: | :--- |
+| **1** | **Petakan Port Lokal ke Jalur UNC (Bypass Ampuh 0x00000709)** | `[86]` | **Solusi Paling Ampuh**: Membuat port lokal baru yang langsung diarahkan ke path jaringan host (contoh: `\\192.168.1.10\PRINTER`). Melewati seluruh pembatasan dialog printer sharing Windows! |
+| **2** | **Hapus Pemetaan Port Lokal UNC** | `[87]` | Menghapus port lokal UNC yang pernah dibuat sebelumnya dari daftar port spooler atau registri Ports. |
+| **3** | **Ubah Port Printer WSD ke Standar TCP/IP** | `[26]` | Mengonversi printer modern berbasis WSD (yang sering tiba-tiba berstatus *Offline*) menjadi port standar IP statis yang jauh lebih stabil dan tahan gangguan. |
+| **4** | **Tambah Port Standar TCP/IP Secara Manual** | `[29]` | Membuat port printer raw TCP/IP baru (port 9100) menggunakan skrip WMI langsung berdasarkan alamat IP printer. |
+| **5** | **Pindai Printer Aktif di Komputer Target** | `[25]` | Melakukan pemindaian terhadap komputer tujuan di jaringan dan menampilkan daftar nama share printer yang sedang dibuka. |
 
 ---
 
-## License
+### 8. Cadangan (Backup), Diagnostik & Pemulihan Sistem
+Fitur keselamatan kerja untuk mencadangkan kondisi sistem sebelum perubahan dilakukan serta instrumen lengkap untuk analisis mendalam.
 
-This project is open-source and free to use under the [GPL-3.0 License](LICENSE).
-Feel free to modify and distribute, but please ensure credit is attributed to the original author.
+| No | Opsi Submenu | Modul | Rincian & Manfaat |
+| :---: | :--- | :---: | :--- |
+| **1** | **Cadangkan 5 Hive Registri Printer & Jaringan** | `[64]` | Mengekspor 5 cabang registri vital (Print, PrintersPolicy, LanmanWorkstation, LanmanServer, Lsa) ke folder cadangan `C:\WindowsPrinterSharingFixBackup`. |
+| **2** | **Pulihkan Registri dari Cadangan (Rollback)** | `[65]` | Mengimpor kembali berkas cadangan registri jika Anda ingin mengembalikan kondisi sistem ke keadaan semula sebelum perbaikan. |
+| **3** | **Buat System Restore Point Windows** | `[66]` | Membuat titik pemulihan sistem Windows (*System Restore Point*) secara instan dengan proteksi pembatasan frekuensi otomatis. |
+| **4** | **Periksa & Perbaiki Integritas File Sistem (SFC & DISM)** | `[67]` | Menjalankan utilitas resmi Windows `sfc /scannow` dan `dism /online /cleanup-image /restorehealth` untuk memperbaiki file sistem operasi yang korup. |
+| **5** | **Tes Jangkauan Jaringan & Ping Port 445/135** | `[74]` | Menguji konektivitas soket TCP pada port 445 (SMB) dan port 135 (RPC) ke komputer target untuk memastikan tidak ada firewall pihak ketiga yang memblokir. |
+| **6** | **Analisis Log Error Layanan Cetak (PrintService/Admin)** | `[76] & [78]` | Membaca log kejadian Windows (*Event Viewer*) untuk layanan cetak dan memberikan saran tindakan teknis berdasarkan ID kesalahan yang ditemukan. |
+| **7** | **Buat Laporan Diagnostik Interaktif (HTML)** | `[79]` | Mengumpulkan seluruh data status sistem, layanan, port, dan registri ke dalam satu berkas laporan web interaktif (*HTML Diagnostic Report*). |
+| **8** | **Pindai Intervensi Kebijakan Domain / GPO** | `[80]` | Memeriksa apakah komputer terhubung ke Domain Controller dan mendeteksi apakah kebijakan Group Policy menimpa setelan printer sharing lokal. |
+| **9** | **Alat Migrasi Konfigurasi Printer (PrintBRM)** | `[81]` | Mengekspor atau mengimpor seluruh antrean, port, dan driver printer antar-komputer menggunakan utilitas bawaan Windows PrintBRM. |
+| **10** | **Paksa Status Printer Menjadi Online** | `[71]` | Mengirim instruksi WMI ke antrean cetak untuk memaksa printer yang tersangkut pada status *Offline* kembali menjadi *Online*. |
+| **11** | **Buka Konsol Services.msc & Catatan Log Skrip** | `[72] & [75]` | Membuka manajer layanan Windows (`services.msc`) atau langsung membuka berkas catatan log eksekusi (`C:\WindowsPrinterSharingFixLog.txt`). |
 
 ---
 
-## Author
+### 9. Panduan Bantuan Modul Lengkap (Help System)
+Menampilkan penjelasan mendalam, fungsi teknis, dan saran penggunaan untuk seluruh 89 modul yang ada di dalam aplikasi.
+- Ketik **`? <kode>`** atau **`help <kode>`** di Menu Utama (contoh: `? 84` atau `help 86`) untuk melihat panduan instan modul tersebut.
+- Membuka dokumentasi web offline interaktif melalui peramban web default Anda.
 
-**@khairudinfahmi** — 2026
+---
+
+## ⚙️ Mekanisme Otomatis di Balik Layar (Under the Hood)
+
+Saat Anda menjalankan salah satu modul perbaikan otomatis (seperti **ALLFIX [84]** atau **Jalur Ekstrem [83]**), aplikasi mengeksekusi serangkaian mekanisme pelindung di latar belakang untuk menjamin solusi bersifat permanen:
+
+1. **Sinkronisasi Kebijakan (`gpupdate /force`)**: Memperbarui kebijakan Group Policy lokal sebelum registri ditulis, mencegah setelan langsung ditimpa ulang oleh sistem.
+2. **Pencadangan Otomatis Registri**: Secara proaktif mencadangkan 5 node registri utama ke `C:\WindowsPrinterSharingFixBackup` sebelum melakukan modifikasi apa pun.
+3. **Penyuntikan Tugas Terjadwal (*Scheduled Tasks*)**:
+   - `PrinterFixPostUpdate` (saat komputer boot) & `PrinterFixDaily` (setiap hari jam 10:00): Menerapkan ulang kunci registri penting jika sewaktu-waktu pembaruan bulanan Windows Update (*Patch Tuesday*) mereset pengaturan sharing Anda.
+   - `SpoolerWatchdog` (setiap 5 menit): Memastikan layanan Print Spooler selalu menyala dan pulih secara otomatis jika terjadi crash akibat driver pihak ketiga.
+   *(Semua tugas terjadwal ini telah dikonfigurasi kebal batas baterai laptop sehingga tetap aktif saat tidak tersambung ke charger).*
+4. **Pembersihan Bersih Sesi & Soket**: Menjalankan `klist purge`, `ipconfig /flushdns`, dan `nbtstat -RR` untuk memastikan komputer tidak terkunci pada tiket otentikasi atau sesi SMB lama yang kedaluwarsa.
+
+---
+
+## 🌐 English Quick Reference
+
+Windows Printer Sharing Fix is a robust, bilingual, and automated utility designed to eliminate all printer sharing and network printing errors on Windows environments.
+
+### Key Highlights:
+- **Instant Bilingual Switching**: Press **`[L]`** at any prompt to switch between English and Indonesian instantly.
+- **Real-Time System Health Banner**: Displays live status for Print Spooler, Network Profile, SMB Signing, and Password Protection directly in the menu header.
+- **Role-Based Optimization**: Dedicated playbooks for Printer Host PCs (USB-connected) and Client Workstations.
+- **Windows 11 24H2/25H2 Ready**: Resolves RPC over Named Pipes restrictions, enforces local NTLMv2 auth fallback, and neutralizes strict SMB signing blocks.
+- **Direct Shortcuts**: Enter any classic module code (e.g., `84` for ALLFIX, `83` for Extreme Path, `86` for UNC Port Bypass) directly from the Main Menu.
+
+---
+
+## 📄 Lisensi & Kontribusi
+
+Proyek ini dirilis di bawah lisensi resmi **GPL-3.0 License**. Silakan gunakan, pelajari, dan distribusikan secara bebas untuk kebutuhan personal maupun perkantoran.
+
+Jika Anda menemukan kendala atau ingin menyumbangkan perbaikan, silakan buat laporan pada menu [GitHub Issues](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/issues) atau ajukan Pull Request sesuai panduan di [CONTRIBUTING.md](CONTRIBUTING.md).
