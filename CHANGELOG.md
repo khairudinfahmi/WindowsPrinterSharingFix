@@ -7,12 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2026-09-11
 
-### Refaktor UI & Bahasa Manusiawi
+### Refaktor UI, Dwibahasa (Bilingual ID/EN) & Bahasa Manusiawi
+- **Dukungan Dwibahasa (Bilingual Engine ID / EN)**: Pengguna dapat memilih dan mengganti bahasa antarmuka antara Bahasa Indonesia dan English kapan saja secara instan dengan menekan `[L]` di Menu Utama maupun Submenu. Preferensi bahasa disimpan secara persisten di registry `HKCU:\Software\WindowsPrinterSharingFix\Language`.
+- **Indikator Kesehatan Sistem Waktu-Nyata (Header Health Banner)**: Menampilkan status 4 pilar penting sistem langsung pada bagian atas layar: Spooler (Running/Stopped), Profil Jaringan (Private/Public), Wajib SMB Signing, dan Proteksi Sandi Berbagi.
 - **Antarmuka Console Baru**: Menata ulang antarmuka dari tampilan 180 kolom yang padat menjadi 8 Kategori Inti yang rapi dan nyaman dibaca pada ukuran terminal standar (86 kolom).
-- **Submenu Terarah**: Mengelompokkan 89 modul teknis ke dalam 8 submenu logis dengan penjelasan yang mudah dimengerti.
+- **Submenu Terarah**: Mengelompokkan 89 modul teknis ke dalam 8 submenu logis dengan penjelasan yang mudah dimengerti dalam dua bahasa.
 - **Konsolidasi Fitur Duplikat**: Menyatukan opsi yang berkaitan erat (seperti Reset Spooler + Hapus Antrean, Buka Akses Berbagi Tanpa Sandi + Guest, serta Pembersihan Printer Hantu) ke dalam alur yang lebih praktis.
 - **Dukungan Pintasan Langsung (Direct Shortcuts)**: Mempertahankan 100% kompatibilitas dengan kebiasaan lama; pengguna tetap dapat mengetikkan kode modul klasik (84, 83, 64, 86, 31, dll.) langsung dari Menu Utama.
-- **Bahasa Manusiawi Komunikatif**: Memperbarui seluruh teks panduan, deskripsi, pesan eksekusi AllFix, dan bantuan modul menggunakan bahasa Indonesia yang natural, lugas, dan bebas dari terjemahan mesin / anomali AI.
+- **Bahasa Manusiawi Komunikatif**: Memperbarui seluruh teks panduan, deskripsi, pesan eksekusi AllFix, dan bantuan modul menggunakan bahasa manusia yang natural, lugas, dan bebas dari terjemahan mesin / anomali AI.
 
 ---
 
