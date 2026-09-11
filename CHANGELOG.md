@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2026-09-11
 
-### Refaktor UI, Dwibahasa (Bilingual ID/EN) & Bahasa Manusiawi
+### Refaktor UI, Dwibahasa (Bilingual ID/EN), Optimasi Berbasis Peran & Update Terkini Windows
+- **Optimasi Cepat Berbasis Peran (Submenu 1)**: Menambahkan solusi terarah khusus:
+  - **PC Host / Server Printer** (Opsi [3]): Mengizinkan remote RPC endpoint spooler, menyetel profil jaringan Private, membuka guest sharing, membuka port firewall & WSD, menonaktifkan wajib server SMB signing, merapikan nama share printer, dan memasang Spooler Watchdog.
+  - **PC Klien** (Opsi [4]): Mengaktifkan RPC Named Pipes, bypass elevasi Point and Print, menonaktifkan wajib client SMB signing, memperbaiki izin registri HKCU, mengaktifkan penemuan perangkat (mDNS/WSD), dan membersihkan cache DNS.
+- **Mitigasi Kebijakan Windows 11 24H2/25H2 & Server 2025**:
+  - Menyuntikkan `RegisterSpoolerRemoteRpcEndPoint = 1` pada Spooler Policies untuk mengatasi pemblokiran diam-diam koneksi remote RPC pada komputer server.
+  - Menetapkan `ForceKerberosForRpc = 0` agar jaringan kantor Workgroup (non-domain) tetap dapat mengotentikasi via NTLMv2 tanpa diblokir oleh kebijakan Kerberos baru.
+  - Menyelaraskan *SMB Signing* di 3 lapisan sekaligus: Group Policy (`LanmanWorkstation`), Service Parameters, dan PowerShell cmdlets (`Set-SmbClientConfiguration` / `Set-SmbServerConfiguration`).
 - **Dukungan Dwibahasa (Bilingual Engine ID / EN)**: Pengguna dapat memilih dan mengganti bahasa antarmuka antara Bahasa Indonesia dan English kapan saja secara instan dengan menekan `[L]` di Menu Utama maupun Submenu. Preferensi bahasa disimpan secara persisten di registry `HKCU:\Software\WindowsPrinterSharingFix\Language`.
 - **Indikator Kesehatan Sistem Waktu-Nyata (Header Health Banner)**: Menampilkan status 4 pilar penting sistem langsung pada bagian atas layar: Spooler (Running/Stopped), Profil Jaringan (Private/Public), Wajib SMB Signing, dan Proteksi Sandi Berbagi.
 - **Antarmuka Console Baru**: Menata ulang antarmuka dari tampilan 180 kolom yang padat menjadi 8 Kategori Inti yang rapi dan nyaman dibaca pada ukuran terminal standar (86 kolom).
