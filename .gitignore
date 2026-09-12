@@ -21,6 +21,7 @@ release/*
 *.log
 *.txt
 *.tmp
+scratch/
 
 # ===========================
 # Legacy / Backup Folders
