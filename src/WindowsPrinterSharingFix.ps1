@@ -284,6 +284,7 @@ function Set-PostPatchTuesdayTask {
         
         $scriptPath = Join-Path $script:backupDir "PrinterFixReapply.ps1"
         $fixScript = @'
+# 1. Enforce RPC Named Pipes and Printer Policies
 if (-not (Test-Path "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC")) { New-Item "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Name ForceKerberosForRpc -Value 0 -Type DWord -Force -EA SilentlyContinue
@@ -295,28 +296,43 @@ if (-not (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP")
 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP" -Name Enabled -Value 0 -Type DWord -Force -EA SilentlyContinue
 if (-not (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")) { New-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord -Force -EA SilentlyContinue
-Restart-Service spooler -Force -EA SilentlyContinue
+
+# 2. Disable Fast Startup (Prevents stale socket hibernation and next-day connection drops)
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name "HiberbootEnabled" -Value 0 -Type DWord -Force -EA SilentlyContinue
+
+# 3. Ensure Active Network Profiles are Private (Prevents Firewall from blocking printer sharing)
+Get-NetConnectionProfile -EA SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -EA SilentlyContinue
+
+# 4. Ensure Discovery Services are Running
+@('fdPHost', 'FDResPub', 'SSDPSRV') | ForEach-Object {
+    $svc = Get-Service $_ -EA SilentlyContinue
+    if ($svc -and $svc.Status -ne 'Running') { Start-Service $_ -EA SilentlyContinue }
+}
+
+# 5. Non-Destructive Spooler Validation (Starts spooler if offline, does not kill active jobs)
+$sp = Get-Service spooler -EA SilentlyContinue
+if ($sp -and $sp.Status -ne 'Running') { Start-Service spooler -EA SilentlyContinue }
 '@
         Set-Content -Path $scriptPath -Value $fixScript -Encoding UTF8 -Force
         
         $cmd = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`""
         
+        # Deploy boot-time auto-reapply task
         & schtasks.exe /create /tn "PrinterFixPostUpdate" /tr $cmd /sc onstart /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
         if ($LASTEXITCODE -ne 0) { throw "schtasks ONSTART returned exit code $LASTEXITCODE" }
         
-        & schtasks.exe /create /tn "PrinterFixDaily" /tr $cmd /sc daily /st 10:00 /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
-        if ($LASTEXITCODE -ne 0) { throw "schtasks DAILY returned exit code $LASTEXITCODE" }
+        # Clean up legacy disruptive daily 10 AM task if present
+        & schtasks.exe /delete /tn "PrinterFixDaily" /f > $null 2>&1
 
-        # Configure tasks to run on battery power (disables 0x800710E0 error on laptops)
+        # Configure task to run on battery power (disables 0x800710E0 error on laptops)
         try {
             $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
             Set-ScheduledTask -TaskName "PrinterFixPostUpdate" -Settings $settings -ErrorAction SilentlyContinue | Out-Null
-            Set-ScheduledTask -TaskName "PrinterFixDaily" -Settings $settings -ErrorAction SilentlyContinue | Out-Null
         } catch {}
 
         Write-Log "Post-Windows-Update reapply task deployed successfully." -Type "SUCCESS"
-        Write-Host "  [+] Auto-reapply task deployed. Registry fixes will re-apply automatically after every reboot/update." -ForegroundColor Green
-        Write-Host "  [+] Task: 'PrinterFixPostUpdate' & 'PrinterFixDaily' are active in Task Scheduler." -ForegroundColor Cyan
+        Write-Host "  [+] Auto-reapply task deployed. Fixes & Private Network will re-apply cleanly on startup." -ForegroundColor Green
+        Write-Host "  [+] Task: 'PrinterFixPostUpdate' is active in Task Scheduler (Startup trigger)." -ForegroundColor Cyan
     }
     catch {
         Write-Log "Failed to deploy post-update task: $($_.Exception.Message)" -Type "ERROR"
@@ -423,19 +439,19 @@ function Enable-SMBGuest {
 }
 
 function Reset-Network {
-    Write-Log "Complete Network Reset (Flush DNS, NetBIOS, Winsock)..." -Type "INFO"
+    Write-Log "Network stack cache & name resolution refresh..." -Type "INFO"
     try {
         $LASTEXITCODE = 0; ipconfig /flushdns > $null 2>&1
         Clear-DnsClientCache -ErrorAction SilentlyContinue
-        $LASTEXITCODE = 0; & netsh winsock reset > $null 2>&1
-        $LASTEXITCODE = 0; & netsh int ip reset > $null 2>&1
+        $LASTEXITCODE = 0; ipconfig /registerdns > $null 2>&1
         $LASTEXITCODE = 0; nbtstat -RR > $null 2>&1
+        try { & net.exe use * /delete /y > $null 2>&1 } catch {}
 
-        Write-Log "Network configuration reset." -Type "SUCCESS"
-        Write-Host "  [+] Network caches successfully flushed." -ForegroundColor Green
+        Write-Log "Network resolution caches refreshed safely without kernel resets." -Type "SUCCESS"
+        Write-Host "  [+] Network and DNS caches successfully flushed." -ForegroundColor Green
     }
     catch {
-        Write-Log "Failed to reset network: $($_.Exception.Message)" -Type "ERROR"
+        Write-Log "Failed to refresh network caches: $($_.Exception.Message)" -Type "ERROR"
     }
 }
 
@@ -469,6 +485,20 @@ function Set-NetworkPrivate {
     }
     catch {
         Write-Log "Failed to mutate network profile: $($_.Exception.Message)" -Type "ERROR"
+    }
+}
+
+function Disable-FastStartup {
+    Write-Log "Disabling Windows Fast Startup (Hiberboot)..." -Type "INFO"
+    try {
+        $pwrPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power"
+        if (-not (Test-Path $pwrPath)) { New-Item -Path $pwrPath -Force | Out-Null }
+        Set-ItemProperty -Path $pwrPath -Name "HiberbootEnabled" -Value 0 -Type DWord -Force -ErrorAction Stop
+        Write-Log "Fast Startup disabled permanently." -Type "SUCCESS"
+        Write-Host $(if ($script:lang -eq "EN") { "  [+] Windows Fast Startup disabled (prevents stale socket/driver hibernation)." } else { "  [+] Fast Startup dinonaktifkan (mencegah soket/spooler macet saat PC dinyalakan esok hari)." }) -ForegroundColor Green
+    }
+    catch {
+        Write-Log "Failed to disable Fast Startup: $($_.Exception.Message)" -Type "WARNING"
     }
 }
 
@@ -525,6 +555,19 @@ function Open-Firewall {
 
         Write-Log "Firewall ports opened." -Type "SUCCESS"
         Write-Host "  [+] Windows Defender Firewall configured to permit Sharing." -ForegroundColor Green
+
+        # Ensure Inbound LocalSubnet rules for SMB and RPC are active regardless of profile fluctuations
+        try {
+            $fwRule = Get-NetFirewallRule -Name "WinPrinterSharingFix-LocalSubnet" -ErrorAction SilentlyContinue
+            if (-not $fwRule) {
+                New-NetFirewallRule -Name "WinPrinterSharingFix-LocalSubnet" `
+                    -DisplayName "Windows Printer Sharing Fix (Local Subnet SMB & RPC)" `
+                    -Direction Inbound -Action Allow -Protocol TCP -LocalPort 135, 445 `
+                    -RemoteAddress LocalSubnet -Profile Any -ErrorAction SilentlyContinue | Out-Null
+            } else {
+                Set-NetFirewallRule -Name "WinPrinterSharingFix-LocalSubnet" -Enabled True -Profile Any -ErrorAction SilentlyContinue | Out-Null
+            }
+        } catch {}
     }
     catch {
         Write-Log "Failed to mutate Firewall rules: $($_.Exception.Message)" -Type "ERROR"
@@ -2459,6 +2502,7 @@ function Fix-HostServerRole {
 
     Write-Host $(if ($isEN) { "  [*] [3/8] Enforcing Network Connection Profile to Private..." } else { "  [*] [3/8] Mengubah Profil Jaringan ke Mode Private..." }) -ForegroundColor Cyan
     Set-NetworkPrivate
+    Disable-FastStartup
 
     Write-Host $(if ($isEN) { "  [*] [4/8] Opening Passwordless Sharing & Guest Access Permissions..." } else { "  [*] [4/8] Membuka Akses Berbagi Tanpa Sandi & Izin Guest..." }) -ForegroundColor Cyan
     Disable-PasswordSharing
@@ -2514,6 +2558,8 @@ function Fix-ClientWorkstationRole {
 
     Write-Host $(if ($isEN) { "  [*] [7/7] Opening Firewall Rules & Flushing DNS Cache..." } else { "  [*] [7/7] Membuka Port Firewall & Menyegarkan Cache DNS..." }) -ForegroundColor Cyan
     Open-Firewall
+    Set-NetworkPrivate
+    Disable-FastStartup
     try { $LASTEXITCODE = 0; ipconfig /flushdns > $null 2>&1 } catch {}
 
     Write-Log "Client Workstation Optimization concluded." -Type "SUCCESS"
@@ -2697,11 +2743,12 @@ function AllFix-Core {
 
     Write-Host $(if ($isEN) { "  [*] [27/50] Forcing Network Connection Profiles to Private Mode..." } else { "  [*] [27/50] Mengubah Kategori Jaringan ke Mode Private..." }) -ForegroundColor Cyan
     Set-NetworkPrivate
+    Disable-FastStartup
 
     Write-Host $(if ($isEN) { "  [*] [28/50] Deprioritizing Hyper-V / WSL Virtual Network Adapters..." } else { "  [*] [28/50] Menyesuaikan Prioritas Adaptor Jaringan Virtual Hyper-V..." }) -ForegroundColor Cyan
     Fix-HyperVConflict
 
-    Write-Host $(if ($isEN) { "  [*] [29/50] Flushing DNS Cache & Resetting Network Winsock..." } else { "  [*] [29/50] Membersihkan Cache DNS & Winsock Jaringan..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [29/50] Flushing DNS Cache & Refreshing Network Tables..." } else { "  [*] [29/50] Membersihkan Cache DNS & Tabel Resolusi Jaringan..." }) -ForegroundColor Cyan
     Reset-Network
 
     Write-Host $(if ($isEN) { "  [*] [30/50] Stopping Print Spooler Service..." } else { "  [*] [30/50] Menghentikan Sementara Layanan Spooler..." }) -ForegroundColor Cyan
@@ -2848,6 +2895,8 @@ function Extreme-25H2 {
     Fix-AdvancedPointAndPrint
 
     Fix-mDNS
+    Set-NetworkPrivate
+    Disable-FastStartup
     Reset-SpoolerDependency
     Fix-UWPPrinting
     Enable-SMBGuest
@@ -2880,6 +2929,7 @@ function Extreme-25H2 {
         $LASTEXITCODE = 0; klist purge > $null 2>&1
         $LASTEXITCODE = 0; ipconfig /flushdns > $null 2>&1
         $LASTEXITCODE = 0; nbtstat -RR > $null 2>&1
+        try { & net.exe use * /delete /y > $null 2>&1 } catch {}
     }
     catch {}
 
