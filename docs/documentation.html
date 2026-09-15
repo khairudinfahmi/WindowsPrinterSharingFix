@@ -310,7 +310,7 @@
                 "id": "10",
                 "title": "Total Network & Socket Reset (Winsock, Flush DNS, NetBIOS & Port Purge)",
                 "problem": "Stale DNS records, Winsock corruption, or routing deadlocks.",
-                "solution": "Flushes DNS cache, resets Winsock catalog, resets TCP/IP stack, and flushes NetBIOS cache.",
+                "solution": "Safely flushes DNS cache, re-registers DNS, flushes NetBIOS name tables, and clears stale SMB sessions without kernel-level stack resets.",
                 "whenToUse": "After changing router, router IP pool, or subnet configuration."
             },
             {

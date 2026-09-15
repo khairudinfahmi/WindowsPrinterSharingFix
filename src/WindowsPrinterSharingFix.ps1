@@ -297,21 +297,40 @@ Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP" -Na
 if (-not (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")) { New-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord -Force -EA SilentlyContinue
 
-# 2. Disable Fast Startup (Prevents stale socket hibernation and next-day connection drops)
+# 2. Point & Print Policy (Bypass PrintNightmare driver elevation lock on update)
+if (-not (Test-Path "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint")) { New-Item "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Force -EA SilentlyContinue | Out-Null }
+Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name RestrictDriverInstallationToAdministrators -Value 0 -Type DWord -Force -EA SilentlyContinue
+
+# 3. Disable SMB Signing & Allow Guest Access (Persists after cumulative updates)
+if (-not (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters")) { New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Force -EA SilentlyContinue | Out-Null }
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name EnableSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
+if (-not (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation")) { New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation" -Force -EA SilentlyContinue | Out-Null }
+Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation" -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
+if (-not (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters")) { New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Force -EA SilentlyContinue | Out-Null }
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name EnableSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
+
+# 4. Disable Fast Startup (Prevents stale socket hibernation and next-day connection drops)
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name "HiberbootEnabled" -Value 0 -Type DWord -Force -EA SilentlyContinue
 
-# 3. Ensure Active Network Profiles are Private (Prevents Firewall from blocking printer sharing)
-Get-NetConnectionProfile -EA SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -EA SilentlyContinue
-
-# 4. Ensure Discovery Services are Running
+# 5. Ensure Discovery Services are Running
 @('fdPHost', 'FDResPub', 'SSDPSRV') | ForEach-Object {
     $svc = Get-Service $_ -EA SilentlyContinue
     if ($svc -and $svc.Status -ne 'Running') { Start-Service $_ -EA SilentlyContinue }
 }
 
-# 5. Non-Destructive Spooler Validation (Starts spooler if offline, does not kill active jobs)
+# 6. Non-Destructive Spooler Validation (Starts spooler if offline, does not kill active jobs)
 $sp = Get-Service spooler -EA SilentlyContinue
 if ($sp -and $sp.Status -ne 'Running') { Start-Service spooler -EA SilentlyContinue }
+
+# 7. Ensure Network Profiles are Private with Polling (Catches Wi-Fi/DHCP initialization up to 30s)
+for ($i = 0; $i -lt 6; $i++) {
+    Get-NetConnectionProfile -EA SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -EA SilentlyContinue
+    if ($i -lt 5) { Start-Sleep -Seconds 5 }
+}
 '@
         Set-Content -Path $scriptPath -Value $fixScript -Encoding UTF8 -Force
         
@@ -330,9 +349,19 @@ if ($sp -and $sp.Status -ne 'Running') { Start-Service spooler -EA SilentlyConti
             Set-ScheduledTask -TaskName "PrinterFixPostUpdate" -Settings $settings -ErrorAction SilentlyContinue | Out-Null
         } catch {}
 
+        # Deploy periodic watchdog task to prevent mid-day drops if Wi-Fi reconnects
+        $watchdogCmd = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -Command `"Get-NetConnectionProfile -EA SilentlyContinue | Where-Object { `$_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -EA SilentlyContinue`""
+        & schtasks.exe /create /tn "PrinterFixNetworkWatchdog" /tr $watchdogCmd /sc minute /mo 15 /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            try {
+                $ws = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+                Set-ScheduledTask -TaskName "PrinterFixNetworkWatchdog" -Settings $ws -ErrorAction SilentlyContinue | Out-Null
+            } catch {}
+        }
+
         Write-Log "Post-Windows-Update reapply task deployed successfully." -Type "SUCCESS"
         Write-Host "  [+] Auto-reapply task deployed. Fixes & Private Network will re-apply cleanly on startup." -ForegroundColor Green
-        Write-Host "  [+] Task: 'PrinterFixPostUpdate' is active in Task Scheduler (Startup trigger)." -ForegroundColor Cyan
+        Write-Host "  [+] Tasks: 'PrinterFixPostUpdate' & 'PrinterFixNetworkWatchdog' are active in Task Scheduler." -ForegroundColor Cyan
     }
     catch {
         Write-Log "Failed to deploy post-update task: $($_.Exception.Message)" -Type "ERROR"
@@ -458,6 +487,7 @@ function Reset-Network {
 function Set-NetworkPrivate {
     Write-Log "Mutating Network Profile (Public to Private, bypassing Domain)..." -Type "INFO"
     try {
+        Disable-FastStartup
         $nla = Get-Service nlasvc -ErrorAction SilentlyContinue
         if ($nla -and $nla.Status -ne 'Running') { Start-Service nlasvc -ErrorAction SilentlyContinue }
 
@@ -2981,7 +3011,7 @@ function Show-Help {
         '7'  = @("Perbaiki Error 0x00000040 (Jaringan Tidak Tersedia / KeepConn)", "Memperbaiki registri PrintProcessor dan Ports agar koneksi sharing tetap terjaga.", "Muncul pesan error 'Network is unavailable' saat mengakses printer.")
         '8'  = @("Perbaiki Error 0x00000002 (Kebijakan Salin Driver / CopyFilesPolicy)", "Mengatur CopyFilesPolicy agar client diizinkan mengunduh dan menyalin driver dari komputer host.", "Gagal mengkloning berkas driver printer dari server.")
         '9'  = @("Perbaiki Error 0x0000007e (Ketidakcocokan Bitness Driver RPC)", "Menyelaraskan registri untuk komunikasi lintas arsitektur 32-bit dan 64-bit.", "Ketidakcocokan versi driver 32-bit vs 64-bit antar-komputer.")
-        '10' = @("Reset Total Jaringan (DNS, Winsock, NetBIOS)", "Membersihkan cache DNS, melepas & memperbarui IP, serta mereset Winsock dan NetBIOS.", "Koneksi jaringan tidak stabil, latency tinggi, atau IP nyangkut.")
+        '10' = @("Segarkan Cache Jaringan & DNS", "Membersihkan cache DNS, meregistrasi ulang DNS, menyegarkan NetBIOS, dan membersihkan sesi SMB basi secara aman tanpa mereset tumpukan kernel.", "Koneksi jaringan tidak stabil, latency tinggi, atau IP nyangkut.")
         '11' = @("Ubah Profil Jaringan ke Private", "Mengubah seluruh profil adaptor jaringan menjadi Private.", "Sharing terblokir karena Windows menganggap jaringan sebagai Public.")
         '12' = @("Matikan Berbagi Berproteksi Password", "Mengatur registri LSA (limitblankpassworduse=0, everyoneincludesanonymous=1).", "Selalu meminta username/password padahal sharing sudah dibuka tanpa sandi.")
         '13' = @("Aktifkan RPC via Named Pipes & TCP", "Memaksa komunikasi RPC printer melalui Named Pipes dan TCP.", "Koneksi printer gagal karena pemblokiran endpoint RPC.")
@@ -3073,7 +3103,7 @@ function Show-Help {
         '7'  = @("Fix Error 0x00000040 (Network Unavailable / KeepConn)", "Repairs PrintProcessor and Ports registry parameters to maintain active connection integrity.", "Displays 'The specified network name is no longer available'.")
         '8'  = @("Fix Error 0x00000002 (CopyFilesPolicy Driver Ingestion)", "Configures CopyFilesPolicy allowing clients to download and copy printer driver files from host PC.", "Fails to clone printer driver binaries from the print server.")
         '9'  = @("Fix Error 0x0000007e (RPC Driver Bitness Mismatch 32/64-bit)", "Aligns registry architecture for cross-platform communication between 32-bit and 64-bit endpoints.", "Cross-architecture driver incompatibility between client and server.")
-        '10' = @("Total Network Reset (DNS, Winsock, NetBIOS)", "Flushes DNS resolver cache, releases/renews IP leases, and resets Winsock catalog and NetBIOS cache.", "Network connection instability, high latency, or stale IP bindings.")
+        '10' = @("Total Network & DNS Cache Refresh", "Flushes DNS resolver cache, re-registers DNS, purges NetBIOS tables, and clears stale SMB sessions safely without kernel-level stack resets.", "Network connection instability, high latency, or stale IP bindings.")
         '11' = @("Switch Network Profiles to Private", "Converts all network adapter profiles to Private mode.", "File and printer sharing blocked because Windows classified network connection as Public.")
         '12' = @("Disable Password Protected Network Sharing", "Configures LSA registry (limitblankpassworduse=0, everyoneincludesanonymous=1).", "Continuous login prompt even when printer sharing was configured without password requirement.")
         '13' = @("Enforce RPC via Named Pipes & TCP", "Forces printer RPC communication through standard Named Pipes and TCP endpoints.", "Printer connections fail due to restrictive RPC protocol restrictions.")
