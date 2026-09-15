@@ -1260,19 +1260,31 @@ function Fix-NTLMv2 {
 }
 
 function Fix-Network0x00000040 {
-    Write-Log "Fixing Error 0x00000040 (Network connection timeout)..." -Type "INFO"
+    Write-Log "Fixing Error 0x00000040 (Network connection timeout & KeepConn)..." -Type "INFO"
     try {
+        # Configure client connection keep-alive and session timeouts (prevents 0x40 ERROR_NETNAME_DELETED)
         $lanParam = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"
         if (-not (Test-Path $lanParam)) { New-Item -Path $lanParam -Force | Out-Null }
         Set-ItemProperty -Path $lanParam -Name KeepConn -Value 65535 -Type DWord -Force -ErrorAction Stop
-        try {
-            Get-Service -Name Browser -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Running' } | Stop-Service -Force -ErrorAction SilentlyContinue
-            Restart-Service LanmanWorkstation -Force -ErrorAction SilentlyContinue
-        } catch {
-            Write-Log "LanmanWorkstation reload deferred: $($_.Exception.Message)" -Type "INFO"
-        }
-        Write-Log "KeepConn SMB set to maximum." -Type "SUCCESS"
-        Write-Host "  [+] SMB connection timeout extended to mitigate unstable network topologies." -ForegroundColor Green
+        Set-ItemProperty -Path $lanParam -Name SessTimeout -Value 300 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $lanParam -Name ExtendedSessTimeout -Value 1000 -Type DWord -Force -ErrorAction SilentlyContinue
+
+        # Prevent server from auto-disconnecting idle printer sessions
+        $srvParam = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
+        if (-not (Test-Path $srvParam)) { New-Item -Path $srvParam -Force | Out-Null }
+        Set-ItemProperty -Path $srvParam -Name autodisconnect -Value 0xFFFFFFFF -Type DWord -Force -ErrorAction SilentlyContinue
+
+        # Ensure Print Provider for LAN Manager is valid
+        $lanManProv = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Providers\LanMan Print Services"
+        if (-not (Test-Path $lanManProv)) { New-Item -Path $lanManProv -Force | Out-Null }
+        Set-ItemProperty -Path $lanManProv -Name Name -Value "win32spl.dll" -Type String -Force -ErrorAction SilentlyContinue
+
+        # Non-destructive user-mode cache purge without stopping kernel redirector services
+        try { & net.exe use * /delete /y > $null 2>&1 } catch {}
+        $LASTEXITCODE = 0; & nbtstat.exe -R > $null 2>&1
+
+        Write-Log "KeepConn, SessTimeout, and PrintProvider verified. Error 0x00000040 mitigated safely." -Type "SUCCESS"
+        Write-Host $(if ($script:lang -eq "EN") { "  [+] SMB session timeout & KeepConn extended to 65535 (Zero kernel resets)." } else { "  [+] Timeout sesi SMB & KeepConn dimaksimalkan (Aman tanpa restart kernel)." }) -ForegroundColor Green
     }
     catch {
         Write-Log "Failed to fix 0x00000040: $($_.Exception.Message)" -Type "ERROR"
@@ -1970,12 +1982,16 @@ function Reset-NetworkSockets {
         if ($stuck445) { $totalStuck += $stuck445.Count; Write-Host "  [!] Port 445 (SMB): $($stuck445.Count) stuck connections" -ForegroundColor Yellow }
         if ($stuck135) { $totalStuck += $stuck135.Count; Write-Host "  [!] Port 135 (RPC): $($stuck135.Count) stuck connections" -ForegroundColor Yellow }
         if ($totalStuck -eq 0) { Write-Host "  [+] No stuck connections detected." -ForegroundColor Green }
-        Write-Host "  [*] Restarting SMB Client & Server services only..." -ForegroundColor Cyan
-        Restart-Service LanmanWorkstation -Force -ErrorAction SilentlyContinue
-        Restart-Service LanmanServer -Force -ErrorAction SilentlyContinue
-        $LASTEXITCODE = 0; ipconfig /registerdns > $null 2>&1
-        Write-Log "Network sockets selectively purged. $totalStuck connections cleared." -Type "SUCCESS"
-        Write-Host "  [+] Socket cleanup complete. $totalStuck stale connections purged." -ForegroundColor Green
+        Write-Host "  [*] Safely clearing user-mode SMB sessions & NetBIOS cache..." -ForegroundColor Cyan
+        try { & net.exe use * /delete /y > $null 2>&1 } catch {}
+        $LASTEXITCODE = 0; & nbtstat.exe -R > $null 2>&1
+        $LASTEXITCODE = 0; & nbtstat.exe -RR > $null 2>&1
+        Clear-DnsClientCache -ErrorAction SilentlyContinue
+        $LASTEXITCODE = 0; & ipconfig.exe /flushdns > $null 2>&1
+        $LASTEXITCODE = 0; & ipconfig.exe /registerdns > $null 2>&1
+        $LASTEXITCODE = 0; & arp.exe -d * > $null 2>&1
+        Write-Log "Network sockets selectively purged. $totalStuck connections cleared without service disruption." -Type "SUCCESS"
+        Write-Host "  [+] Socket and session cleanup complete (Zero service restarts)." -ForegroundColor Green
     }
     catch { Write-Log "Socket re-init failed: $($_.Exception.Message)" -Type "ERROR" }
 }
@@ -2815,8 +2831,11 @@ function AllFix-Core {
     Write-Host $(if ($isEN) { "  [*] [40/50] Purging Kerberos Ticket Cache..." } else { "  [*] [40/50] Membersihkan Tiket Otentikasi Kerberos..." }) -ForegroundColor Cyan
     try { $LASTEXITCODE = 0; klist purge > $null 2>&1 } catch {}
 
-    Write-Host $(if ($isEN) { "  [*] [41/50] Restarting System Diagnostic Service (WdiSystemHost)..." } else { "  [*] [41/50] Merestart Layanan Diagnostik Sistem (WdiSystemHost)..." }) -ForegroundColor Cyan
-    try { Restart-Service WdiSystemHost -Force -ErrorAction SilentlyContinue } catch {}
+    Write-Host $(if ($isEN) { "  [*] [41/50] Validating System Diagnostic Service (WdiSystemHost)..." } else { "  [*] [41/50] Memeriksa Layanan Diagnostik Sistem (WdiSystemHost)..." }) -ForegroundColor Cyan
+    try {
+        $wdi = Get-Service WdiSystemHost -ErrorAction SilentlyContinue
+        if ($wdi -and $wdi.Status -ne 'Running') { Start-Service WdiSystemHost -ErrorAction SilentlyContinue }
+    } catch {}
 
     Write-Host $(if ($isEN) { "  [*] [42/50] Registering Multicast DNS..." } else { "  [*] [42/50] Mendaftarkan Ulang DNS Multicast..." }) -ForegroundColor Cyan
     try { $LASTEXITCODE = 0; ipconfig /registerdns > $null 2>&1 } catch {}

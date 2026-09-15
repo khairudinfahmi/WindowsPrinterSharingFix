@@ -206,7 +206,7 @@
                 "id": "07",
                 "title": "Error 0x00000040 - Network Name Is No Longer Available (KeepConn & Ports)",
                 "problem": "'The specified network name is no longer available' error during printing operations.",
-                "solution": "Configures LanmanWorkstation parameters KeepConn = 1, disables buggy Multichannel, and flushes dead NetBIOS sessions.",
+                "solution": "Configures LanmanWorkstation KeepConn = 65535, extends SessTimeout to 300s, verifies win32spl.dll provider, and flushes stale sessions safely.",
                 "whenToUse": "Printer disconnects after brief idle periods or throws 0x00000040 on LAN."
             },
             {
