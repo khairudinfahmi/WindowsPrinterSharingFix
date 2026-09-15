@@ -150,7 +150,7 @@ Ensures underlying network connectivity, protocol compatibility, and firewall po
 | **5** | **Open Windows Firewall Rules for File & Printer Sharing (Including WSD Port 3702)** | `[14] & [21]` | Authorizes inbound TCP 445, 139, 135 and UDP 137, 138, 3702 (WSD), 5353 (mDNS) through Windows Defender Firewall. |
 | **6** | **Enable Automatic Device Discovery (mDNS, LLMNR, and WSD Discovery)** | `[20] & [30]` | Starts the complete Windows discovery stack to ensure network printers appear in Windows Explorer and setup dialogs. |
 | **7** | **Set Network Provider Order & Resolve Virtual Hyper-V/WSL Conflicts** | `[18] & [23]` | Prioritizes physical network adapters over virtual interfaces (Hyper-V, WSL, VMware, VPNs) to prevent routing confusion. |
-| **8** | **Total Network & Socket Reset (Winsock, Flush DNS, NetBIOS & Port Purge)** | `[10] & [27]` | Safely flushes DNS cache, re-registers DNS, purges NetBIOS tables (`nbtstat -RR`), and clears stale SMB sessions without kernel-level stack resets. |
+| **8** | **Total Network & DNS Cache Refresh (Flush DNS, NetBIOS & SMB Session Purge)** | `[10] & [27]` | Safely flushes DNS cache, re-registers DNS, purges NetBIOS tables (`nbtstat -RR`), and clears stale SMB sessions without kernel-level stack resets. |
 | **9** | **Disable IPv6 Protocol Stack (Use if office LAN is pure IPv4)** | `[19]` | Disables IPv6 binding on network adapters in pure IPv4 environments, preventing link-local resolution timeouts. |
 | **10** | **Install IPP / Mopria Sharing Foundation & Legacy LPR/LPD Protocols** | `[22] & [24]` | Enables Internet Printing Protocol (IPP) and Unix LPR legacy port support for modern multi-function devices and industrial copiers. |
 

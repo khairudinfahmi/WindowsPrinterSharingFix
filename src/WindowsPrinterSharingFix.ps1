@@ -3540,7 +3540,7 @@ function Show-Submenu3 {
             Write-Host "  [5] Open Windows Firewall Rules for File & Printer Sharing (Including WSD Port 3702)" -ForegroundColor White
             Write-Host "  [6] Enable Automatic Device Discovery (mDNS, LLMNR, and WSD Discovery)" -ForegroundColor White
             Write-Host "  [7] Set Network Provider Order & Resolve Virtual Hyper-V/WSL Conflicts" -ForegroundColor White
-            Write-Host "  [8] Total Network & Socket Reset (Winsock, Flush DNS, NetBIOS & Port Purge)" -ForegroundColor White
+            Write-Host "  [8] Total Network & DNS Cache Refresh (Flush DNS, NetBIOS & SMB Session Purge)" -ForegroundColor White
             Write-Host "  [9] Disable IPv6 Protocol Stack (Use if office LAN is pure IPv4)" -ForegroundColor White
             Write-Host "  [10] Install IPP / Mopria Sharing Foundation & Legacy LPR/LPD Protocols" -ForegroundColor White
             Write-Host ""
@@ -3558,7 +3558,7 @@ function Show-Submenu3 {
             Write-Host "  [5] Buka Port Firewall untuk Berbagi Berkas & Printer (Termasuk Port WSD 3702)" -ForegroundColor White
             Write-Host "  [6] Aktifkan Penemuan Perangkat Otomatis (mDNS, LLMNR, dan WSD Discovery)" -ForegroundColor White
             Write-Host "  [7] Atur Prioritas Protokol Jaringan & Atasi Konflik Virtual Hyper-V/WSL" -ForegroundColor White
-            Write-Host "  [8] Reset Total Jaringan & Sockets (Winsock, Flush DNS, NetBIOS & Port Purge)" -ForegroundColor White
+            Write-Host "  [8] Segarkan Cache Jaringan & DNS (Flush DNS, NetBIOS & Bersihkan Sesi SMB)" -ForegroundColor White
             Write-Host "  [9] Matikan Protokol IPv6 (Gunakan jika LAN Kantor Murni IPv4)" -ForegroundColor White
             Write-Host "  [10] Pasang Fondasi Berbagi IPP / Mopria & Protokol Legacy LPR/LPD" -ForegroundColor White
             Write-Host ""
