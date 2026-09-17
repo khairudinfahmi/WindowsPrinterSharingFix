@@ -493,17 +493,17 @@ function Set-NetworkPrivate {
 
         $profiles = Get-NetConnectionProfile -ErrorAction SilentlyContinue
         $success = $false
-        foreach ($profile in $profiles) {
-            if ($profile.NetworkCategory -eq 'Public') {
+        foreach ($netProf in $profiles) {
+            if ($netProf.NetworkCategory -eq 'Public') {
                 try {
-                    Set-NetConnectionProfile -InterfaceAlias $profile.InterfaceAlias -NetworkCategory Private -ErrorAction Stop
+                    Set-NetConnectionProfile -InterfaceAlias $netProf.InterfaceAlias -NetworkCategory Private -ErrorAction Stop
                     $success = $true
                 }
                 catch {
-                    Write-Log "Failed to mutate profile $($profile.InterfaceAlias)." -Type "WARNING"
+                    Write-Log "Failed to mutate profile $($netProf.InterfaceAlias)." -Type "WARNING"
                 }
             }
-            elseif ($profile.NetworkCategory -eq 'Private' -or $profile.NetworkCategory -eq 'DomainAuthenticated') {
+            elseif ($netProf.NetworkCategory -eq 'Private' -or $netProf.NetworkCategory -eq 'DomainAuthenticated') {
                 $success = $true
             }
         }
@@ -1183,8 +1183,9 @@ function Select-RemotePrinterInteractive {
     )
     $isEN = ($script:lang -eq "EN")
     
+    $headerSuffix = if ($ActionName) { " ($ActionName)" } else { "" }
     Write-Host "`n  ======================================================================"
-    Write-Host $(if ($isEN) { "               REMOTE NETWORK PRINTER DISCOVERY" } else { "               PINDAI & TEMUKAN PRINTER JARINGAN REAL-TIME" })
+    Write-Host $(if ($isEN) { "               REMOTE NETWORK PRINTER DISCOVERY$headerSuffix" } else { "               PINDAI & TEMUKAN PRINTER JARINGAN REAL-TIME$headerSuffix" })
     Write-Host "  ======================================================================"
     Write-Host ""
     if ($isEN) {
@@ -1343,11 +1344,11 @@ function Remote-SpoolerReset {
         Write-Host "  [+] Host reachable." -ForegroundColor Green
 
         Write-Host "  [*] Stopping Spooler on $target..." -ForegroundColor Cyan
-        $stopResult = & sc.exe \\$target stop spooler 2>&1
+        $null = & sc.exe \\$target stop spooler 2>&1
         Start-Sleep -Seconds 3
 
         Write-Host "  [*] Starting Spooler on $target..." -ForegroundColor Cyan
-        $startResult = & sc.exe \\$target start spooler 2>&1
+        $null = & sc.exe \\$target start spooler 2>&1
         Start-Sleep -Seconds 2
 
         $queryResult = & sc.exe \\$target query spooler 2>&1
@@ -2261,7 +2262,6 @@ function Sweep-OrphanedDrivers {
     Write-Log "Scanning for orphaned printer drivers..." -Type "INFO"
     try {
         $rawOutput = & pnputil /enum-drivers 2>&1
-        $activeDrivers = (Get-PrinterDriver -ErrorAction SilentlyContinue).Name
         $orphans = @()
         $currentOem = ""
         $currentClass = ""
@@ -2526,9 +2526,9 @@ function Inject-CrossUserCredentials {
     try {
         $profiles = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -match '^S-1-5-21-' }
         $injected = 0
-        foreach ($profile in $profiles) {
-            $sid = $profile.PSChildName
-            $profilePath = (Get-ItemProperty $profile.PSPath -ErrorAction SilentlyContinue).ProfileImagePath
+        foreach ($usrProf in $profiles) {
+            $sid = $usrProf.PSChildName
+            $profilePath = (Get-ItemProperty $usrProf.PSPath -ErrorAction SilentlyContinue).ProfileImagePath
             $userName = Split-Path $profilePath -Leaf
             Write-Host "  [*] Injecting credential for user: $userName ($sid)..." -ForegroundColor Cyan
             $ntuser = Join-Path $profilePath "NTUSER.DAT"
@@ -2723,7 +2723,6 @@ function Detect-GPOIntervention {
             "EnableSecuritySignature" = 0
         }
 
-        $gpoDetected = $false
         $restrictionDetected = $false
 
         foreach ($entry in $policyPaths) {
@@ -2731,7 +2730,6 @@ function Detect-GPOIntervention {
                 $props = Get-ItemProperty $entry.Path -ErrorAction SilentlyContinue
                 $propNames = $props.PSObject.Properties | Where-Object { $_.Name -notmatch '^PS' }
                 if ($propNames.Count -gt 0) {
-                    $gpoDetected = $true
                     Write-Host "`n  [*] Path: $($entry.Label)" -ForegroundColor Cyan
                     foreach ($prop in $propNames) {
                         $pName = $prop.Name
@@ -3613,7 +3611,7 @@ function Show-Help {
     $helpData = if ($isEN) { $helpDataEN } else { $helpDataID }
 
     if ($Topic -eq "" -or $Topic.ToLower() -eq "menu" -or $Topic.ToLower() -eq "help") {
-        cls
+        Clear-Host
         Write-Host ""
         Write-Host "  ======================================================================================" -ForegroundColor Cyan
         if ($isEN) {
@@ -3780,7 +3778,7 @@ function Pause-User {
 
 function Show-Header {
     param([string]$SubTitle = "")
-    cls
+    Clear-Host
     $winName = "$script:productName $script:buildNumber".ToUpper()
     if ($script:isARM64) { $winName += " ARM64" }
     elseif ([Environment]::Is64BitOperatingSystem) { $winName += " 64-BIT" }
