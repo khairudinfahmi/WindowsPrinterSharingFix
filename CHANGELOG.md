@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Real-Time System Health Banner**: Audits and displays live operational status directly in the console header: Spooler (Running/Stopped), Network Profile (Private/Public), SMB Signing, and Password Protected Sharing.
 - **Categorized Console Layout**: Restructured the 180-column layout into 8 intuitive core categories formatted for standard 86-column console buffers.
 - **Persistent Local Subnet Firewall Rule**: Automatically injects an inbound rule (`WinPrinterSharingFix-LocalSubnet`) allowing TCP 135 and 445 exclusively for `LocalSubnet` across any profile state.
+- **Instant Web Launch & Quick-Lookup Error Matrix**: Added an instant one-liner PowerShell execution method, an error code quick-lookup matrix, and a troubleshooting FAQ section to documentation.
 
 ### Fixed
 - **Kernel BSOD Bugcheck Elimination (Error 0x00000040 & Socket Reset)**:

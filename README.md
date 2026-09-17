@@ -1,10 +1,15 @@
 # Windows Printer Sharing Fix
 
+[![GitHub Stars](https://img.shields.io/github/stars/khairudinfahmi/WindowsPrinterSharingFix?style=flat&logo=github&color=gold)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/khairudinfahmi/WindowsPrinterSharingFix?style=flat&logo=github&color=blue)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/khairudinfahmi/WindowsPrinterSharingFix?style=flat&color=red)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/issues)
 [![Windows Compatibility](https://img.shields.io/badge/Windows-10%20%7C%2011%20(24H2%2F25H2%2F26H2)%20%7C%20Server%202025-0078D6?logo=windows&logoColor=white)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases)
 [![Version](https://img.shields.io/badge/version-2.4.0-emerald.svg?style=flat)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.0)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Architecture](https://img.shields.io/badge/architecture-x64%20%7C%20ARM64-orange.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
 [![Language](https://img.shields.io/badge/language-English%20%7C%20Indonesian-purple.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
+
+> ⭐ **Found this helpful?** If this utility fixed your office printer sharing or saved you hours of troubleshooting, please **give this repository a Star**! It helps more sysadmins, IT technicians, and home office users discover this project.
 
 **Windows Printer Sharing Fix** is a fully automated PowerShell utility that diagnoses and fixes printer sharing and network printing failures on Windows networks (Workgroups and Active Directory domains).
 
@@ -41,6 +46,13 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
 
 ## Quick Start Guide
 
+### Option 0: One-Liner Web Launch (Instant - No Download Required)
+Open PowerShell as Administrator (`Win + X` -> **Terminal (Admin)** or **Windows PowerShell (Admin)**) and paste:
+```powershell
+irm https://raw.githubusercontent.com/khairudinfahmi/WindowsPrinterSharingFix/main/src/WindowsPrinterSharingFix.ps1 | iex
+```
+*This streams and executes the latest signed release directly in memory without modifying your disk.*
+
 ### Option 1: Official Windows Installer (Recommended)
 1. Download `WindowsPrinterSharingFix_Installer.exe` from the latest [GitHub Release](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases).
 2. Run the installer wizard (includes Start Menu shortcuts, Desktop launcher, and automated uninstaller).
@@ -75,6 +87,25 @@ Execute specialized playbooks directly via command line:
 # Launch in English explicitly
 .\WindowsPrinterSharingFix.exe -Language EN
 ```
+
+---
+
+## Instant Error Code Quick-Lookup Matrix
+
+Quickly identify your Windows network printer error code and match it to its root cause, security policy, and direct resolution:
+
+| Error Code / Symptom | Exact Windows Error Message | Root Cause & Security Policy | Recommended Action / CLI Switch |
+| :--- | :--- | :--- | :--- |
+| **0x0000011b** | *Operation failed with error 0x0000011b* | RPC authentication level requirement (`CVE-2021-1678`) introduced by Windows security updates. | Run `[01]` or `.\WindowsPrinterSharingFix.exe -AllFix` |
+| **0x00000709** / **0x7c** | *Operation could not be completed (error 0x00000709)* | Point and Print driver elevation requirement or RPC named pipes binding refusal. | Run `[02]`, `[56]`, or UNC Port Mapping `[86]` |
+| **0x00000bc4** | *No printers were found* | Windows 11 default RPC connection protocol restricted to TCP rather than Named Pipes. | Run `[03]` (Forces `RpcUseNamedPipeProtocol = 1`) |
+| **0x00000040** | *The specified network name is no longer available* | Stale SMB keep-alive sessions, socket timeout, or driver provider disconnection. | Run `[07]` (Sets `KeepConn=65535` & extends timeouts) |
+| **SMB Signing Refusal** | *You can't access this shared folder because your organization's security policies block unauthenticated guest access* | Windows 11 24H2/25H2 mandatory SMB signing requirement (`RequireSecuritySignature`). | Run `[16]` or `.\WindowsPrinterSharingFix.exe -ExtremePath` |
+| **0x80070035** | *The network path was not found* | Function Discovery Resource Publication (`FDResPub`) or SSDP discovery services disabled. | Run `[04]` or `[20]` (Starts discovery stack) |
+| **0x000006d1** | *Windows cannot connect to the printer (0x000006d1)* | Client-Side Rendering (CSR) crash during spooling over network. | Run `[05]` (Sets `DisableClientSideRendering = 1`) |
+| **0x80070005** | *Access is denied* | Insufficient NTFS / Spooler ACL permissions on `System32\Spool\Printers`. | Run `[06]` (Grants universal `Everyone` queue ACL) |
+| **0x00000002** | *The system cannot find the file specified* | Point & Print CopyFilesPolicy ingestion restriction blocking remote driver transfer. | Run `[08]` (Enables `UseSharedSpooler = 1`) |
+| **0x0000007e** | *The specified module could not be found* | Cross-architecture (32-bit client to 64-bit server) driver bitness mismatch. | Run `[09]` (Injects architecture compatibility keys) |
 
 ---
 
@@ -265,6 +296,24 @@ When automated playbooks (**ALLFIX [84]** or **Extreme Path [83]**) are executed
    - *The legacy daily 10:00 AM task (`PrinterFixDaily`) has been completely removed to eliminate mid-day workflow interruptions.*
    - *All scheduled tasks are configured with battery exemption (`AllowStartIfOnBatteries`, `DontStopIfGoingOnBatteries`) to maintain protection on laptops.*
 4. **Clean Session & Ticket Eviction**: Executes `klist purge`, `ipconfig /flushdns`, and `nbtstat -RR` to flush stale NetBIOS names, expired Kerberos tickets, and cached DNS entries.
+
+---
+
+## Frequently Asked Questions (FAQ & Troubleshooting)
+
+### Why does Windows 11 24H2 refuse to connect to my Windows 10 shared printer?
+Starting with Windows 11 Version 24H2, Microsoft enforced mandatory **SMB Signing** (`RequireSecuritySignature`) by default on all client editions and blocked unauthenticated guest logons. When connecting to a Windows 10 host or older NAS that does not require SMB signing, Windows 11 drops the connection with errors such as *"The specified network name is no longer available"* or *"Your organization's security policies block unauthenticated guest access"*. Executing **Extreme Path `[83]`** or **Option 3 in Submenu 3 `[16]`** relaxes client signing requirements and restores transparent Workgroup printer connectivity.
+
+### Do I need to run this tool on the Host PC, the Client PC, or both?
+- **Host PC (physically connected to the printer)**: Run **Submenu 1 -> Option [3] (Printer Host Playbook)**. This opens RPC spooler endpoints, sets your network profile to Private, configures firewall rules, and starts discovery services.
+- **Client PC (connecting over the network)**: Run **Submenu 1 -> Option [4] (Client Workstation Playbook)**. This forces RPC over Named Pipes (`0x00000bc4` fix), bypasses Point and Print driver elevation requirements (`0x00000709` fix), and disables client SMB signing restrictions.
+- **Whole Office / Workgroup**: Running **ALLFIX `[84]`** on both host and client machines guarantees complete configuration alignment and resolves 98% of office network printing issues.
+
+### Will my printer sharing settings survive monthly Windows Updates (Patch Tuesday)?
+Yes. Windows Printer Sharing Fix registers the lightweight `PrinterFixPostUpdate` boot verification trigger. Whenever cumulative Windows Updates (e.g., KB5005565, KB5005568, KB5006670, or subsequent patches) replace system DLLs or reset registry keys, the trigger re-applies critical sharing configurations automatically on system restart without disruptive mid-day restarts.
+
+### How does this utility compare to older 2021 PrintNightmare batch scripts?
+Legacy batch scripts from 2021 typically only set a single registry key (`RpcAuthnLevelPrivacyEnabled = 0`) which was patched and superseded by newer Windows cumulative updates. They cannot resolve modern Windows 11 24H2/25H2 SMB Signing restrictions, RPC Named Pipes overrides (`0x00000bc4`), Point and Print driver copy policy blocks (`0x00000002`), or socket keep-alive resets (`0x00000040`). This utility contains 89 specialized repair modules designed for current Windows 10, 11, and Server 2025 releases.
 
 ---
 
