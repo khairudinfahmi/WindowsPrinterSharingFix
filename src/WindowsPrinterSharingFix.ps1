@@ -174,7 +174,7 @@ function Fix-RpcAuthn0x0000011b {
 }
 
 function Fix-Deep0x00000709 {
-    Write-Log "Deep fix 0x00000709 — applying all RPC layers..." -Type "INFO"
+    Write-Log "Deep fix 0x00000709 -- applying all RPC layers..." -Type "INFO"
     try {
 
         $rpcPath = "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC"
