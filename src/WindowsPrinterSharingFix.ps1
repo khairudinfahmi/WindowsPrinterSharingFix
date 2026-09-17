@@ -4247,7 +4247,7 @@ function Show-Submenu6 {
 }
 
 function Show-Submenu7 {
-    do {
+    while ($true) {
         $isEN = ($script:lang -eq "EN")
         $title7 = if ($isEN) { "7. Port Mapping & Manual Connections (UNC Port Map & TCP/IP)" } else { "7. Pemetaan Port & Sambungan Manual (UNC Port Map & TCP/IP)" }
         Show-Header -SubTitle $title7
@@ -4293,7 +4293,7 @@ function Show-Submenu7 {
             '5' { Scan-RemotePrinter; Pause-User }
             default { Write-Host $(if ($isEN) { "  [-] Invalid choice." } else { "  [-] Pilihan tidak valid." }) -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
         }
-    } while ($true)
+    }
 }
 
 function Show-Submenu8 {
