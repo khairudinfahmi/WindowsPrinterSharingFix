@@ -1294,7 +1294,7 @@ function Select-RemotePrinterInteractive {
         Write-Host ""
         Write-Host $(if ($isEN) { "  [+] SELECTED PRINTER: $selectedUNC" } else { "  [+] PRINTER DIPILIH: $selectedUNC" }) -ForegroundColor Green
         if ($copied) {
-            Write-Host $(if ($isEN) { "  [+] UNC PATH COPIED TO CLIPBOARD! (Ready to paste with Ctrl+V anywhere)" } else { "  [+] JALUR UNC TELAH DISALIN KE CLIPBOARD! (Siap di-paste / Ctrl+V di mana saja)" }) -ForegroundColor Green
+            Write-Host $(if ($isEN) { "  [+] UNC Path auto-copied! (Ready to paste / Ctrl+V anywhere)" } else { "  [+] Jalur UNC berhasil disalin otomatis! (Siap ditempel / Ctrl+V di mana saja)" }) -ForegroundColor Green
         }
 
         if ($ReturnUNCImmediately) {
@@ -4261,7 +4261,7 @@ function Show-Submenu7 {
             Write-Host "  [2] Remove Previously Created Local UNC Port Mapping" -ForegroundColor White
             Write-Host "  [3] Convert WSD Printer Port to Stable Standard TCP/IP Socket" -ForegroundColor White
             Write-Host "  [4] Add Standard TCP/IP Printer Port Manually" -ForegroundColor White
-            Write-Host "  [5] Scan & Discover Shared Printers in Real-Time (1-Click Clipboard & Port Map)" -ForegroundColor White
+            Write-Host "  [5] Scan & Discover Shared Printers on Network (Live Network Discovery)" -ForegroundColor White
             Write-Host ""
             Write-Host "  [L] Switch Language / Ganti Bahasa" -ForegroundColor DarkCyan
             Write-Host "  [B] Back to Main Menu" -ForegroundColor Cyan
@@ -4274,7 +4274,7 @@ function Show-Submenu7 {
             Write-Host "  [2] Hapus Pemetaan Port Lokal UNC yang Pernah Dibuat" -ForegroundColor White
             Write-Host "  [3] Ubah Port Printer dari WSD Menjadi Standar TCP/IP Stabil" -ForegroundColor White
             Write-Host "  [4] Tambah Port Printer Standar TCP/IP Secara Manual" -ForegroundColor White
-            Write-Host "  [5] Pindai & Temukan Printer Aktif Real-Time (1-Klik Salin ke Clipboard & Petakan Port)" -ForegroundColor White
+            Write-Host "  [5] Pindai & Temukan Printer yang Dibagikan di Jaringan (Live Discovery)" -ForegroundColor White
             Write-Host ""
             Write-Host "  [L] Ganti Bahasa / Switch to English" -ForegroundColor DarkCyan
             Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan

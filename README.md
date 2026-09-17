@@ -252,7 +252,7 @@ Direct connection methods when standard Windows Network Discovery fails.
 | **2** | **Remove Previously Created Local UNC Port Mapping** | `[87]` | Cleans up and unbinds previously created local UNC port mappings from the print spooler. |
 | **3** | **Convert WSD Printer Port to Stable Standard TCP/IP Socket** | `[26]` | Converts unreliable WSD (Web Services on Devices) ports to standard Raw TCP/IP ports (Port 9100) to eliminate phantom offline status. |
 | **4** | **Add Standard TCP/IP Printer Port Manually** | `[29]` | Creates a direct Raw TCP/IP printing port (Port 9100) using the target printer's static IP address via WMI. |
-| **5** | **Scan & Discover Shared Printers in Real-Time (1-Click Clipboard & Port Map)** | `[25]` | Performs fast non-blocking reachability probe (< 1s timeout) on ports 445/135, discovers shared printers via dual-tier SMB/RPC engine, displays an interactive numbered list with real-time `[ONLINE]` status, automatically copies selected UNC paths to Windows Clipboard, and enables 1-click local port mapping. |
+| **5** | **Scan & Discover Shared Printers on Network (Live Network Discovery)** | `[25]` | Performs fast non-blocking reachability probe (< 1s timeout) on ports 445/135, discovers shared printers via dual-tier SMB/RPC engine, displays an interactive numbered list with real-time `[ONLINE]` status, automatically copies selected UNC paths, and enables 1-click local port mapping. |
 
 ---
 
