@@ -5,23 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.0] - 2026-09-11
+## [2.4.0] - 2026-09-16
 
-### Refaktor UI, Dwibahasa (Bilingual ID/EN), Optimasi Berbasis Peran & Update Terkini Windows
-- **Optimasi Cepat Berbasis Peran (Submenu 1)**: Menambahkan solusi terarah khusus:
-  - **PC Host / Server Printer** (Opsi [3]): Mengizinkan remote RPC endpoint spooler, menyetel profil jaringan Private, membuka guest sharing, membuka port firewall & WSD, menonaktifkan wajib server SMB signing, merapikan nama share printer, dan memasang Spooler Watchdog.
-  - **PC Klien** (Opsi [4]): Mengaktifkan RPC Named Pipes, bypass elevasi Point and Print, menonaktifkan wajib client SMB signing, memperbaiki izin registri HKCU, mengaktifkan penemuan perangkat (mDNS/WSD), dan membersihkan cache DNS.
-- **Mitigasi Kebijakan Windows 11 24H2/25H2 & Server 2025**:
-  - Menyuntikkan `RegisterSpoolerRemoteRpcEndPoint = 1` pada Spooler Policies untuk mengatasi pemblokiran diam-diam koneksi remote RPC pada komputer server.
-  - Menetapkan `ForceKerberosForRpc = 0` agar jaringan kantor Workgroup (non-domain) tetap dapat mengotentikasi via NTLMv2 tanpa diblokir oleh kebijakan Kerberos baru.
-  - Menyelaraskan *SMB Signing* di 3 lapisan sekaligus: Group Policy (`LanmanWorkstation`), Service Parameters, dan PowerShell cmdlets (`Set-SmbClientConfiguration` / `Set-SmbServerConfiguration`).
-- **Dukungan Dwibahasa (Bilingual Engine ID / EN)**: Pengguna dapat memilih dan mengganti bahasa antarmuka antara Bahasa Indonesia dan English kapan saja secara instan dengan menekan `[L]` di Menu Utama maupun Submenu. Preferensi bahasa disimpan secara persisten di registry `HKCU:\Software\WindowsPrinterSharingFix\Language`.
-- **Indikator Kesehatan Sistem Waktu-Nyata (Header Health Banner)**: Menampilkan status 4 pilar penting sistem langsung pada bagian atas layar: Spooler (Running/Stopped), Profil Jaringan (Private/Public), Wajib SMB Signing, dan Proteksi Sandi Berbagi.
-- **Antarmuka Console Baru**: Menata ulang antarmuka dari tampilan 180 kolom yang padat menjadi 8 Kategori Inti yang rapi dan nyaman dibaca pada ukuran terminal standar (86 kolom).
-- **Submenu Terarah**: Mengelompokkan 89 modul teknis ke dalam 8 submenu logis dengan penjelasan yang mudah dimengerti dalam dua bahasa.
-- **Konsolidasi Fitur Duplikat**: Menyatukan opsi yang berkaitan erat (seperti Reset Spooler + Hapus Antrean, Buka Akses Berbagi Tanpa Sandi + Guest, serta Pembersihan Printer Hantu) ke dalam alur yang lebih praktis.
-- **Dukungan Pintasan Langsung (Direct Shortcuts)**: Mempertahankan 100% kompatibilitas dengan kebiasaan lama; pengguna tetap dapat mengetikkan kode modul klasik (84, 83, 64, 86, 31, dll.) langsung dari Menu Utama.
-- **Bahasa Manusiawi Komunikatif**: Memperbarui seluruh teks panduan, deskripsi, pesan eksekusi AllFix, dan bantuan modul menggunakan bahasa manusia yang natural, lugas, dan bebas dari terjemahan mesin / anomali AI.
+### Added
+- **Role-Based Optimization Playbooks (Submenu 1)**: Added dedicated one-click repair flows:
+  - **Host / Print Server PC** (Option [3]): Enforces spooler remote RPC endpoint, sets network profile to Private, enables guest sharing, opens firewall & WSD ports, disables server SMB signing enforcement, sanitizes share names, and deploys Spooler Watchdog.
+  - **Client PC** (Option [4]): Enforces RPC Named Pipes, applies Point & Print driver elevation bypass, disables client SMB signing requirement, repairs HKCU registry permissions, activates device discovery (mDNS/WSD), and flushes DNS cache.
+- **Bilingual Interface Engine (English & Indonesian)**: Dynamic language switching via `[L]` key on any menu or submenu, with preferences persistently saved to `HKCU:\Software\WindowsPrinterSharingFix\Language`.
+- **Real-Time System Health Banner**: Audits and displays live operational status directly in the console header: Spooler (Running/Stopped), Network Profile (Private/Public), SMB Signing, and Password Protected Sharing.
+- **Categorized Console Layout**: Restructured the 180-column layout into 8 intuitive core categories formatted for standard 86-column console buffers.
+- **Persistent Local Subnet Firewall Rule**: Automatically injects an inbound rule (`WinPrinterSharingFix-LocalSubnet`) allowing TCP 135 and 445 exclusively for `LocalSubnet` across any profile state.
+
+### Fixed
+- **Kernel BSOD Bugcheck Elimination (Error 0x00000040 & Socket Reset)**:
+  - Completely eliminated forced restarts of `LanmanWorkstation` and `LanmanServer` services across `Fix-Network0x00000040` and `Reset-NetworkSockets`.
+  - Resolved kernel bugchecks (`RDBSS_FILE_SYSTEM` 0x27 / `KERNEL_SECURITY_CHECK_FAILURE` 0x139) caused by tearing down kernel redirector drivers (`rdbss.sys`, `mrxsmb.sys`) while active network handles were open.
+  - Resolved subsequent Windows Startup Repair update rollbacks triggered by unexpected kernel halts.
+  - Configured `KeepConn = 65535`, extended `SessTimeout = 300`, and validated `LanMan Print Services` (`win32spl.dll`) non-destructively.
+- **Safe Network Stack Refresh**:
+  - Replaced destructive kernel-level `netsh int ip reset` and `netsh winsock reset` calls in `Reset-Network` with safe user-mode cache flushes (`Clear-DnsClientCache`, `ipconfig /flushdns`, `ipconfig /registerdns`, `nbtstat -RR`, and `net use * /delete /y`).
+- **Permanent Removal of Disruptive Daily 10:00 AM Scheduled Task**:
+  - Completely deleted the legacy daily 10:00 AM task (`PrinterFixDaily`) via `schtasks /delete /tn "PrinterFixDaily" /f`.
+  - Replaced it with a lightweight boot-time task (`PrinterFixPostUpdate`, `/sc onstart`) with a 30-second network polling retry loop to handle delayed Wi-Fi/DHCP initialization.
+  - Deployed `PrinterFixNetworkWatchdog` (15-minute interval) to ensure network profiles stay `Private` without disruptive spooler restarts or connection drops.
+- **Daily Sharing Drops & Fast Startup Mitigation**:
+  - Integrated `Disable-FastStartup` (`HiberbootEnabled = 0`) across all automated routines (`AllFix`, `Extreme`, `HostServerRole`, `ClientWorkstationRole`, `Set-NetworkPrivate`) to stop Windows from hibernating stale network sockets and drivers overnight.
+- **Windows 11 24H2/25H2 & Server 2025 Policy Alignment**:
+  - Injected `RegisterSpoolerRemoteRpcEndPoint = 1` on print server policies to resolve silent remote RPC blocks.
+  - Configured `ForceKerberosForRpc = 0` to enable non-domain Workgroup fallback to NTLMv2.
+  - Unified SMB Signing across Group Policy, service parameters, and PowerShell configuration.
 
 ---
 

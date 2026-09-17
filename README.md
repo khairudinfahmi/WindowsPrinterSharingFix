@@ -259,9 +259,11 @@ When automated playbooks (**ALLFIX [84]** or **Extreme Path [83]**) are executed
 1. **Group Policy Synchronization (`gpupdate /force`)**: Refreshes local Group Policy before writing registry overrides to prevent immediate policy rollback.
 2. **Pre-Change Registry Backup**: Backs up 5 critical registry hives to `C:\WindowsPrinterSharingFixBackup` before making any modifications.
 3. **Resilient Scheduled Tasks**:
-   - `PrinterFixPostUpdate` (triggered at system boot) & `PrinterFixDaily` (daily at 10:00 AM): Re-applies critical sharing parameters if monthly Windows Updates (*Patch Tuesday*) revert configurations.
-   - `SpoolerWatchdog` (runs every 5 minutes): Actively monitors the Print Spooler service and restarts it if terminated by buggy third-party drivers.
-   - *Configured to bypass laptop battery restrictions so background protection remains active on DC power.*
+   - `PrinterFixPostUpdate` (triggered on system boot with a 30-second polling retry loop): Re-applies critical RPC, SMB guest, and Point & Print policies if monthly Windows Updates (*Patch Tuesday*) revert configurations, without disruptive mid-day restarts.
+   - `PrinterFixNetworkWatchdog` (runs every 15 minutes): Automatically detects and restores network profiles to `Private` if adapter reconnections or router reboots temporarily drop them to `Public`.
+   - `SpoolerWatchdog` (runs every 5 minutes): Actively monitors the Print Spooler service and restarts it if terminated by unstable third-party drivers.
+   - *The legacy daily 10:00 AM task (`PrinterFixDaily`) has been completely removed to eliminate mid-day workflow interruptions.*
+   - *All scheduled tasks are configured with battery exemption (`AllowStartIfOnBatteries`, `DontStopIfGoingOnBatteries`) to maintain protection on laptops.*
 4. **Clean Session & Ticket Eviction**: Executes `klist purge`, `ipconfig /flushdns`, and `nbtstat -RR` to flush stale NetBIOS names, expired Kerberos tickets, and cached DNS entries.
 
 ---
