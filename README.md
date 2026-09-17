@@ -248,11 +248,11 @@ Direct connection methods when standard Windows Network Discovery fails.
 
 | # | Menu Option (Exact Console String) | Code | Details & Technical Benefit |
 | :---: | :--- | :---: | :--- |
-| **1** | **Map Local Port to UNC Share (Ultimate Bypass for Error 0x00000709)** | `[86]` | Direct local port redirect that maps a local printer port directly to a remote host UNC path (`\\HOST\PRINTER`), bypassing Point & Print entirely. |
+| **1** | **Map Local Port to UNC Share (Auto-Scan or Manual Bypass for Error 0x00000709)** | `[86]` | Ultimate workaround for error 0x00000709: supports auto-scanning remote hosts to pick printers from a live list (zero manual typing) or direct manual UNC input. Injects Local Port, restarts Spooler, and auto-copies UNC to clipboard. |
 | **2** | **Remove Previously Created Local UNC Port Mapping** | `[87]` | Cleans up and unbinds previously created local UNC port mappings from the print spooler. |
 | **3** | **Convert WSD Printer Port to Stable Standard TCP/IP Socket** | `[26]` | Converts unreliable WSD (Web Services on Devices) ports to standard Raw TCP/IP ports (Port 9100) to eliminate phantom offline status. |
 | **4** | **Add Standard TCP/IP Printer Port Manually** | `[29]` | Creates a direct Raw TCP/IP printing port (Port 9100) using the target printer's static IP address via WMI. |
-| **5** | **Scan & Discover Shared Printers on Remote Network Host** | `[25]` | Scans a remote host IP or computer name via WMI and net view to discover all exposed printer shares and their operational states. |
+| **5** | **Scan & Discover Shared Printers in Real-Time (1-Click Clipboard & Port Map)** | `[25]` | Performs fast non-blocking reachability probe (< 1s timeout) on ports 445/135, discovers shared printers via dual-tier SMB/RPC engine, displays an interactive numbered list with real-time `[ONLINE]` status, automatically copies selected UNC paths to Windows Clipboard, and enables 1-click local port mapping. |
 
 ---
 

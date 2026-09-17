@@ -46,6 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Injected `RegisterSpoolerRemoteRpcEndPoint = 1` on print server policies to resolve silent remote RPC blocks.
   - Configured `ForceKerberosForRpc = 0` to enable non-domain Workgroup fallback to NTLMv2.
   - Unified SMB Signing across Group Policy, service parameters, and PowerShell configuration.
+- **Submenu 7 Loop & Control Flow Architecture**:
+  - Converted Submenu 7 from `do { ... } while` to standard `while ($true)` loop structure with explicit `return` transitions, eliminating Language Server recursion artifacts on large script files.
+  - Expanded `switch` default handler block with explicit bilingual fallback messages and pause guards for unrecognized inputs.
+- **Static Analysis & Code Quality Hardening**:
+  - Configured repository-level `PSScriptAnalyzerSettings.psd1` rules, achieving 0 AST parser errors and 0 linter violations across all 4,654 lines of code.
+  - Cleaned non-ASCII characters to guarantee universal UTF-8 console output.
+  - Trimmed all trailing whitespace across the entire codebase.
 
 ---
 
