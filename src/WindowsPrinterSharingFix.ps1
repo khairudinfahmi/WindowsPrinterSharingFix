@@ -2316,10 +2316,11 @@ function Detect-GPOIntervention {
             }
         }
 
+        $isEN = ($script:lang -eq "EN")
         if ($isPartOfDomain) {
-            Write-Host "  [+] Domain status: DOMAIN JOINED" -ForegroundColor Green
+            Write-Host $(if ($isEN) { "  [+] Domain status: DOMAIN JOINED" } else { "  [+] Status Domain: TERHUBUNG KE DOMAIN (Domain Joined)" }) -ForegroundColor Green
         } else {
-            Write-Host "  [+] Domain status: WORKGROUP (Not Domain Joined)" -ForegroundColor Green
+            Write-Host $(if ($isEN) { "  [+] Domain status: WORKGROUP (Not Domain Joined)" } else { "  [+] Status Domain: WORKGROUP (Tidak Terhubung Domain)" }) -ForegroundColor Green
         }
 
         $policyPaths = @(
@@ -2394,21 +2395,19 @@ function Detect-GPOIntervention {
             }
 
             if ($restrictionDetected) {
-                Write-Host "`n  [!] WARNING: GPO-managed keys will be OVERWRITTEN by Domain Controller." -ForegroundColor Red
-                Write-Host "  [!] Local changes to these keys will revert after gpupdate." -ForegroundColor Red
+                Write-Host $(if ($isEN) { "`n  [!] WARNING: GPO-managed keys will be OVERWRITTEN by Domain Controller." } else { "`n  [!] PERINGATAN: Kunci registri kelolaan GPO akan DITIMPA oleh Domain Controller." }) -ForegroundColor Red
+                Write-Host $(if ($isEN) { "  [!] Local changes to these keys will revert after gpupdate." } else { "  [!] Perubahan lokal pada kunci ini akan kembali seperti semula setelah gpupdate." }) -ForegroundColor Red
                 Write-Log "GPO intervention detected on printer registry." -Type "WARNING"
             } else {
-                Write-Host "`n  [+] GPO policies are aligned with printer sharing fixes or inactive." -ForegroundColor Green
-                Write-Log "GPO checked; policies are aligned." -Type "SUCCESS"
+                Write-Log $(if ($isEN) { "GPO policies are aligned with printer sharing fixes or inactive." } else { "Kebijakan GPO telah selaras dengan konfigurasi printer sharing atau tidak aktif." }) -Type "SUCCESS"
             }
         } else {
-            Write-Host "`n  [+] Local Workgroup environment (no active Domain Controller detected)." -ForegroundColor Green
+            Write-Host $(if ($isEN) { "`n  [+] Local Workgroup environment (no active Domain Controller detected)." } else { "`n  [+] Lingkungan Workgroup Lokal (tidak ada Domain Controller aktif)." }) -ForegroundColor Green
             if ($restrictionDetected) {
-                Write-Host "  [!] Some local policy overrides are restricting sharing. These can be adjusted locally." -ForegroundColor Yellow
+                Write-Host $(if ($isEN) { "  [!] Some local policy overrides are restricting sharing. These can be adjusted locally." } else { "  [!] Beberapa penimpaan kebijakan lokal membatasi sharing. Pengaturan ini dapat disesuaikan lokal." }) -ForegroundColor Yellow
                 Write-Log "Local policy restrictions detected." -Type "WARNING"
             } else {
-                Write-Host "  [+] No local policy conflicts detected." -ForegroundColor Green
-                Write-Log "No policy conflicts detected." -Type "SUCCESS"
+                Write-Log $(if ($isEN) { "No local policy conflicts detected." } else { "Tidak ada konflik kebijakan lokal yang terdeteksi." }) -Type "SUCCESS"
             }
         }
     }
