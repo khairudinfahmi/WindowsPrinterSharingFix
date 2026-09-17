@@ -41,6 +41,12 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
    - Configures NTLMv2 fallback for non-domain Workgroup topologies.
 6. **Direct Action Shortcuts**:
    - Execute any classic module directly from the Main Menu (e.g., enter `84` for ALLFIX, `83` for Extreme Path, `86` for UNC Port Mapping, `31` for Spooler Reset) without drilling into submenus.
+7. **Real-Time Remote Printer Scanner & 1-Click Clipboard UNC Port Mapping**:
+   - Submenu 7 Options `[1]` and `[5]` feature an intelligent, real-time printer share scanner with dual-tier discovery (SMB + RPC).
+   - Non-blocking asynchronous socket probe (`Test-TargetPortFast`) eliminates 20–30s console hangs when remote computers are offline.
+   - Discovered printers are displayed in an interactive numbered table with real-time `[ONLINE]` status.
+   - Selecting a printer number automatically copies the complete UNC path (`\\HOST\PRINTER`) to the Windows Clipboard (`Ctrl+V` ready) and offers instant 1-click local port mapping (bypassing 0x00000709 without manual typing).
+   - Includes LAN Active Host Detection to find printer host PCs across local subnets automatically.
 
 ---
 

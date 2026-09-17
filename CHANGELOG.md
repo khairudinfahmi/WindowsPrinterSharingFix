@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.4.0] - 2026-09-16
 
 ### Added
+- **Real-Time Remote Printer Scanner & 1-Click Clipboard UNC Port Mapping (Submenu 7, Options [1] & [5])**:
+  - **Anti-Hang Socket Probe**: Implemented non-blocking asynchronous TCP probe (`Test-TargetPortFast`) on SMB (445) and RPC (135) with a strict 1000ms timeout, completely eliminating 20–30s console hangs when remote computers are offline.
+  - **Real-Time Printer Discovery**: Added `Find-RemoteSharedPrinters` supporting dual-tier discovery (SMB share enumeration via `net view` with process timeout fallback + RPC/WMI query), bypassing modern Windows 11 remote RPC spooler restrictions.
+  - **Interactive Numbered Table & Clipboard Injection**: Discovered printers are rendered in a clean numbered table with real-time `[ONLINE]` status indicators. Selecting a printer number automatically copies the complete UNC path (`\\HOST\PRINTER`) to the Windows Clipboard (`Copy-ToClipboard` via `Set-Clipboard` / `clip.exe`) ready for instant pasting (`Ctrl+V`).
+  - **1-Click Local Port Mapping (0x00000709 Bypass)**: Users can directly map the selected printer to a local port in 1-click without any manual typing.
+  - **LAN Active Host Detection**: Added fast neighborhood discovery (`Get-LANActiveHosts`) querying the IPv4 ARP cache in < 50ms to help users find printer servers even without memorizing IP addresses.
 - **Role-Based Optimization Playbooks (Submenu 1)**: Added dedicated one-click repair flows:
   - **Host / Print Server PC** (Option [3]): Enforces spooler remote RPC endpoint, sets network profile to Private, enables guest sharing, opens firewall & WSD ports, disables server SMB signing enforcement, sanitizes share names, and deploys Spooler Watchdog.
   - **Client PC** (Option [4]): Enforces RPC Named Pipes, applies Point & Print driver elevation bypass, disables client SMB signing requirement, repairs HKCU registry permissions, activates device discovery (mDNS/WSD), and flushes DNS cache.

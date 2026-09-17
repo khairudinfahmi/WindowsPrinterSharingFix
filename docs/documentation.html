@@ -605,9 +605,9 @@
         "items": [
             {
                 "id": "86",
-                "title": "Map Local Port to UNC Share (Ultimate Bypass for Error 0x00000709)",
+                "title": "Map Local Port to UNC Share (Auto-Scan or Manual Bypass for Error 0x00000709)",
                 "problem": "Standard printer sharing repeatedly fails with error 0x00000709 or 'Check the printer name'.",
-                "solution": "Creates a direct Local Port pointing directly to \\\\HOST_IP\\PRINTER_SHARE via API or Ports registry injection. User then simply adds a local printer and selects this port.",
+                "solution": "Supports interactive auto-scanning of remote hosts to select printers from a live list (zero manual typing) or direct manual UNC input. Injects Local Port via Windows API or Registry Ports bypass, restarts Spooler, and auto-copies UNC to clipboard.",
                 "whenToUse": "THE ULTIMATE WORKAROUND - Works 100% of the time when Windows completely refuses standard network printer sharing.",
                 "note": "Select 'Add a local printer', choose 'Use an existing port', pick the UNC path, and select your driver."
             },
@@ -634,10 +634,10 @@
             },
             {
                 "id": "25",
-                "title": "Scan & Discover Shared Printers on Remote Network Host",
-                "problem": "Need to discover exact printer share names published on a target host computer.",
-                "solution": "Scans target host via WMI and lists all active shared printer names and drivers.",
-                "whenToUse": "Before connecting to or mapping ports for remote shared printers."
+                "title": "Scan & Discover Shared Printers in Real-Time (1-Click Clipboard & Port Map)",
+                "problem": "Need to discover active printer shares on a remote computer or find print servers on the local LAN without memorizing IPs or exact share names.",
+                "solution": "Performs fast non-blocking reachability probe (< 1s timeout) on ports 445/135, discovers shared printers via dual-tier SMB/RPC engine, displays an interactive numbered list with real-time [ONLINE] status, automatically copies selected UNC paths to Windows Clipboard, and enables 1-click local port mapping.",
+                "whenToUse": "Before connecting to, troubleshooting, or mapping ports for remote shared printers across the network."
             }
         ]
     },

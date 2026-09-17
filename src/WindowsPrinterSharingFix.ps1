@@ -938,22 +938,390 @@ function Test-Connectivity {
     }
 }
 
-function Scan-RemotePrinter {
-    Write-Host "`n  REMOTE NETWORK PRINTER DISCOVERY"
-    $ip = Read-Host "  [?] Target IP/Hostname"
-    Write-Host "  [*] Scanning $ip..." -ForegroundColor Cyan
+function Copy-ToClipboard {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
     try {
-        $prn = Get-Printer -ComputerName $ip -ErrorAction Stop | Where-Object Shared -eq $true
-        if ($prn) {
-            $prn | Format-Table Name, ShareName, PortName, PrinterStatus -AutoSize
+        if (Get-Command Set-Clipboard -ErrorAction SilentlyContinue) {
+            Set-Clipboard -Value $Text -ErrorAction Stop
+            return $true
         }
-        else {
-            Write-Host "  [-] No shared printers detected on the target host." -ForegroundColor Yellow
+    } catch {}
+    try {
+        $Text | clip.exe
+        return $true
+    } catch {}
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
+        [System.Windows.Forms.Clipboard]::SetText($Text)
+        return $true
+    } catch {}
+    return $false
+}
+
+function Test-TargetPortFast {
+    param(
+        [Parameter(Mandatory=$true)][string]$ComputerName,
+        [int]$Port = 445,
+        [int]$TimeoutMs = 1000
+    )
+    try {
+        $tcp = New-Object System.Net.Sockets.TcpClient
+        $async = $tcp.BeginConnect($ComputerName, $Port, $null, $null)
+        $wait = $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)
+        if ($wait) {
+            $tcp.EndConnect($async)
+            $tcp.Close()
+            return $true
+        }
+        $tcp.Close()
+        return $false
+    } catch {
+        return $false
+    }
+}
+
+function Get-LANActiveHosts {
+    $hosts = @()
+    try {
+        $neighbors = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+            Where-Object { 
+                $_.IPAddress -notmatch '^(127\.|169\.254\.|224\.|239\.|255\.)' -and 
+                $_.State -in 'Reachable','Permanent','Stale' 
+            } | Select-Object -ExpandProperty IPAddress -Unique
+
+        foreach ($ip in $neighbors) {
+            if ($ip -match '^\d{1,3}\.\d{1,3}\.\d{1,3}\.(255|0)$') { continue }
+            $hosts += $ip
+        }
+    } catch {}
+    return ($hosts | Select-Object -Unique)
+}
+
+function Find-RemoteSharedPrinters {
+    param(
+        [Parameter(Mandatory=$true)][string]$TargetHost,
+        [int]$TimeoutMs = 3000
+    )
+    $cleanHost = $TargetHost.Trim().TrimStart('\')
+    $results = @()
+    $isEN = ($script:lang -eq "EN")
+
+    # Localhost / Local Machine optimization
+    $isLocal = ($cleanHost -in @('127.0.0.1', 'localhost', '::1', $env:COMPUTERNAME))
+    if ($isLocal) {
+        try {
+            $localPrinters = Get-Printer -ErrorAction SilentlyContinue | Where-Object Shared -eq $true
+            foreach ($p in $localPrinters) {
+                $sName = if ($p.ShareName) { $p.ShareName } else { $p.Name }
+                $results += [PSCustomObject]@{
+                    Name      = $p.Name
+                    ShareName = $sName
+                    UNCPath   = "\\$env:COMPUTERNAME\$sName"
+                    Status    = if ($p.PrinterStatus) { "$($p.PrinterStatus)" } else { "Normal" }
+                    Port      = if ($p.PortName) { $p.PortName } else { "Local" }
+                    Host      = $env:COMPUTERNAME
+                }
+            }
+            if ($results.Count -gt 0) {
+                return [PSCustomObject]@{ Success = $true; Host = $cleanHost; Printers = $results; Error = $null }
+            }
+        } catch {}
+    }
+
+    # Fast TCP probe on port 445 (SMB) and 135 (RPC) with 1000ms strict timeout
+    $smbAlive = Test-TargetPortFast -ComputerName $cleanHost -Port 445 -TimeoutMs 1000
+    $rpcAlive = Test-TargetPortFast -ComputerName $cleanHost -Port 135 -TimeoutMs 1000
+
+    if (-not $smbAlive -and -not $rpcAlive) {
+        return [PSCustomObject]@{
+            Success  = $false
+            Error    = "OFFLINE"
+            Message  = if ($isEN) { "Host '$cleanHost' is offline or blocking ports 445/135." } else { "Komputer '$cleanHost' offline atau memblokir port 445/135." }
+            Host     = $cleanHost
+            Printers = @()
         }
     }
-    catch {
-        Write-Host "  [-] RPC connection failure. Verify Admin/Guest access to $ip." -ForegroundColor Red
+
+    # SMB Port 445: Run net.exe view with hard process timeout
+    if ($smbAlive) {
+        try {
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = "net.exe"
+            $psi.Arguments = "view \\$cleanHost"
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            $psi.UseShellExecute = $false
+            $psi.CreateNoWindow = $true
+
+            $proc = [System.Diagnostics.Process]::Start($psi)
+            $finished = $proc.WaitForExit($TimeoutMs)
+            if ($finished) {
+                $out = $proc.StandardOutput.ReadToEnd()
+                $lines = $out -split "`r?`n"
+                foreach ($line in $lines) {
+                    if ($line -match '^\s*([^\s]+)\s+Print\b(.*)$') {
+                        $sName = $Matches[1].Trim()
+                        $comment = $Matches[2].Trim()
+                        $results += [PSCustomObject]@{
+                            Name      = if ($comment) { $comment } else { $sName }
+                            ShareName = $sName
+                            UNCPath   = "\\$cleanHost\$sName"
+                            Status    = "Online"
+                            Port      = "SMB:445"
+                            Host      = $cleanHost
+                        }
+                    }
+                }
+            } else {
+                try { $proc.Kill() } catch {}
+            }
+        } catch {}
     }
+
+    # Fallback: Query Win32_Share via CIM if RPC is open and no printers detected yet
+    if ($results.Count -eq 0 -and $rpcAlive) {
+        try {
+            $cimOpt = New-CimSessionOption -Protocol Dcom
+            $cimOpt.SendTimeout = [TimeSpan]::FromSeconds(2)
+            $session = New-CimSession -ComputerName $cleanHost -SessionOption $cimOpt -ErrorAction Stop
+            $shares = Get-CimInstance -CimSession $session -ClassName Win32_Share -ErrorAction Stop | Where-Object { $_.Type -eq 1 }
+            foreach ($s in $shares) {
+                $results += [PSCustomObject]@{
+                    Name      = if ($s.Description) { $s.Description } else { $s.Name }
+                    ShareName = $s.Name
+                    UNCPath   = "\\$cleanHost\$($s.Name)"
+                    Status    = "Available"
+                    Port      = "Win32_Share"
+                    Host      = $cleanHost
+                }
+            }
+            Remove-CimSession $session -ErrorAction SilentlyContinue
+        } catch {}
+    }
+
+    return [PSCustomObject]@{
+        Success  = $true
+        Host     = $cleanHost
+        Printers = $results
+        Error    = $null
+    }
+}
+
+function Invoke-PortMappingDirect {
+    param(
+        [Parameter(Mandatory=$true)][string]$UNCPath
+    )
+    $isEN = ($script:lang -eq "EN")
+    $cleanUNC = $UNCPath.Trim()
+    if (-not $cleanUNC.StartsWith("\\")) {
+        $cleanUNC = "\\$cleanUNC"
+    }
+
+    Write-Host ""
+    Write-Host $(if ($isEN) { "  [*] Mapping Local Port to: $cleanUNC..." } else { "  [*] Memetakan Port Lokal ke: $cleanUNC..." }) -ForegroundColor Cyan
+
+    $mapped = $false
+    try {
+        Add-PrinterPort -Name $cleanUNC -ErrorAction Stop
+        $mapped = $true
+        Write-Log "Local Port created via API: $cleanUNC" -Type "SUCCESS"
+        Write-Host $(if ($isEN) { "  [+] SUCCESS: Local Port created via Windows API!" } else { "  [+] BERHASIL: Port Lokal berhasil dibuat via API Windows!" }) -ForegroundColor Green
+    } catch {
+        Write-Host $(if ($isEN) { "  [*] Standard method blocked by Windows. Deploying Registry Bypass..." } else { "  [*] Metode standar dicegah Windows. Menerapkan Bypass Registri..." }) -ForegroundColor Yellow
+        try {
+            $portRegPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Ports"
+            if (-not (Test-Path $portRegPath)) { New-Item -Path $portRegPath -Force | Out-Null }
+            Set-ItemProperty -Path $portRegPath -Name $cleanUNC -Value "" -Type String -Force -ErrorAction Stop
+            $mapped = $true
+            Write-Log "Local Port created via Registry Injection: $cleanUNC" -Type "SUCCESS"
+            Write-Host $(if ($isEN) { "  [+] REGISTRY BYPASS SUCCESS! Port $cleanUNC is now registered." } else { "  [+] BYPASS REGISTRI BERHASIL! Port $cleanUNC sekarang terdaftar." }) -ForegroundColor Green
+        } catch {
+            Write-Log "Port injection failed: $($_.Exception.Message)" -Type "ERROR"
+            Write-Host $(if ($isEN) { "  [-] FAILED: Registry access locked down by Administrator/GPO." } else { "  [-] GAGAL: Akses registri terkunci oleh Administrator/GPO." }) -ForegroundColor Red
+            return $false
+        }
+    }
+
+    if ($mapped) {
+        Write-Host $(if ($isEN) { "  [*] Restarting Print Spooler to finalize new port..." } else { "  [*] Memulai ulang Print Spooler untuk mengaktifkan port..." }) -ForegroundColor Cyan
+        Restart-Service spooler -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 800
+
+        # Auto-copy UNC path to clipboard
+        $copied = Copy-ToClipboard -Text $cleanUNC
+        if ($copied) {
+            Write-Host $(if ($isEN) { "  [+] UNC Path copied to Clipboard! Ready to paste (Ctrl+V)." } else { "  [+] Jalur UNC berhasil disalin ke Clipboard! Siap ditempel (Ctrl+V)." }) -ForegroundColor Green
+        }
+
+        Write-Host ""
+        Write-Host ("=" * 86) -ForegroundColor Cyan
+        Write-Host $(if ($isEN) { "  [!] NEXT STEP TO CONNECT YOUR PRINTER:" } else { "  [!] LANGKAH SELANJUTNYA UNTUK MENGHUBUNGKAN PRINTER:" }) -ForegroundColor Yellow
+        if ($isEN) {
+            Write-Host "      1. Open 'Control Panel' -> 'Devices and Printers' (or run 'control printers')" -ForegroundColor White
+            Write-Host "      2. Click 'Add a printer' -> 'The printer that I want isn't listed'" -ForegroundColor White
+            Write-Host "      3. Select 'Add a local printer or network printer with manual settings'" -ForegroundColor White
+            Write-Host "      4. Choose 'Use an existing port' -> Select: $cleanUNC" -ForegroundColor Green
+            Write-Host "      5. Pick your printer brand and driver model -> Done!" -ForegroundColor White
+        } else {
+            Write-Host "      1. Buka 'Control Panel' -> 'Devices and Printers' (atau ketik 'control printers')" -ForegroundColor White
+            Write-Host "      2. Klik 'Add a printer' -> 'The printer that I want isn't listed'" -ForegroundColor White
+            Write-Host "      3. Pilih 'Add a local printer or network printer with manual settings'" -ForegroundColor White
+            Write-Host "      4. Pilih 'Use an existing port' -> Pilih port: $cleanUNC" -ForegroundColor Green
+            Write-Host "      5. Pilih merk printer dan tipe driver yang sesuai -> Selesai!" -ForegroundColor White
+        }
+        Write-Host ("=" * 86) -ForegroundColor Cyan
+        return $true
+    }
+    return $false
+}
+
+function Select-RemotePrinterInteractive {
+    param(
+        [string]$ActionName = "",
+        [bool]$ReturnUNCImmediately = $false
+    )
+    $isEN = ($script:lang -eq "EN")
+    
+    Write-Host "`n  ======================================================================"
+    Write-Host $(if ($isEN) { "               REMOTE NETWORK PRINTER DISCOVERY" } else { "               PINDAI & TEMUKAN PRINTER JARINGAN REAL-TIME" })
+    Write-Host "  ======================================================================"
+    Write-Host ""
+    if ($isEN) {
+        Write-Host "  SELECT DISCOVERY MODE:" -ForegroundColor Cyan
+        Write-Host "  [1] Scan Specific Computer by IP or Hostname (e.g. 192.168.1.10)" -ForegroundColor Green
+        Write-Host "  [2] Auto-Detect Active Computers on Local Network (LAN Neighborhood)" -ForegroundColor White
+        Write-Host "  [B] Back" -ForegroundColor Cyan
+        Write-Host ""
+        $mode = Read-Host "  Select mode [1-2, B]"
+    } else {
+        Write-Host "  PILIH METODE PEMINDAIAN:" -ForegroundColor Cyan
+        Write-Host "  [1] Pindai Komputer Tertentu via IP atau Hostname (contoh: 192.168.1.10)" -ForegroundColor Green
+        Write-Host "  [2] Pindai Otomatis Komputer Aktif di Jaringan Lokal (LAN Neighborhood)" -ForegroundColor White
+        Write-Host "  [B] Kembali" -ForegroundColor Cyan
+        Write-Host ""
+        $mode = Read-Host "  Pilih mode [1-2, B]"
+    }
+
+    if ($null -eq $mode) { return $null }
+    $mode = $mode.Trim()
+    if ($mode -match '^(b|0|back|kembali)$') { return $null }
+
+    $targetHost = ""
+    if ($mode -eq '2') {
+        Write-Host ""
+        Write-Host $(if ($isEN) { "  [*] Discovering active neighbor hosts on local subnet..." } else { "  [*] Mendeteksi komputer aktif di jaringan lokal..." }) -ForegroundColor Cyan
+        $activeHosts = Get-LANActiveHosts
+        if (-not $activeHosts -or $activeHosts.Count -eq 0) {
+            Write-Host $(if ($isEN) { "  [-] No active neighbors found in ARP cache. Please enter IP manually." } else { "  [-] Tidak ada komputer tetangga terdeteksi di cache. Silakan masukkan IP manual." }) -ForegroundColor Yellow
+            $targetHost = Read-Host $(if ($isEN) { "  [?] Target IP/Hostname" } else { "  [?] IP/Hostname Target" })
+        } else {
+            Write-Host $(if ($isEN) { "  [>] Detected Active Network Computers:" } else { "  [>] Komputer Jaringan yang Terdeteksi Aktif:" }) -ForegroundColor Yellow
+            for ($i = 0; $i -lt $activeHosts.Count; $i++) {
+                $h = $activeHosts[$i]
+                Write-Host "      [$($i+1)] $h" -ForegroundColor White
+            }
+            Write-Host ""
+            $hChoice = Read-Host $(if ($isEN) { "  Select host [1-$($activeHosts.Count)] or enter custom IP" } else { "  Pilih komputer [1-$($activeHosts.Count)] atau ketik IP lain" })
+            if (-not $hChoice) { return $null }
+            if ($hChoice -match '^\d+$' -and [int]$hChoice -ge 1 -and [int]$hChoice -le $activeHosts.Count) {
+                $targetHost = $activeHosts[[int]$hChoice - 1]
+            } else {
+                $targetHost = $hChoice.Trim()
+            }
+        }
+    } else {
+        $targetHost = Read-Host $(if ($isEN) { "  [?] Target Host IP or Hostname (e.g. 192.168.1.10 or SERVER-PC)" } else { "  [?] Alamat IP atau Hostname Target (contoh: 192.168.1.10 atau SERVER-PC)" })
+    }
+
+    if ([string]::IsNullOrWhiteSpace($targetHost)) {
+        Write-Host $(if ($isEN) { "  [-] Cancelled - empty target host." } else { "  [-] Dibatalkan - input komputer kosong." }) -ForegroundColor Red
+        return $null
+    }
+
+    $cleanHost = $targetHost.Trim().TrimStart('\')
+    Write-Host ""
+    Write-Host $(if ($isEN) { "  [*] Performing real-time reachability check on $cleanHost..." } else { "  [*] Memeriksa ketersediaan real-time komputer $cleanHost..." }) -ForegroundColor Cyan
+
+    $scanResult = Find-RemoteSharedPrinters -TargetHost $cleanHost
+    if (-not $scanResult.Success) {
+        Write-Host $(if ($isEN) { "  [-] HOST UNREACHABLE: Target '$cleanHost' is offline or blocking SMB/RPC." } else { "  [-] KOMPUTER TIDAK TERJANGKAU: Komputer '$cleanHost' offline atau memblokir SMB/RPC." }) -ForegroundColor Red
+        Write-Host $(if ($isEN) { "  [!] Make sure the target computer is powered on and connected to the same network." } else { "  [!] Pastikan komputer target hidup dan terhubung ke jaringan Wi-Fi/LAN yang sama." }) -ForegroundColor Yellow
+        Write-Log "Scan-RemotePrinter: $cleanHost unreachable." -Type "ERROR"
+        return $null
+    }
+
+    $printers = $scanResult.Printers
+    if (-not $printers -or $printers.Count -eq 0) {
+        Write-Host $(if ($isEN) { "  [+] Host '$cleanHost' is ONLINE, but NO shared printers were detected." } else { "  [+] Komputer '$cleanHost' ONLINE, namun TIDAK ADA printer yang sedang dibagikan." }) -ForegroundColor Yellow
+        Write-Host $(if ($isEN) { "  [!] Ensure 'Share this printer' is enabled in Printer Properties on $cleanHost." } else { "  [!] Pastikan opsi 'Share this printer' sudah dicentang di Komputer $cleanHost." }) -ForegroundColor Yellow
+        Write-Log "Scan-RemotePrinter: $cleanHost online but no shared printers." -Type "WARNING"
+        return $null
+    }
+
+    Write-Host $(if ($isEN) { "  [+] Host '$cleanHost' is ONLINE! Found $($printers.Count) shared printer(s):" } else { "  [+] Komputer '$cleanHost' ONLINE! Ditemukan $($printers.Count) printer yang dibagikan:" }) -ForegroundColor Green
+    Write-Host ""
+    Write-Host ("=" * 96) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "   [#]  PRINTER NAME             SHARE NAME        UNC PATH                             STATUS" } else { "   [#]  NAMA PRINTER             NAMA SHARE        JALUR UNC LENGKAP                    STATUS" }) -ForegroundColor Yellow
+    Write-Host ("-" * 96) -ForegroundColor Cyan
+
+    for ($i = 0; $i -lt $printers.Count; $i++) {
+        $p = $printers[$i]
+        $num = "[$($i+1)]".PadRight(6)
+        $pName = if ($p.Name.Length -gt 23) { $p.Name.Substring(0, 20) + "..." } else { $p.Name.PadRight(24) }
+        $sName = if ($p.ShareName.Length -gt 16) { $p.ShareName.Substring(0, 13) + "..." } else { $p.ShareName.PadRight(17) }
+        $uPath = if ($p.UNCPath.Length -gt 35) { $p.UNCPath.Substring(0, 32) + "..." } else { $p.UNCPath.PadRight(36) }
+        $statusStr = "[ONLINE]"
+        Write-Host "   $num $pName $sName $uPath " -NoNewline -ForegroundColor White
+        Write-Host "$statusStr" -ForegroundColor Green
+    }
+    Write-Host ("=" * 96) -ForegroundColor Cyan
+    Write-Host ""
+
+    Write-Host $(if ($isEN) { "  Select printer number [1-$($printers.Count)], or 'B' to return: " } else { "  Pilih nomor printer [1-$($printers.Count)], atau 'B' untuk kembali: " }) -NoNewline -ForegroundColor Yellow
+    $pick = Read-Host
+    if ($null -eq $pick) { return $null }
+    $pick = $pick.Trim()
+    if ($pick -match '^(b|0|back|kembali)$') { return $null }
+
+    if ($pick -match '^\d+$' -and [int]$pick -ge 1 -and [int]$pick -le $printers.Count) {
+        $selected = $printers[[int]$pick - 1]
+        $selectedUNC = $selected.UNCPath
+
+        # Automatically copy to Clipboard
+        $copied = Copy-ToClipboard -Text $selectedUNC
+        Write-Host ""
+        Write-Host $(if ($isEN) { "  [+] SELECTED PRINTER: $selectedUNC" } else { "  [+] PRINTER DIPILIH: $selectedUNC" }) -ForegroundColor Green
+        if ($copied) {
+            Write-Host $(if ($isEN) { "  [+] UNC PATH COPIED TO CLIPBOARD! (Ready to paste with Ctrl+V anywhere)" } else { "  [+] JALUR UNC TELAH DISALIN KE CLIPBOARD! (Siap di-paste / Ctrl+V di mana saja)" }) -ForegroundColor Green
+        }
+
+        if ($ReturnUNCImmediately) {
+            return $selectedUNC
+        }
+
+        # Provide quick action menu
+        Write-Host ""
+        Write-Host $(if ($isEN) { "  CHOOSE QUICK ACTION:" } else { "  PILIHAN TINDAKAN CEPAT:" }) -ForegroundColor Cyan
+        Write-Host $(if ($isEN) { "  [1] Map as Local Port directly (Bypass Error 0x00000709) - Zero Typing!" } else { "  [1] Langsung Petakan ke Port Lokal (Bypass Error 0x00000709) - Tanpa Ketik!" }) -ForegroundColor Green
+        Write-Host $(if ($isEN) { "  [2] Open Windows 'Devices and Printers' Wizard (control printers)" } else { "  [2] Buka Wizard Tambah Printer Windows (control printers)" }) -ForegroundColor White
+        Write-Host $(if ($isEN) { "  [B] Done & Return to Menu" } else { "  [B] Selesai & Kembali ke Menu" }) -ForegroundColor Cyan
+        Write-Host ""
+        $act = Read-Host $(if ($isEN) { "  Select action [1-2, B]" } else { "  Pilih tindakan [1-2, B]" })
+        if ($act -eq '1') {
+            Invoke-PortMappingDirect -UNCPath $selectedUNC
+        } elseif ($act -eq '2') {
+            Start-Process "control.exe" -ArgumentList "printers"
+        }
+        return $selectedUNC
+    } else {
+        Write-Host $(if ($isEN) { "  [-] Invalid printer number." } else { "  [-] Nomor printer tidak valid." }) -ForegroundColor Red
+        return $null
+    }
+}
+
+function Scan-RemotePrinter {
+    Select-RemotePrinterInteractive -ActionName "Discovery" -ReturnUNCImmediately $false | Out-Null
 }
 
 function Remote-SpoolerReset {
@@ -2467,40 +2835,47 @@ function Parse-PrintEventLog {
 }
 
 function Map-LocalPortUNC {
+    $isEN = ($script:lang -eq "EN")
     Write-Host "`n  ======================================================================"
-    Write-Host "               MAP LOCAL PORT TO UNC PATH (BYPASS)"
+    Write-Host $(if ($isEN) { "               MAP LOCAL PORT TO UNC PATH (BYPASS 0x00000709)" } else { "               PETAKAN PORT LOKAL KE JALUR SHARE UNC (BYPASS 0x00000709)" })
     Write-Host "  ======================================================================"
-    Write-Host "  [!] Use this if standard sharing STILL fails with 'Check printer name' error."
-    $ip = Read-Host "  [?] Target Host IP/Hostname (e.g., 192.168.1.10)"
-    $share = Read-Host "  [?] Exact Printer Share Name (e.g., EPSON_L120)"
-    if ($ip -and $share) {
-        $uncPath = "\\$ip\$share"
-        try {
-            Write-Host "  [*] Attempting standard Local Port creation: $uncPath" -ForegroundColor Cyan
-            Add-PrinterPort -Name $uncPath -ErrorAction Stop
-            Write-Log "Local Port created for UNC via API: $uncPath" -Type "SUCCESS"
-            Write-Host "  [+] Local Port injected! You can now Add a Local Printer and select this port." -ForegroundColor Green
-        }
-        catch {
-            Write-Host "  [*] Standard method blocked by Windows. Deploying Registry Bypass..." -ForegroundColor Yellow
-            try {
-                $portRegPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Ports"
-                if (-not (Test-Path $portRegPath)) { New-Item -Path $portRegPath -Force | Out-Null }
-                Set-ItemProperty -Path $portRegPath -Name $uncPath -Value "" -Type String -Force -ErrorAction Stop
+    Write-Host $(if ($isEN) { "  [!] Use this if standard sharing STILL fails with 'Check printer name' error." } else { "  [!] Gunakan solusi ini jika berbagi printer standar tetap gagal (Error 0x00000709)." }) -ForegroundColor Yellow
+    Write-Host ""
+    if ($isEN) {
+        Write-Host "  SELECT MAPPING METHOD:" -ForegroundColor Cyan
+        Write-Host "  [1] Auto-Scan Host & Pick Printer from List (Zero Typing - Recommended)" -ForegroundColor Green
+        Write-Host "  [2] Enter Host IP/Hostname & Share Name Manually" -ForegroundColor White
+        Write-Host "  [B] Back to Menu" -ForegroundColor Cyan
+        Write-Host ""
+        $choice = Read-Host "  Select option [1-2, B]"
+    } else {
+        Write-Host "  PILIH METODE PEMETAAN:" -ForegroundColor Cyan
+        Write-Host "  [1] Pindai Komputer & Pilih Printer dari Daftar (Otomatis Tanpa Ketik - Rekomendasi)" -ForegroundColor Green
+        Write-Host "  [2] Masukkan Alamat IP & Nama Share Manual" -ForegroundColor White
+        Write-Host "  [B] Kembali ke Menu" -ForegroundColor Cyan
+        Write-Host ""
+        $choice = Read-Host "  Pilih opsi [1-2, B]"
+    }
 
-                Write-Host "  [*] Port injected. Restarting Print Spooler to finalize..." -ForegroundColor Cyan
-                Restart-Service spooler -Force -ErrorAction SilentlyContinue
+    if ($null -eq $choice) { return }
+    $choice = $choice.Trim()
+    if ($choice -match '^(b|0|back|kembali)$') { return }
 
-                Write-Log "Local Port injected for UNC via Registry Bypass: $uncPath" -Type "SUCCESS"
-                Write-Host "  [+] BYPASS SUCCESS! Port $uncPath is now available in your port list." -ForegroundColor Green
-                Write-Host "  [!] NEXT STEP: Go to 'Add Printer' -> 'Add a local printer' -> 'Use an existing port'." -ForegroundColor Green
-                Write-Host "  [!] Select $uncPath from the drop-down menu, then choose your driver." -ForegroundColor Green
-            }
-            catch {
-                Write-Log " Bypass Failed: $($_.Exception.Message)" -Type "ERROR"
-                Write-Host "  [-] Bypass failed. Registry access is completely locked down by Administrator/GPO." -ForegroundColor Red
-            }
+    if ($choice -eq '1') {
+        $selectedUNC = Select-RemotePrinterInteractive -ActionName $(if ($isEN) { "Port Mapping" } else { "Pemetaan Port" }) -ReturnUNCImmediately $true
+        if ($selectedUNC) {
+            Invoke-PortMappingDirect -UNCPath $selectedUNC
         }
+    } else {
+        $ip = Read-Host $(if ($isEN) { "  [?] Target Host IP/Hostname (e.g., 192.168.1.10)" } else { "  [?] Alamat IP/Hostname Target (contoh: 192.168.1.10)" })
+        if (-not $ip) { return }
+        $share = Read-Host $(if ($isEN) { "  [?] Exact Printer Share Name (e.g., EPSON_L120)" } else { "  [?] Nama Share Printer yang Tepat (contoh: EPSON_L120)" })
+        if (-not $share) { return }
+
+        $cleanIP = $ip.Trim().TrimStart('\')
+        $cleanShare = $share.Trim().TrimStart('\')
+        $uncPath = "\\$cleanIP\$cleanShare"
+        Invoke-PortMappingDirect -UNCPath $uncPath
     }
 }
 
@@ -3879,12 +4254,12 @@ function Show-Submenu7 {
         Show-Header -SubTitle $(if ($isEN) { "7. Port Mapping & Manual Connections (UNC Port Map & TCP/IP)" } else { "7. Pemetaan Port & Sambungan Manual (UNC Port Map & TCP/IP)" })
         Write-Host ""
         if ($isEN) {
-            Write-Host "  [1] Map Local Port to UNC Share (Ultimate Bypass for Error 0x00000709)" -ForegroundColor Green
-            Write-Host "      (Example: connects local port directly to \\SERVER\PRINTER)" -ForegroundColor Gray
+            Write-Host "  [1] Map Local Port to UNC Share (Auto-Scan or Manual Bypass for Error 0x00000709)" -ForegroundColor Green
+            Write-Host "      (Auto-scan & pick from list or bind directly to \\SERVER\PRINTER)" -ForegroundColor Gray
             Write-Host "  [2] Remove Previously Created Local UNC Port Mapping" -ForegroundColor White
             Write-Host "  [3] Convert WSD Printer Port to Stable Standard TCP/IP Socket" -ForegroundColor White
             Write-Host "  [4] Add Standard TCP/IP Printer Port Manually" -ForegroundColor White
-            Write-Host "  [5] Scan & Discover Shared Printers on Remote Network Host" -ForegroundColor White
+            Write-Host "  [5] Scan & Discover Shared Printers in Real-Time (1-Click Clipboard & Port Map)" -ForegroundColor White
             Write-Host ""
             Write-Host "  [L] Switch Language / Ganti Bahasa" -ForegroundColor DarkCyan
             Write-Host "  [B] Back to Main Menu" -ForegroundColor Cyan
@@ -3892,12 +4267,12 @@ function Show-Submenu7 {
             Write-Host ("-" * 86) -ForegroundColor Cyan
             Write-Host "Select option [1-5], L, or B: " -NoNewline -ForegroundColor Yellow
         } else {
-            Write-Host "  [1] Petakan Port Lokal ke Jalur Share UNC (Solusi Ampuh Bypass 0x00000709)" -ForegroundColor Green
-            Write-Host "      (Contoh: menghubungkan port lokal langsung ke \\NAMA-SERVER\PRINTER)" -ForegroundColor Gray
+            Write-Host "  [1] Petakan Port Lokal ke Jalur Share UNC (Pindai Otomatis / Manual Bypass 0x00000709)" -ForegroundColor Green
+            Write-Host "      (Pindai otomatis & pilih dari daftar atau hubungkan ke \\NAMA-SERVER\PRINTER)" -ForegroundColor Gray
             Write-Host "  [2] Hapus Pemetaan Port Lokal UNC yang Pernah Dibuat" -ForegroundColor White
             Write-Host "  [3] Ubah Port Printer dari WSD Menjadi Standar TCP/IP Stabil" -ForegroundColor White
             Write-Host "  [4] Tambah Port Printer Standar TCP/IP Secara Manual" -ForegroundColor White
-            Write-Host "  [5] Pindai & Temukan Printer yang Aktif di Jaringan Komputer Target" -ForegroundColor White
+            Write-Host "  [5] Pindai & Temukan Printer Aktif Real-Time (1-Klik Salin ke Clipboard & Petakan Port)" -ForegroundColor White
             Write-Host ""
             Write-Host "  [L] Ganti Bahasa / Switch to English" -ForegroundColor DarkCyan
             Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
