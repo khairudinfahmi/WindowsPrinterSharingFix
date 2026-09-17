@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Instant Web Launch & Quick-Lookup Error Matrix**: Added an instant one-liner PowerShell execution method, an error code quick-lookup matrix, and a troubleshooting FAQ section to documentation.
 
 ### Fixed
+- **Registry Rollback & Safety Hardening**:
+  - Differentiated between genuine restoration and zero-file restoration failure in `Rollback-Registry` to eliminate false-positive success notifications.
+  - Automatically restarts the Print Spooler service upon successful registry rollback to reload restored policies immediately.
+  - Integrated automated pre-change registry backup into `Extreme-25H2`.
+  - Added bilingual console status feedback across all backup, rollback, restore point, and migration modules.
 - **Kernel BSOD Bugcheck Elimination (Error 0x00000040 & Socket Reset)**:
   - Completely eliminated forced restarts of `LanmanWorkstation` and `LanmanServer` services across `Fix-Network0x00000040` and `Reset-NetworkSockets`.
   - Resolved kernel bugchecks (`RDBSS_FILE_SYSTEM` 0x27 / `KERNEL_SECURITY_CHECK_FAILURE` 0x139) caused by tearing down kernel redirector drivers (`rdbss.sys`, `mrxsmb.sys`) while active network handles were open.

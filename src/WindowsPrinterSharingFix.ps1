@@ -605,34 +605,48 @@ function Open-Firewall {
 }
 
 function Backup-Registry {
+    $isEN = ($script:lang -eq "EN")
     Write-Log "Executing Printer Registry Backup..." -Type "INFO"
     try {
         if (-not (Test-Path $script:backupDir)) {
             New-Item -ItemType Directory -Path $script:backupDir -Force | Out-Null
         }
+        $backupHives = @(
+            @{ Path = "HKLM\SYSTEM\CurrentControlSet\Control\Print"; File = "Print.reg"; Label = "Print"; RegPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Print" },
+            @{ Path = "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers"; File = "PrintersPolicy.reg"; Label = "PrintersPolicy"; RegPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers" },
+            @{ Path = "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"; File = "LanmanWorkstation.reg"; Label = "LanmanWorkstation"; RegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" },
+            @{ Path = "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"; File = "LanmanServer.reg"; Label = "LanmanServer"; RegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" },
+            @{ Path = "HKLM\SYSTEM\CurrentControlSet\Control\Lsa"; File = "Lsa.reg"; Label = "LSA"; RegPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" }
+        )
+
         $backupCount = 0
-        $backupTotal = 5
+        $backupTotal = $backupHives.Count
 
-        & reg export "HKLM\SYSTEM\CurrentControlSet\Control\Print" "$script:backupDir\Print.reg" /y > $null 2>&1
-        if ($LASTEXITCODE -eq 0) { $backupCount++ } else { Write-Log "Warning: Failed to backup Print registry." -Type "WARNING" }
-
-        & reg export "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers" "$script:backupDir\PrintersPolicy.reg" /y > $null 2>&1
-        if ($LASTEXITCODE -eq 0) { $backupCount++ } else { Write-Log "Warning: Failed to backup PrintersPolicy registry." -Type "WARNING" }
-
-        & reg export "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" "$script:backupDir\LanmanWorkstation.reg" /y > $null 2>&1
-        if ($LASTEXITCODE -eq 0) { $backupCount++ } else { Write-Log "Warning: Failed to backup LanmanWorkstation registry." -Type "WARNING" }
-
-        & reg export "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" "$script:backupDir\LanmanServer.reg" /y > $null 2>&1
-        if ($LASTEXITCODE -eq 0) { $backupCount++ } else { Write-Log "Warning: Failed to backup LanmanServer registry." -Type "WARNING" }
-
-        & reg export "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" "$script:backupDir\Lsa.reg" /y > $null 2>&1
-        if ($LASTEXITCODE -eq 0) { $backupCount++ } else { Write-Log "Warning: Failed to backup LSA registry." -Type "WARNING" }
+        foreach ($hive in $backupHives) {
+            $outFile = Join-Path $script:backupDir $hive.File
+            if (Test-Path $hive.RegPath) {
+                & reg export "$($hive.Path)" "$outFile" /y > $null 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                    $backupCount++
+                } else {
+                    Write-Log "Warning: Failed to backup $($hive.Label) registry." -Type "WARNING"
+                }
+            } else {
+                $backupTotal--
+            }
+        }
 
         Write-Log "Backup completed ($backupCount/$backupTotal hives)." -Type "SUCCESS"
-        Write-Host "  [+] Critical registry nodes backed up to $script:backupDir ($backupCount/$backupTotal hives)." -ForegroundColor Green
+        $statusMsg = if ($isEN) {
+            "  [+] Critical registry nodes backed up to $script:backupDir ($backupCount/$backupTotal hives)."
+        } else {
+            "  [+] Node registri penting berhasil dicadangkan ke $script:backupDir ($backupCount/$backupTotal node)."
+        }
+        Write-Host $statusMsg -ForegroundColor Green
     }
     catch {
         Write-Log "Failed to backup registry: $($_.Exception.Message)" -Type "ERROR"
+        Write-Host $(if ($isEN) { "  [-] Failed to backup registry: $($_.Exception.Message)" } else { "  [-] Gagal mencadangkan registri: $($_.Exception.Message)" }) -ForegroundColor Red
     }
 }
 
@@ -802,6 +816,7 @@ function Open-Services {
 }
 
 function Rollback-Registry {
+    $isEN = ($script:lang -eq "EN")
     Write-Log "Restoring Registry from Backup..." -Type "INFO"
     $restoreFiles = @(
         @{ File = "Print.reg"; Label = "Print" },
@@ -824,17 +839,26 @@ function Rollback-Registry {
                     $restoreCount++
                 } else {
                     Write-Log "Warning: Failed to restore $($entry.Label)." -Type "WARNING"
-                    Write-Host "  [!] Failed to restore $($entry.Label)." -ForegroundColor Yellow
+                    Write-Host $(if ($isEN) { "  [!] Failed to restore $($entry.Label) (permission or registry access error)." } else { "  [!] Gagal memulihkan $($entry.Label) (masalah izin atau akses registri)." }) -ForegroundColor Yellow
                 }
             } else {
-                Write-Host "  [*] Skipped $($entry.Label) (no backup file found)." -ForegroundColor Cyan
+                Write-Host $(if ($isEN) { "  [*] Skipped $($entry.Label) (no backup file found)." } else { "  [*] Dilewati $($entry.Label) (file cadangan tidak ditemukan)." }) -ForegroundColor Cyan
             }
         }
-        Write-Log "Registry rollback completed ($restoreCount files restored)." -Type "SUCCESS"
-        Write-Host "  [+] Registry rollback completed ($restoreCount file(s) restored from $script:backupDir)." -ForegroundColor Green
+
+        if ($restoreCount -gt 0) {
+            Write-Log "Registry rollback completed ($restoreCount files restored)." -Type "SUCCESS"
+            Write-Host $(if ($isEN) { "  [+] Registry rollback completed ($restoreCount file(s) restored from $script:backupDir)." } else { "  [+] Pemulihan registri selesai ($restoreCount file dipulihkan dari $script:backupDir)." }) -ForegroundColor Green
+            Write-Host $(if ($isEN) { "  [*] Restarting Print Spooler service to apply restored settings immediately..." } else { "  [*] Memulai ulang layanan Print Spooler agar pengaturan yang dipulihkan segera aktif..." }) -ForegroundColor Cyan
+            Reset-Spooler
+        } else {
+            Write-Log "Registry rollback failed: 0 files restored." -Type "ERROR"
+            Write-Host $(if ($isEN) { "  [-] Registry rollback failed: No registry keys could be restored. Ensure you are running as Administrator." } else { "  [-] Pemulihan registri gagal: Tidak ada kunci yang berhasil dipulihkan. Pastikan Anda menjalankan sebagai Administrator." }) -ForegroundColor Red
+        }
     }
     else {
-        Write-Host "  [-] Failure: Backup files not detected in $script:backupDir." -ForegroundColor Red
+        Write-Log "Rollback failed: No backup files detected in $script:backupDir." -Type "WARNING"
+        Write-Host $(if ($isEN) { "  [-] Failure: Backup files not detected in $script:backupDir." } else { "  [-] Gagal: File cadangan tidak ditemukan di $script:backupDir." }) -ForegroundColor Red
     }
 }
 
@@ -979,6 +1003,7 @@ function Log-Manager {
 }
 
 function Print-Migration {
+    $isEN = ($script:lang -eq "EN")
     Write-Log "Launching PrintBRM migration utility..." -Type "INFO"
 
     $brmPath = Join-Path $env:SystemRoot "System32\spool\tools\PrintBrm.exe"
@@ -988,20 +1013,22 @@ function Print-Migration {
 
     if (-not (Test-Path $brmPath)) {
         Write-Log "PrintBrm.exe not detected on this system." -Type "ERROR"
-        Write-Host "  [-] ERROR: Print Migration utility (PrintBrm.exe) is missing." -ForegroundColor Red
-        Write-Host "  [!] NOTE: This feature is typically only available in Windows Pro, Enterprise, or Server editions." -ForegroundColor Yellow
-        Write-Host "  [!] Your OS: $script:productName" -ForegroundColor Cyan
+        Write-Host $(if ($isEN) { "  [-] ERROR: Print Migration utility (PrintBrm.exe) is missing." } else { "  [-] ERROR: Utilitas migrasi printer (PrintBrm.exe) tidak ditemukan." }) -ForegroundColor Red
+        Write-Host $(if ($isEN) { "  [!] NOTE: This feature is typically only available in Windows Pro, Enterprise, or Server editions." } else { "  [!] CATATAN: Fitur ini umumnya hanya tersedia pada edisi Windows Pro, Enterprise, atau Server." }) -ForegroundColor Yellow
+        Write-Host "  [!] OS: $script:productName" -ForegroundColor Cyan
         return
     }
 
-    Write-Host "  [*] Launching PrintBrm.exe in a persistent command prompt window..." -ForegroundColor Cyan
+    $toolsDir = Split-Path $brmPath -Parent
+    Write-Host $(if ($isEN) { "  [*] Launching PrintBrm.exe in a persistent command prompt window..." } else { "  [*] Membuka PrintBrm.exe di jendela Command Prompt terpisah..." }) -ForegroundColor Cyan
     try {
-        Start-Process cmd.exe -ArgumentList "/k cd /d `"$env:SystemRoot\System32\spool\tools\`" & title PrintBRM Migration Utility & `"$brmPath`" /?"
+        Start-Process cmd.exe -ArgumentList "/k cd /d `"$toolsDir`" & title PrintBRM Migration Utility & `"$brmPath`" /?"
         Write-Log "PrintBRM prompt launched successfully." -Type "SUCCESS"
-        Write-Host "  [+] PrintBRM prompt successfully launched! You can now execute backup/restore commands." -ForegroundColor Green
+        Write-Host $(if ($isEN) { "  [+] PrintBRM prompt successfully launched! You can now execute backup/restore commands." } else { "  [+] Jendela PrintBRM berhasil dibuka! Anda dapat menjalankan perintah backup/restore printer." }) -ForegroundColor Green
     }
     catch {
         Write-Log "Failed to launch PrintBRM: $($_.Exception.Message)" -Type "ERROR"
+        Write-Host $(if ($isEN) { "  [-] Failed to launch PrintBRM: $($_.Exception.Message)" } else { "  [-] Gagal membuka PrintBRM: $($_.Exception.Message)" }) -ForegroundColor Red
     }
 }
 
@@ -1521,8 +1548,9 @@ function Manage-BITS {
 }
 
 function Create-RestorePoint {
+    $isEN = ($script:lang -eq "EN")
     Write-Log "Generating System Restore Point..." -Type "INFO"
-    Write-Host "  [*] Invoking System Protection (Please stand by)..." -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] Invoking System Protection (Please stand by)..." } else { "  [*] Mengaktifkan Perlindungan Sistem Windows (Mohon tunggu)..." }) -ForegroundColor Cyan
     try {
         Enable-ComputerRestore -Drive "C:\" -ErrorAction SilentlyContinue
         $srKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore"
@@ -1533,15 +1561,15 @@ function Create-RestorePoint {
         Checkpoint-Computer -Description "WinPrinterSharingFix-SafetyBackup" -RestorePointType "MODIFY_SETTINGS" -WarningVariable warnMsg -ErrorAction Stop
         if ($warnMsg) {
             Write-Log "System Restore note: $($warnMsg[0])" -Type "INFO"
-            Write-Host "  [i] Existing Windows Restore Point within 24 hours preserved." -ForegroundColor Cyan
+            Write-Host $(if ($isEN) { "  [i] Existing Windows Restore Point within 24 hours preserved." } else { "  [i] Titik pemulihan Windows dalam 24 jam terakhir dipertahankan." }) -ForegroundColor Cyan
         } else {
             Write-Log "System Restore Point generated successfully." -Type "SUCCESS"
-            Write-Host "  [+] Windows Restore Point established." -ForegroundColor Green
+            Write-Host $(if ($isEN) { "  [+] Windows Restore Point established successfully." } else { "  [+] Titik Pemulihan Sistem (Restore Point) berhasil dibuat." }) -ForegroundColor Green
         }
     }
     catch {
         Write-Log "System Restore note: $($_.Exception.Message)" -Type "INFO"
-        Write-Host "  [i] System Restore point skipped or managed by Windows Protection." -ForegroundColor Gray
+        Write-Host $(if ($isEN) { "  [i] System Restore point skipped or managed by Windows Protection." } else { "  [i] Titik pemulihan sistem dilewati atau dikelola oleh Windows Protection." }) -ForegroundColor Gray
     }
 }
 
@@ -2925,6 +2953,9 @@ function Extreme-25H2 {
     Write-Host $(if ($isEN) { "  [*] Running all automated fixes..." } else { "  [*] Menjalankan seluruh rangkaian perbaikan secara otomatis..." }) -ForegroundColor Cyan
 
     Write-Log $(if ($isEN) { "Run Extreme Fix 24H2/25H2/26H2" } else { "Menjalankan Solusi Khusus Windows 11 24H2/25H2/26H2" }) -Type "INFO"
+
+    Write-Host $(if ($isEN) { "  [*] [1/28] Securing Registry Backup..." } else { "  [*] [1/28] Mengamankan Cadangan Registri (Backup)..." }) -ForegroundColor Cyan
+    Backup-Registry
 
     Write-Host $(if ($isEN) { "  [*] Flushing GPO cache before applying fixes..." } else { "  [*] Menyegarkan cache Group Policy sebelum perbaikan..." }) -ForegroundColor Cyan
     try { $LASTEXITCODE = 0; gpupdate /force > $null 2>&1 } catch {}
