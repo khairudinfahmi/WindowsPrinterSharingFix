@@ -281,7 +281,7 @@ function Set-PostPatchTuesdayTask {
         if (-not (Test-Path $script:backupDir)) {
             New-Item -ItemType Directory -Path $script:backupDir -Force | Out-Null
         }
-        
+
         $scriptPath = Join-Path $script:backupDir "PrinterFixReapply.ps1"
         $fixScript = @'
 # 1. Enforce RPC Named Pipes and Printer Policies
@@ -333,13 +333,13 @@ for ($i = 0; $i -lt 6; $i++) {
 }
 '@
         Set-Content -Path $scriptPath -Value $fixScript -Encoding UTF8 -Force
-        
+
         $cmd = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`""
-        
+
         # Deploy boot-time auto-reapply task
         & schtasks.exe /create /tn "PrinterFixPostUpdate" /tr $cmd /sc onstart /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
         if ($LASTEXITCODE -ne 0) { throw "schtasks ONSTART returned exit code $LASTEXITCODE" }
-        
+
         # Clean up legacy disruptive daily 10 AM task if present
         & schtasks.exe /delete /tn "PrinterFixDaily" /f > $null 2>&1
 
@@ -927,7 +927,7 @@ function Test-Connectivity {
     else {
         Write-Host "  [-] PING FAILED: Target Host unreachable or explicitly blocking ICMP." -ForegroundColor Red
         Write-Host "  [*] Checking TCP ports 445 and 135 anyway..." -ForegroundColor Cyan
-        
+
         $port445 = Test-NetConnection $ip -Port 445 -WarningAction SilentlyContinue
         if ($port445.TcpTestSucceeded) { Write-Host "  [+] PORT 445 (SMB): OPEN (Ping was blocked but host is alive)" -ForegroundColor Green }
         else { Write-Host "  [-] PORT 445 (SMB): CLOSED" -ForegroundColor Red }
@@ -985,9 +985,9 @@ function Get-LANActiveHosts {
     $hosts = @()
     try {
         $neighbors = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-            Where-Object { 
-                $_.IPAddress -notmatch '^(127\.|169\.254\.|224\.|239\.|255\.)' -and 
-                $_.State -in 'Reachable','Permanent','Stale' 
+            Where-Object {
+                $_.IPAddress -notmatch '^(127\.|169\.254\.|224\.|239\.|255\.)' -and
+                $_.State -in 'Reachable','Permanent','Stale'
             } | Select-Object -ExpandProperty IPAddress -Unique
 
         foreach ($ip in $neighbors) {
@@ -1182,7 +1182,7 @@ function Select-RemotePrinterInteractive {
         [bool]$ReturnUNCImmediately = $false
     )
     $isEN = ($script:lang -eq "EN")
-    
+
     $headerSuffix = if ($ActionName) { " ($ActionName)" } else { "" }
     Write-Host "`n  ======================================================================"
     Write-Host $(if ($isEN) { "               REMOTE NETWORK PRINTER DISCOVERY$headerSuffix" } else { "               PINDAI & TEMUKAN PRINTER JARINGAN REAL-TIME$headerSuffix" })
@@ -1799,7 +1799,7 @@ function Set-SpoolerWatchdog {
         $cmd = "powershell.exe -WindowStyle Hidden -Command \`"`$s = Get-Service spooler -ErrorAction SilentlyContinue; if (`$s -and `$s.Status -ne 'Running'){ Start-Service spooler -ErrorAction SilentlyContinue }\`""
         & schtasks.exe /create /tn "SpoolerWatchdog" /tr $cmd /sc minute /mo 5 /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
         if ($LASTEXITCODE -ne 0) { throw "schtasks returned exit code $LASTEXITCODE" }
-        
+
         # Configure task to run on battery power (disables 0x800710E0 error on laptops)
         try {
             $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
@@ -2009,7 +2009,7 @@ function Fix-V4ClassDriver {
                 if ($goodDll) {
                     Write-Host "  [+] Known-good PrintConfig.dll located at $($goodDll.FullName)" -ForegroundColor Green
                     Write-Log "PrintConfig.dll source located: $($goodDll.FullName)" -Type "SUCCESS"
-                    
+
                     # Copy the known-good PrintConfig.dll to repair each corrupted directory
                     for ($i = 0; $i -lt $corrupted.Count; $i++) {
                         $destDir = $corruptedDirs[$i]
@@ -2549,7 +2549,7 @@ function Inject-CrossUserCredentials {
                     } catch {
                         Write-Log "Failed to write RunOnce registry for ${userName}: $($_.Exception.Message)" -Type "ERROR"
                     }
-                    
+
                     # Retry loop to unload registry safely
                     $unloaded = $false
                     for ($retry = 1; $retry -le 5; $retry++) {
@@ -4249,11 +4249,12 @@ function Show-Submenu6 {
 function Show-Submenu7 {
     do {
         $isEN = ($script:lang -eq "EN")
-        Show-Header -SubTitle $(if ($isEN) { "7. Port Mapping & Manual Connections (UNC Port Map & TCP/IP)" } else { "7. Pemetaan Port & Sambungan Manual (UNC Port Map & TCP/IP)" })
+        $title7 = if ($isEN) { "7. Port Mapping & Manual Connections (UNC Port Map & TCP/IP)" } else { "7. Pemetaan Port & Sambungan Manual (UNC Port Map & TCP/IP)" }
+        Show-Header -SubTitle $title7
         Write-Host ""
         if ($isEN) {
             Write-Host "  [1] Map Local Port to UNC Share (Auto-Scan or Manual Bypass for Error 0x00000709)" -ForegroundColor Green
-            Write-Host "      (Auto-scan & pick from list or bind directly to \\SERVER\PRINTER)" -ForegroundColor Gray
+            Write-Host '      (Auto-scan & pick from list or bind directly to \\SERVER\PRINTER)' -ForegroundColor Gray
             Write-Host "  [2] Remove Previously Created Local UNC Port Mapping" -ForegroundColor White
             Write-Host "  [3] Convert WSD Printer Port to Stable Standard TCP/IP Socket" -ForegroundColor White
             Write-Host "  [4] Add Standard TCP/IP Printer Port Manually" -ForegroundColor White
@@ -4266,7 +4267,7 @@ function Show-Submenu7 {
             Write-Host "Select option [1-5], L, or B: " -NoNewline -ForegroundColor Yellow
         } else {
             Write-Host "  [1] Petakan Port Lokal ke Jalur Share UNC (Pindai Otomatis / Manual Bypass 0x00000709)" -ForegroundColor Green
-            Write-Host "      (Pindai otomatis & pilih dari daftar atau hubungkan ke \\NAMA-SERVER\PRINTER)" -ForegroundColor Gray
+            Write-Host '      (Pindai otomatis & pilih dari daftar atau hubungkan ke \\NAMA-SERVER\PRINTER)' -ForegroundColor Gray
             Write-Host "  [2] Hapus Pemetaan Port Lokal UNC yang Pernah Dibuat" -ForegroundColor White
             Write-Host "  [3] Ubah Port Printer dari WSD Menjadi Standar TCP/IP Stabil" -ForegroundColor White
             Write-Host "  [4] Tambah Port Printer Standar TCP/IP Secara Manual" -ForegroundColor White
