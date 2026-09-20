@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 790 480" width="790" height="480" xml:space="preserve">
+  <defs>
+    <style>
+      .term-font {
+        font-family: 'Cascadia Mono', 'Consolas', 'Courier New', monospace;
+        font-size: 13.5px;
+        letter-spacing: 0px;
+      }
+      .window-title {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        fill: #94a3b8;
+      }
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+      }
+      .cursor {
+        animation: blink 1s infinite;
+      }
+    </style>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Terminal Window Background with drop shadow -->
+  <rect x="4" y="4" width="782" height="472" rx="10" ry="10" fill="#0c1017" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)" />
+
+  <!-- Terminal Header Bar -->
+  <path d="M 4,14 A 10,10 0 0,1 14,4 L 776,4 A 10,10 0 0,1 786,14 L 786,38 L 4,38 Z" fill="#161b22" />
+  <line x1="4" y1="38" x2="786" y2="38" stroke="#30363d" stroke-width="1" />
+
+  <!-- Window Control Buttons (Red, Yellow, Green) -->
+  <circle cx="22" cy="21" r="5.5" fill="#ff5f56" stroke="#e0443e" stroke-width="0.5"/>
+  <circle cx="38" cy="21" r="5.5" fill="#ffbd2e" stroke="#dea123" stroke-width="0.5"/>
+  <circle cx="54" cy="21" r="5.5" fill="#27c93f" stroke="#1aab29" stroke-width="0.5"/>
+
+  <!-- Window Title -->
+  <text x="76" y="25" class="window-title">PowerShell (Admin) - Submenu 7: Port Mapping &amp; Scanner</text>
+  <text x="24" y="54" class="term-font"><tspan fill="#38bdf8">======================================================================================</tspan></text>
+  <text x="24" y="74" class="term-font"><tspan fill="#4ade80">   WINDOWS PRINTER SHARING FIX  |  Windows Network Printer Repair Tool</tspan></text>
+  <text x="24" y="94" class="term-font"><tspan fill="#38bdf8">   Version: 2.4.0  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT</tspan></text>
+  <text x="24" y="114" class="term-font"><tspan fill="#94a3b8">   Computer: DESKTOP-OFFICE01  |  User: Administrator</tspan></text>
+  <text x="24" y="134" class="term-font"><tspan fill="#facc15">   Category: 7. Port Mapping &amp; Manual Connections (UNC Port Map &amp; TCP/IP)</tspan></text>
+  <text x="24" y="154" class="term-font"><tspan fill="#94a3b8">   STATUS: </tspan><tspan fill="#4ade80">Spooler [RUNNING] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">Network [PRIVATE] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">SMB Signing [OK] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">Pass Sharing [OFF]</tspan></text>
+  <text x="24" y="174" class="term-font"><tspan fill="#38bdf8">======================================================================================</tspan></text>
+  <text x="24" y="194" class="term-font"><tspan fill="#94a3b8"></tspan></text>
+  <text x="24" y="214" class="term-font"><tspan fill="#4ade80">  [1] Map Local Port to UNC Share (Auto-Scan or Manual Bypass for Error 0x00000709)</tspan></text>
+  <text x="24" y="234" class="term-font"><tspan fill="#94a3b8">      (Auto-scan &amp; pick from list or bind directly to \\SERVER\PRINTER)</tspan></text>
+  <text x="24" y="254" class="term-font"><tspan fill="#f8fafc">  [2] Remove Previously Created Local UNC Port Mapping</tspan></text>
+  <text x="24" y="274" class="term-font"><tspan fill="#f8fafc">  [3] Convert WSD Printer Port to Stable Standard TCP/IP Socket</tspan></text>
+  <text x="24" y="294" class="term-font"><tspan fill="#f8fafc">  [4] Add Standard TCP/IP Printer Port Manually</tspan></text>
+  <text x="24" y="314" class="term-font"><tspan fill="#f8fafc">  [5] Scan &amp; Discover Shared Printers on Network (Live Network Discovery)</tspan></text>
+  <text x="24" y="334" class="term-font"><tspan fill="#94a3b8"></tspan></text>
+  <text x="24" y="354" class="term-font"><tspan fill="#0284c7">  [L] Switch Language / Ganti Bahasa</tspan></text>
+  <text x="24" y="374" class="term-font"><tspan fill="#38bdf8">  [B] Back to Main Menu</tspan></text>
+  <text x="24" y="394" class="term-font"><tspan fill="#94a3b8"></tspan></text>
+  <text x="24" y="414" class="term-font"><tspan fill="#38bdf8">--------------------------------------------------------------------------------------</tspan></text>
+  <text x="24" y="434" class="term-font"><tspan fill="#facc15">Select option [1-5], L, or B: </tspan><tspan fill="#facc15" class="cursor">&#x2588;</tspan></text>
+</svg>

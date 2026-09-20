@@ -1,0 +1,253 @@
+{
+    "version":  "2.4.0",
+    "lines":  [
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "======================================================================================",
+                                           "Color":  "Cyan"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "   WINDOWS PRINTER SHARING FIX  |  Windows Network Printer Repair Tool",
+                                           "Color":  "Green"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "   Version: 2.4.0  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT",
+                                           "Color":  "Cyan"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "   Computer: DESKTOP-OFFICE01  |  User: Administrator",
+                                           "Color":  "Gray"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "   STATUS: ",
+                                           "Color":  "Gray"
+                                       },
+                                       {
+                                           "Text":  "Spooler [RUNNING] ",
+                                           "Color":  "Green"
+                                       },
+                                       {
+                                           "Text":  "| ",
+                                           "Color":  "DarkGray"
+                                       },
+                                       {
+                                           "Text":  "Network [PRIVATE] ",
+                                           "Color":  "Green"
+                                       },
+                                       {
+                                           "Text":  "| ",
+                                           "Color":  "DarkGray"
+                                       },
+                                       {
+                                           "Text":  "SMB Signing [OK] ",
+                                           "Color":  "Green"
+                                       },
+                                       {
+                                           "Text":  "| ",
+                                           "Color":  "DarkGray"
+                                       },
+                                       {
+                                           "Text":  "Pass Sharing [OFF]",
+                                           "Color":  "Green"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "======================================================================================",
+                                           "Color":  "Cyan"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "",
+                                           "Color":  "Gray"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  SELECT REPAIR CATEGORY:",
+                                           "Color":  "Yellow"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "",
+                                           "Color":  "Gray"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [1] Quick \u0026 Automated Solutions (ALLFIX \u0026 Modern Win 11)",
+                                           "Color":  "Green"
+                                       },
+                                       {
+                                           "Text":  "  \u003c-- RECOMMENDED",
+                                           "Color":  "Red"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [2] Fix Specific Error Codes (0x11b, 0x709, 0xbc4, 0x040, etc.)",
+                                           "Color":  "White"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [3] Network, File \u0026 Printer Sharing (SMB) \u0026 Firewall",
+                                           "Color":  "White"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [4] Print Spooler Service \u0026 Print Queue Maintenance",
+                                           "Color":  "White"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [5] Driver Management \u0026 Ghost / USB Printer Cleanup",
+                                           "Color":  "White"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [6] Credentials, Access Rights \u0026 Security (Vault, LSA, UAC)",
+                                           "Color":  "White"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [7] Port Mapping \u0026 Manual Connections (UNC Port Map \u0026 TCP/IP)",
+                                           "Color":  "White"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [8] Backup, System Diagnostics \u0026 Recovery",
+                                           "Color":  "White"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "",
+                                           "Color":  "Gray"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [9] Help \u0026 Usage Guide",
+                                           "Color":  "Cyan"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [L] Switch to Bahasa Indonesia",
+                                           "Color":  "Yellow"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [0] Exit Application",
+                                           "Color":  "DarkGray"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "",
+                                           "Color":  "Gray"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "--------------------------------------------------------------------------------------",
+                                           "Color":  "Cyan"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "  [Shortcut Tips]: Enter menu (1-9), press [L] to switch language, or type classic",
+                                           "Color":  "Gray"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "                   codes directly like 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC).",
+                                           "Color":  "Gray"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "--------------------------------------------------------------------------------------",
+                                           "Color":  "Cyan"
+                                       }
+                                   ]
+                  },
+                  {
+                      "Segments":  [
+                                       {
+                                           "Text":  "Select option: ",
+                                           "Color":  "Yellow"
+                                       }
+                                   ]
+                  }
+              ]
+}
