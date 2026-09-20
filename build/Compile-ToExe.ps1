@@ -53,6 +53,12 @@ try {
         Write-Host "Documentation bundled: $docDest" -ForegroundColor Green
     }
     
+    $assetScript = Join-Path $PSScriptRoot "Generate-ShowcaseAssets.ps1"
+    if (Test-Path $assetScript) {
+        Write-Host "Refreshing showcase assets & dynamic SVGs..." -ForegroundColor Cyan
+        & $assetScript
+    }
+    
     Write-Host "Starting Code Signing..." -ForegroundColor Magenta
     $certName = "khairudinfahmi"
     $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert | Where-Object Subject -match $certName | Select-Object -First 1
