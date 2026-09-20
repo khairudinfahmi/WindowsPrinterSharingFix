@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Target GitHub Release tag to upload assets (e.g. v2.4.0)'
+        description: 'Target GitHub Release tag (leave empty for latest release)'
         required: false
-        default: 'v2.4.0'
+        default: ''
 
 permissions:
   contents: write
@@ -71,26 +71,38 @@ jobs:
           Write-Host "[+] All required showcase assets and dynamic SVGs verified successfully." -ForegroundColor Green
 
       - name: Upload Assets to GitHub Release
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
-          $tag = if ('${{ github.event_name }}' -eq 'release') { '${{ github.ref_name }}' } else { '${{ inputs.release_tag }}' }
-          Write-Host "Uploading verified assets to release tag: $tag..."
+          $tag = '${{ inputs.release_tag }}'
+          if (-not $tag -or $tag.Trim() -eq '' -or $tag -eq 'latest') {
+            if ('${{ github.event_name }}' -eq 'release') {
+              $tag = '${{ github.ref_name }}'
+            } else {
+              $tag = (gh release view --json tagName -q .tagName)
+            }
+          }
+          Write-Host "Target GitHub Release tag: $tag"
           gh release upload $tag assets/social-banner.png assets/social-banner.svg assets/console-preview.svg assets/console-preview-id.svg assets/console-preview-submenu7.svg assets/preview-main-menu.png assets/preview-scanner.png --clobber
 
       - name: Publish CI Verification Summary
         shell: pwsh
         run: |
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## ✅ Dynamic Console Visuals & Showcase Verification`n"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Asset | Format | Status |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| :--- | :---: | :---: |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| `assets/console-preview.svg` | Vector SVG | **Verified** |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| `assets/console-preview-id.svg` | Vector SVG | **Verified** |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| `assets/console-preview-submenu7.svg` | Vector SVG | **Verified** |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| `assets/social-banner.svg` | Vector SVG | **Verified** |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| `assets/preview-main-menu.png` | Raster PNG | **Verified** |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| `assets/preview-scanner.png` | Raster PNG | **Verified** |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| `assets/social-banner.png` | Raster PNG | **Verified** |`n"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "All dynamic vector & showcase assets generated directly from source code and verified with zero errors."
+          $summary = @"
+## Dynamic Console Visuals & Showcase Verification
+
+| Asset | Format | Status |
+| :--- | :---: | :---: |
+| assets/console-preview.svg | Vector SVG | Verified |
+| assets/console-preview-id.svg | Vector SVG | Verified |
+| assets/console-preview-submenu7.svg | Vector SVG | Verified |
+| assets/social-banner.svg | Vector SVG | Verified |
+| assets/preview-main-menu.png | Raster PNG | Verified |
+| assets/preview-scanner.png | Raster PNG | Verified |
+| assets/social-banner.png | Raster PNG | Verified |
+
+All dynamic vector and showcase assets generated directly from source code and verified with zero errors.
+"@
+          Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summary -Encoding utf8

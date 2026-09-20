@@ -22,8 +22,17 @@ if (-not (Get-Module -ListAvailable -Name ps2exe)) {
     Install-Module -Name ps2exe -Force -Scope CurrentUser -AllowClobber
 }
 
+$appVersion = "2.4.0"
+$vMatch = Select-String -Path $SourceFile -Pattern '^\$script:version\s*=\s*["'']([^"'']+)["'']'
+if ($vMatch) {
+    $appVersion = $vMatch.Matches[0].Groups[1].Value.Trim()
+}
+$parts = $appVersion.Split('.')
+while ($parts.Count -lt 4) { $parts += "0" }
+$fileVersion = ($parts[0..3] -join '.')
+
 Write-Host "PS2EXE module found." -ForegroundColor Green
-Write-Host "Compiling $SourceFile to $OutputFile..." -ForegroundColor Cyan
+Write-Host "Compiling $SourceFile (v$appVersion) to $OutputFile..." -ForegroundColor Cyan
 
 $ps2exeParams = @{
     inputFile   = $SourceFile
@@ -31,7 +40,7 @@ $ps2exeParams = @{
     requireAdmin = $true
     title       = "Windows Printer Sharing Fix"
     description = "Windows Printer Sharing Fix Tool"
-    version     = "2.4.0.0"
+    version     = $fileVersion
     company     = "khairudinfahmi"
     copyright   = "2026 khairudinfahmi"
 }
@@ -106,8 +115,8 @@ try {
 
     if ($isccPath -and (Test-Path $issScript)) {
         Write-Host "Inno Setup compiler found: $isccPath" -ForegroundColor Green
-        Write-Host "Compiling setup installer: $issScript..." -ForegroundColor Cyan
-        & $isccPath $issScript
+        Write-Host "Compiling setup installer: $issScript (v$appVersion)..." -ForegroundColor Cyan
+        & $isccPath "/DMyAppVersion=$appVersion" $issScript
         
         if (Test-Path $installerExe) {
             Write-Host "Installer compiled successfully at: $installerExe" -ForegroundColor Green

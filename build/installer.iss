@@ -1,6 +1,10 @@
+#ifndef MyAppVersion
+#define MyAppVersion "2.4.0"
+#endif
+
 [Setup]
 AppName=Windows Printer Sharing Fix
-AppVersion=2.4.0
+AppVersion={#MyAppVersion}
 AppPublisher=khairudinfahmi
 AppPublisherURL=https://github.com/khairudinfahmi/WindowsPrinterSharingFix
 AppSupportURL=https://github.com/khairudinfahmi/WindowsPrinterSharingFix/issues
@@ -18,8 +22,8 @@ PrivilegesRequired=admin
 DisableWelcomePage=no
 VersionInfoCompany=khairudinfahmi
 VersionInfoProductName=Windows Printer Sharing Fix
-VersionInfoProductVersion=2.4.0.0
-VersionInfoVersion=2.4.0.0
+VersionInfoProductVersion={#MyAppVersion}.0
+VersionInfoVersion={#MyAppVersion}.0
 VersionInfoDescription=Windows Printer Sharing Fix Setup Installer
 
 [Files]
