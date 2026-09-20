@@ -277,7 +277,7 @@ def generate_social_banner():
     
     # Subtitle
     draw.text((lx, ly), "Diagnose & resolve network printer sharing errors:", font=FONT_SANS_SUB, fill=(203, 213, 225))
-    draw.text((lx, ly + 24), "0x0000011b, 0x00000709, 0x00000bc4, and Win 11 24H2/26H2.", font=FONT_SANS_SUB, fill=(148, 163, 184))
+    draw.text((lx, ly + 24), "0x0000011b, 0x00000709, 0x00000bc4, 0x00000040.", font=FONT_SANS_SUB, fill=(148, 163, 184))
     ly += 65
     
     # Feature Badges (Pure typography badges - ZERO emoji tofu boxes)
