@@ -30,7 +30,7 @@ VersionInfoDescription=Windows Printer Sharing Fix Setup Installer
 Source: "..\release\WindowsPrinterSharingFix.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\assets\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\docs\documentation.html"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\assets\khairudinfahmi_cert.cer"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\assets\publisher.cer"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Windows Printer Sharing Fix"; Filename: "{app}\WindowsPrinterSharingFix.exe"; IconFilename: "{app}\icon.ico"
@@ -41,8 +41,8 @@ Name: "{autodesktop}\Windows Printer Sharing Fix"; Filename: "{app}\WindowsPrint
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Run]
-Filename: "{sys}\certutil.exe"; Parameters: "-addstore TrustedPublisher ""{app}\khairudinfahmi_cert.cer"""; Flags: runhidden waituntilterminated; StatusMsg: "Installing publisher certificate..."
-Filename: "{sys}\certutil.exe"; Parameters: "-addstore Root ""{app}\khairudinfahmi_cert.cer"""; Flags: runhidden waituntilterminated; StatusMsg: "Installing certificate to Trusted Root..."
+Filename: "{sys}\certutil.exe"; Parameters: "-addstore TrustedPublisher ""{app}\publisher.cer"""; Flags: runhidden waituntilterminated; StatusMsg: "Installing publisher certificate..."
+Filename: "{sys}\certutil.exe"; Parameters: "-addstore Root ""{app}\publisher.cer"""; Flags: runhidden waituntilterminated; StatusMsg: "Installing certificate to Trusted Root..."
 
 [UninstallRun]
 Filename: "{sys}\certutil.exe"; Parameters: "-delstore TrustedPublisher ""khairudinfahmi"""; Flags: runhidden; RunOnceId: "DelTrustedPub"

@@ -78,7 +78,7 @@ try {
         Write-Host "New certificate generated." -ForegroundColor Green
     }
     
-    $cerExportPath = Join-Path $ProjectRoot "assets\khairudinfahmi_cert.cer"
+    $cerExportPath = Join-Path $ProjectRoot "assets\publisher.cer"
     Export-Certificate -Cert $cert -FilePath $cerExportPath -Force | Out-Null
     Write-Host "Certificate file exported to: $cerExportPath" -ForegroundColor Cyan
     
