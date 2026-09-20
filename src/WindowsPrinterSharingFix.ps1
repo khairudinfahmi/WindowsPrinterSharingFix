@@ -3798,11 +3798,11 @@ function Show-Header {
         Write-Host "   STATUS: " -NoNewline -ForegroundColor Gray
         if ($health.Spooler) { Write-Host "Spooler [RUNNING] " -ForegroundColor Green -NoNewline } else { Write-Host "Spooler [STOPPED] " -ForegroundColor Red -NoNewline }
         Write-Host "| " -NoNewline -ForegroundColor DarkGray
-        if ($health.Network) { Write-Host "Network [PRIVATE] " -ForegroundColor Green -NoNewline } else { Write-Host "Network [PUBLIC - FIX NEEDED] " -ForegroundColor Red -NoNewline }
+        if ($health.Network) { Write-Host "Network [PRIVATE] " -ForegroundColor Green -NoNewline } else { Write-Host "Network [PUBLIC-FIX] " -ForegroundColor Red -NoNewline }
         Write-Host "| " -NoNewline -ForegroundColor DarkGray
-        if ($health.SMBSigning) { Write-Host "SMB Signing [OK] " -ForegroundColor Green -NoNewline } else { Write-Host "SMB Signing [STRICT - MAY BLOCK] " -ForegroundColor Yellow -NoNewline }
+        if ($health.SMBSigning) { Write-Host "SMB Signing [OK] " -ForegroundColor Green -NoNewline } else { Write-Host "SMB Signing [STRICT] " -ForegroundColor Yellow -NoNewline }
         Write-Host "| " -NoNewline -ForegroundColor DarkGray
-        if ($health.PasswordSharing) { Write-Host "Pass Sharing [OFF]" -ForegroundColor Green } else { Write-Host "Pass Sharing [ON - LOGIN REQ]" -ForegroundColor Yellow }
+        if ($health.PasswordSharing) { Write-Host "Pass Sharing [OFF]" -ForegroundColor Green } else { Write-Host "Pass Sharing [ON-LOGIN]" -ForegroundColor Yellow }
     }
     else {
         Write-Host "   WINDOWS PRINTER SHARING FIX  |  Solusi Berbagi Printer Windows" -ForegroundColor Green
@@ -3811,14 +3811,14 @@ function Show-Header {
         if ($SubTitle) {
             Write-Host "   Kategori: $SubTitle" -ForegroundColor Yellow
         }
-        Write-Host "   STATUS SISTEM: " -NoNewline -ForegroundColor Gray
+        Write-Host "   STATUS: " -NoNewline -ForegroundColor Gray
         if ($health.Spooler) { Write-Host "Spooler [AKTIF] " -ForegroundColor Green -NoNewline } else { Write-Host "Spooler [BERHENTI] " -ForegroundColor Red -NoNewline }
         Write-Host "| " -NoNewline -ForegroundColor DarkGray
-        if ($health.Network) { Write-Host "Jaringan [PRIVATE] " -ForegroundColor Green -NoNewline } else { Write-Host "Jaringan [PUBLIC - PERLU PERBAIKAN] " -ForegroundColor Red -NoNewline }
+        if ($health.Network) { Write-Host "Jaringan [PRIVATE] " -ForegroundColor Green -NoNewline } else { Write-Host "Jaringan [PUBLIC-FIX] " -ForegroundColor Red -NoNewline }
         Write-Host "| " -NoNewline -ForegroundColor DarkGray
-        if ($health.SMBSigning) { Write-Host "SMB Signing [SESUAI] " -ForegroundColor Green -NoNewline } else { Write-Host "SMB Signing [WAJIB - BISA BLOKIR] " -ForegroundColor Yellow -NoNewline }
+        if ($health.SMBSigning) { Write-Host "SMB Signing [SESUAI] " -ForegroundColor Green -NoNewline } else { Write-Host "SMB Signing [STRICT] " -ForegroundColor Yellow -NoNewline }
         Write-Host "| " -NoNewline -ForegroundColor DarkGray
-        if ($health.PasswordSharing) { Write-Host "Sandi Sharing [OFF]" -ForegroundColor Green } else { Write-Host "Sandi Sharing [ON - BUTUH LOGIN]" -ForegroundColor Yellow }
+        if ($health.PasswordSharing) { Write-Host "Sandi Sharing [OFF]" -ForegroundColor Green } else { Write-Host "Sandi Sharing [ON-LOGIN]" -ForegroundColor Yellow }
     }
     Write-Host $line -ForegroundColor Cyan
 }
