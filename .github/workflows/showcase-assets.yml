@@ -90,19 +90,16 @@ jobs:
       - name: Publish CI Verification Summary
         shell: pwsh
         run: |
-          $summary = @"
-## Dynamic Console Visuals & Showcase Verification
-
-| Asset | Format | Status |
-| :--- | :---: | :---: |
-| assets/console-preview.svg | Vector SVG | Verified |
-| assets/console-preview-id.svg | Vector SVG | Verified |
-| assets/console-preview-submenu7.svg | Vector SVG | Verified |
-| assets/social-banner.svg | Vector SVG | Verified |
-| assets/preview-main-menu.png | Raster PNG | Verified |
-| assets/preview-scanner.png | Raster PNG | Verified |
-| assets/social-banner.png | Raster PNG | Verified |
-
-All dynamic vector and showcase assets generated directly from source code and verified with zero errors.
-"@
-          Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summary -Encoding utf8
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '## Dynamic Console Visuals & Showcase Verification'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Asset | Format | Status |'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| :--- | :---: | :---: |'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| assets/console-preview.svg | Vector SVG | Verified |'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| assets/console-preview-id.svg | Vector SVG | Verified |'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| assets/console-preview-submenu7.svg | Vector SVG | Verified |'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| assets/social-banner.svg | Vector SVG | Verified |'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| assets/preview-main-menu.png | Raster PNG | Verified |'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| assets/preview-scanner.png | Raster PNG | Verified |'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| assets/social-banner.png | Raster PNG | Verified |'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'All dynamic vector and showcase assets generated directly from source code and verified with zero errors.'
