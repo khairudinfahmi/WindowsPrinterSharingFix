@@ -3710,14 +3710,37 @@ function Show-Help {
             }
             catch {}
         }
+
+        # Dynamic fallback for web-stream execution (irm ... | iex)
+        if (-not $docPath -or -not (Test-Path $docPath)) {
+            try {
+                $tempDoc = Join-Path $env:TEMP "WindowsPrinterSharingFix\documentation.html"
+                if (Test-Path $tempDoc) {
+                    $docPath = $tempDoc
+                }
+                else {
+                    $tempDir = Split-Path $tempDoc -Parent
+                    if (-not (Test-Path $tempDir)) { New-Item -ItemType Directory -Path $tempDir -Force | Out-Null }
+                    Write-Host $(if ($isEN) { "  [*] Downloading documentation from GitHub..." } else { "  [*] Mengunduh file dokumentasi dari GitHub..." }) -ForegroundColor Cyan
+                    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+                    $docUrl = "https://raw.githubusercontent.com/khairudinfahmi/WindowsPrinterSharingFix/main/docs/documentation.html"
+                    Invoke-WebRequest -Uri $docUrl -OutFile $tempDoc -UseBasicParsing -TimeoutSec 8 -ErrorAction Stop
+                    if (Test-Path $tempDoc) {
+                        $docPath = $tempDoc
+                    }
+                }
+            }
+            catch {}
+        }
+
         if ($docPath -and (Test-Path $docPath)) {
             Write-Host $(if ($isEN) { "  [*] Opening HTML documentation in browser..." } else { "  [*] Membuka dokumentasi lengkap HTML di browser..." }) -ForegroundColor Cyan
             $fileUrl = "file:///" + $docPath.Replace("\", "/") + "?all"
             Start-Process $fileUrl
         }
         else {
-            Write-Host $(if ($isEN) { "  [-] documentation.html not found in installation directory." } else { "  [-] File documentation.html tidak ditemukan pada direktori instalasi." }) -ForegroundColor Red
-            Write-Host $(if ($isEN) { "  [!] Use '?' for quick help or '? <number>' for specific module info." } else { "  [!] Gunakan '?' untuk bantuan ringkas atau '? <nomor>' untuk info fitur spesifik." }) -ForegroundColor Yellow
+            Write-Host $(if ($isEN) { "  [*] Opening online documentation on GitHub..." } else { "  [*] Membuka dokumentasi online di GitHub..." }) -ForegroundColor Cyan
+            Start-Process "https://github.com/khairudinfahmi/WindowsPrinterSharingFix#readme"
         }
     }
     else {
