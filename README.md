@@ -350,6 +350,51 @@ This builds `release\WindowsPrinterSharingFix.exe`, generates `release\WindowsPr
 
 ---
 
+## Support & Donations
+
+If **Windows Printer Sharing Fix** helped resolve your network printing issues or saved your office troubleshooting time, consider supporting ongoing maintenance:
+
+<p align="left">
+  <img src="https://img.shields.io/badge/QRIS-All_Banks_%26_E--Wallets-ED1C24?style=for-the-badge" alt="QRIS">
+  <img src="https://img.shields.io/badge/Bitcoin-Native_SegWit-F7931A?style=for-the-badge&logo=bitcoin&logoColor=white" alt="Bitcoin">
+  <img src="https://img.shields.io/badge/Ethereum_%26_EVM-Multi--Chain-627EEA?style=for-the-badge&logo=ethereum&logoColor=white" alt="Ethereum">
+  <img src="https://img.shields.io/badge/Solana-Mainnet-14F195?style=for-the-badge&logo=solana&logoColor=black" alt="Solana">
+</p>
+
+### 1. Indonesian Domestic Payment (QRIS)
+Supports all Indonesian mobile banking applications and digital e-wallets (BCA, Mandiri, BRI, BNI, CIMB, GoPay, OVO, Dana, ShopeePay):
+
+<details>
+  <summary><b>Click to view QRIS payment barcode</b></summary>
+  <br>
+  <p align="center">
+    <img src="assets/qris-donation.png" alt="QRIS Payment Barcode" width="300">
+  </p>
+</details>
+
+### 2. Cryptocurrency Wallets
+Click the copy button on the right side of each address box below to copy directly:
+
+#### Bitcoin (BTC)
+*Network: Native SegWit (BTC)*
+```text
+bc1qdyw2j97femzh32zrjc45rkew6q244atf8p8gpv
+```
+
+#### Ethereum & EVM Chains (ETH, BNB, USDT, USDC)
+*Supported Networks: Ethereum, BNB Smart Chain, Arbitrum, Base, Linea, Polygon*
+```text
+0x36e17e832a5eE64403A432d0D6dE0fc92C47A479
+```
+
+#### Solana (SOL)
+*Network: Solana Mainnet*
+```text
+26kFkv96Mn2bPzZM8KLqforDaQcRntLaW8AAGsWBEsbD
+```
+
+---
+
 ## License and Contribution
 
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. Free to use, modify, and distribute for both personal and enterprise environments.
