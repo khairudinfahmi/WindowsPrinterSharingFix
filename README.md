@@ -9,6 +9,10 @@
 [![Architecture](https://img.shields.io/badge/architecture-x64%20%7C%20ARM64-orange.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
 [![Language](https://img.shields.io/badge/language-English%20%7C%20Indonesian-purple.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
 
+<p align="center">
+  <img src="assets/social-banner.png" alt="Windows Printer Sharing Fix Banner" width="100%">
+</p>
+
 > ⭐ **Found this helpful?** If this utility fixed your office printer sharing or saved you hours of troubleshooting, please **give this repository a Star**! It helps more sysadmins, IT technicians, and home office users discover this project.
 
 **Windows Printer Sharing Fix** is a fully automated PowerShell utility that diagnoses and fixes printer sharing and network printing failures on Windows networks (Workgroups and Active Directory domains).
@@ -27,7 +31,7 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
 2. **Real-Time System Health Banner**:
    - The console header checks and displays the live status of the four core Windows printer sharing components every time a menu renders:
      ```text
-     SYSTEM HEALTH: Spooler [ACTIVE] | Network [PRIVATE] | SMB Signing [MATCHED] | Password Sharing [OFF]
+     STATUS: Spooler [RUNNING] | Network [PRIVATE] | SMB Signing [OK] | Pass Sharing [OFF]
      ```
    - Lets you spot network misconfigurations at a glance.
 3. **Reorganized Console Layout (Human-Friendly UI)**:
@@ -119,12 +123,16 @@ Quickly identify your Windows network printer error code and match it to its roo
 
 The main console provides 89 direct execution module codes (`1`–`89`), structured into 8 dedicated categories (73 interactive submenu options) plus an interactive help engine:
 
+<p align="center">
+  <img src="assets/console-preview.svg" alt="Windows Printer Sharing Fix Terminal Interface" width="100%">
+</p>
+
 ```text
 ======================================================================================
-   WINDOWS PRINTER SHARING FIX  |  Windows Printer Sharing Solution
-   Version: 2.4.0  |  OS: WINDOWS 11 PRO 26200 64-BIT
-   Computer: WORKSTATION-01  |  User: Administrator
-   SYSTEM HEALTH: Spooler [ACTIVE] | Network [PRIVATE] | SMB Signing [MATCHED] | Password Sharing [OFF]
+   WINDOWS PRINTER SHARING FIX  |  Windows Network Printer Repair Tool
+   Version: 2.4.0  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT
+   Computer: DESKTOP-OFFICE01  |  User: Administrator
+   STATUS: Spooler [RUNNING] | Network [PRIVATE] | SMB Signing [OK] | Pass Sharing [OFF]
 ======================================================================================
 
   [1] Quick & Automated Solutions (ALLFIX & Modern Win 11)
@@ -245,6 +253,10 @@ Manages multi-machine authentication, Windows Vault credentials, and Windows 11 
 
 ### Submenu 7: Port Mapping & Manual Connections (UNC Port Map & TCP/IP)
 Direct connection methods when standard Windows Network Discovery fails.
+
+<p align="center">
+  <img src="assets/console-preview-submenu7.svg" alt="Remote Printer Scanner and 1-Click Port Mapping" width="100%">
+</p>
 
 | # | Menu Option (Exact Console String) | Code | Details & Technical Benefit |
 | :---: | :--- | :---: | :--- |
