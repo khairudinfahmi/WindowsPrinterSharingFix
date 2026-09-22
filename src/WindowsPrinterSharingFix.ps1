@@ -350,7 +350,7 @@ for ($i = 0; $i -lt 6; $i++) {
         } catch {}
 
         # Deploy periodic watchdog task to prevent mid-day drops if Wi-Fi reconnects
-        $watchdogCmd = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -Command `"Get-NetConnectionProfile -EA SilentlyContinue | Where-Object { `$_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -EA SilentlyContinue`""
+        $watchdogCmd = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -Command \`"Get-NetConnectionProfile -EA SilentlyContinue | Where-Object { `$_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -EA SilentlyContinue\`""
         & schtasks.exe /create /tn "PrinterFixNetworkWatchdog" /tr $watchdogCmd /sc minute /mo 15 /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
         if ($LASTEXITCODE -eq 0) {
             try {
@@ -379,8 +379,9 @@ function Fix-Discovery0x00000bc4 {
         Set-ItemProperty -Path $path -Name RpcProtocols -Value 0x7 -Type DWord -Force -ErrorAction Stop
         Set-ItemProperty -Path $path -Name ForceSetup -Value 1 -Type DWord -Force -ErrorAction Stop
 
+        Restart-Service spooler -Force -ErrorAction SilentlyContinue
         Write-Log "RPC Endpoint Mapper forced via Named Pipes & TCP." -Type "SUCCESS"
-        Write-Host "  [+] RPC printer discovery explicitly routed via Named Pipes." -ForegroundColor Green
+        Write-Host $(if ($script:lang -eq "EN") { "  [+] RPC printer discovery explicitly routed via Named Pipes." } else { "  [+] Penemuan printer RPC diarahkan melalui Named Pipes." }) -ForegroundColor Green
     }
     catch {
         Write-Log "Failed to bypass 0x00000bc4: $($_.Exception.Message)" -Type "ERROR"
@@ -401,7 +402,7 @@ function Fix-NetworkServices {
         }
     }
     Write-Log "Network & WSD services configured for auto-start." -Type "SUCCESS"
-    Write-Host "  [+] All network services are operational." -ForegroundColor Green
+    Write-Host $(if ($script:lang -eq "EN") { "  [+] Network & WSD discovery services configured for auto-start." } else { "  [+] Layanan jaringan & penemuan WSD telah dikonfigurasi untuk mulai otomatis." }) -ForegroundColor Green
 }
 
 function Fix-CSR {
@@ -411,8 +412,9 @@ function Fix-CSR {
         if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
 
         Set-ItemProperty -Path $path -Name DisableClientSideRendering -Value 1 -Type DWord -Force -ErrorAction Stop
+        Restart-Service spooler -Force -ErrorAction SilentlyContinue
         Write-Log "CSR successfully disabled." -Type "SUCCESS"
-        Write-Host "  [+] Client-Side Rendering disabled; Host will process print jobs." -ForegroundColor Green
+        Write-Host $(if ($script:lang -eq "EN") { "  [+] Client-Side Rendering disabled; Host will process print jobs." } else { "  [+] Client-Side Rendering dinonaktifkan; Komputer host akan memproses pekerjaan cetak." }) -ForegroundColor Green
     }
     catch {
         Write-Log "Failed to disable CSR: $($_.Exception.Message)" -Type "ERROR"
@@ -567,8 +569,9 @@ function Fix-NamedPipes {
         Set-ItemProperty -Path $printPath -Name RpcOverNamedPipes -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
         Set-ItemProperty -Path $printPath -Name RpcOverTcp -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
+        Restart-Service spooler -Force -ErrorAction SilentlyContinue
         Write-Log "Named Pipes activated." -Type "SUCCESS"
-        Write-Host "  [+] RPC Named Pipes pathway for print spooling corrected." -ForegroundColor Green
+        Write-Host $(if ($script:lang -eq "EN") { "  [+] RPC Named Pipes pathway for print spooling corrected." } else { "  [+] Jalur RPC Named Pipes untuk print spooling berhasil diselaraskan." }) -ForegroundColor Green
     }
     catch {
         Write-Log "Failed to mutate Named Pipes: $($_.Exception.Message)" -Type "ERROR"
