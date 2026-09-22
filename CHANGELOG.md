@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-09-22
+
+### Fixed
+- **Scheduled Task Execution & Quotation Escaping**:
+  - Resolved argument splitting issue in `PrinterFixNetworkWatchdog` scheduled task creation (`schtasks.exe /tr`), properly escaping inner quotation marks to eliminate `-EA` parsing error and guarantee continuous 15-minute network profile monitoring.
+- **Print Spooler Policy Lifecycle Triggers**:
+  - Integrated automated Print Spooler restart (`Restart-Service spooler -Force`) into `Fix-Discovery0x00000bc4`, `Fix-CSR` (Error 0x000006d1), and `Fix-NamedPipes` ensuring registry policy modifications take effect immediately without requiring a full system reboot.
+- **Web Stream Documentation Auto-Fetch**:
+  - Automatically downloads and opens latest HTML documentation in Submenu 9 Option [2] when executing via one-line web stream (`irm | iex`).
+
+### Added
+- **Support & Donations**:
+  - Added QRIS barcode and multi-chain cryptocurrency donation addresses (BTC, ETH/EVM, SOL) in README and documentation.
+- **Bilingual Message Standardization**:
+  - Standardized console output across discovery and network services to respect active language preference (`$script:lang`).
+
+---
+
 ## [2.4.0] - 2026-09-16
 
 ### Added

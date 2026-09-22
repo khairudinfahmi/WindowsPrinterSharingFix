@@ -4,7 +4,7 @@
 [![GitHub Forks](https://img.shields.io/github/forks/khairudinfahmi/WindowsPrinterSharingFix?style=flat&logo=github&color=blue)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/network/members)
 [![GitHub Issues](https://img.shields.io/github/issues/khairudinfahmi/WindowsPrinterSharingFix?style=flat&color=red)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/issues)
 [![Windows Compatibility](https://img.shields.io/badge/Windows-10%20%7C%2011%20(24H2%2F25H2%2F26H2)%20%7C%20Server%202025-0078D6?logo=windows&logoColor=white)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases)
-[![Version](https://img.shields.io/badge/version-2.4.0-emerald.svg?style=flat)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.0)
+[![Version](https://img.shields.io/badge/version-2.4.1-emerald.svg?style=flat)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.1)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Architecture](https://img.shields.io/badge/architecture-x64%20%7C%20ARM64-orange.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
 [![Language](https://img.shields.io/badge/language-English%20%7C%20Indonesian-purple.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
@@ -119,7 +119,7 @@ Quickly identify your Windows network printer error code and match it to its roo
 
 ---
 
-## Menu & Submenu Reference (v2.4.0)
+## Menu & Submenu Reference (v2.4.1)
 
 The main console provides 89 direct execution module codes (`1`–`89`), structured into 8 dedicated categories (73 interactive submenu options) plus an interactive help engine:
 
@@ -130,7 +130,7 @@ The main console provides 89 direct execution module codes (`1`–`89`), structu
 ```text
 ======================================================================================
    WINDOWS PRINTER SHARING FIX  |  Windows Network Printer Repair Tool
-   Version: 2.4.0  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT
+   Version: 2.4.1  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT
    Computer: DESKTOP-OFFICE01  |  User: Administrator
    STATUS: Spooler [RUNNING] | Network [PRIVATE] | SMB Signing [OK] | Pass Sharing [OFF]
 ======================================================================================

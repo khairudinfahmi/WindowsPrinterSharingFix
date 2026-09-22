@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Windows Printer Sharing Fix - v2.4.0
+    Windows Printer Sharing Fix - v2.4.1
     @KHAIRUDINFAHMI
 
 .PARAMETER nuke
@@ -12,7 +12,7 @@ param(
     [switch]$nuke
 )
 
-$script:version    = "2.4.0"
+$script:version    = "2.4.1"
 $script:backupDir  = "C:\WindowsPrinterSharingFixBackup"
 $script:silentNuke = $nuke
 

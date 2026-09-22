@@ -34,7 +34,7 @@
   <!-- Left Column -->
   <!-- Top Tag -->
   <rect x="54" y="46" width="240" height="30" rx="15" ry="15" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1"/>
-  <text x="70" y="66" class="banner-tag">OPEN SOURCE UTILITY  &#x2022;  v2.4.0</text>
+  <text x="70" y="66" class="banner-tag">OPEN SOURCE UTILITY  &#x2022;  v2.4.1</text>
 
   <!-- Main Title -->
   <text x="54" y="118" class="banner-title">Windows Printer</text>
@@ -89,12 +89,12 @@
     <circle cx="18" cy="17" r="5" fill="#ff5f56"/>
     <circle cx="33" cy="17" r="5" fill="#ffbd2e"/>
     <circle cx="48" cy="17" r="5" fill="#27c93f"/>
-    <text x="66" y="21" class="term-header-title">PowerShell (Admin) - Windows Printer Sharing Fix v2.4.0</text>
+    <text x="66" y="21" class="term-header-title">PowerShell (Admin) - Windows Printer Sharing Fix v2.4.1</text>
 
     <!-- Dynamic Terminal Lines Captured from Show-MainMenu -->
     <text x="14" y="52" class="term-text"><tspan fill="#38bdf8">======================================================================================</tspan></text>
     <text x="14" y="69.5" class="term-text"><tspan fill="#4ade80">   WINDOWS PRINTER SHARING FIX  |  Windows Network Printer Repair Tool</tspan></text>
-    <text x="14" y="87" class="term-text"><tspan fill="#38bdf8">   Version: 2.4.0  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT</tspan></text>
+    <text x="14" y="87" class="term-text"><tspan fill="#38bdf8">   Version: 2.4.1  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT</tspan></text>
     <text x="14" y="104.5" class="term-text"><tspan fill="#94a3b8">   Computer: DESKTOP-OFFICE01  |  User: Administrator</tspan></text>
     <text x="14" y="122" class="term-text"><tspan fill="#94a3b8">   STATUS: </tspan><tspan fill="#4ade80">Spooler [RUNNING] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">Network [PRIVATE] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">SMB Signing [OK] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">Pass Sharing [OFF]</tspan></text>
     <text x="14" y="139.5" class="term-text"><tspan fill="#38bdf8">======================================================================================</tspan></text>

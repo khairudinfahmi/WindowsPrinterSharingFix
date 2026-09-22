@@ -38,10 +38,10 @@
   <circle cx="54" cy="21" r="5.5" fill="#27c93f" stroke="#1aab29" stroke-width="0.5"/>
 
   <!-- Window Title -->
-  <text x="76" y="25" class="window-title">PowerShell (Admin) - Windows Printer Sharing Fix v2.4.0 [ID]</text>
+  <text x="76" y="25" class="window-title">PowerShell (Admin) - Windows Printer Sharing Fix v2.4.1 [ID]</text>
   <text x="24" y="54" class="term-font"><tspan fill="#38bdf8">======================================================================================</tspan></text>
   <text x="24" y="74" class="term-font"><tspan fill="#4ade80">   WINDOWS PRINTER SHARING FIX  |  Solusi Berbagi Printer Windows</tspan></text>
-  <text x="24" y="94" class="term-font"><tspan fill="#38bdf8">   Versi: 2.4.0  |  Sistem: WINDOWS 11 PRO 24H2 26200 64-BIT</tspan></text>
+  <text x="24" y="94" class="term-font"><tspan fill="#38bdf8">   Versi: 2.4.1  |  Sistem: WINDOWS 11 PRO 24H2 26200 64-BIT</tspan></text>
   <text x="24" y="114" class="term-font"><tspan fill="#94a3b8">   Komputer: DESKTOP-OFFICE01  |  Pengguna: Administrator</tspan></text>
   <text x="24" y="134" class="term-font"><tspan fill="#94a3b8">   STATUS: </tspan><tspan fill="#4ade80">Spooler [AKTIF] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">Jaringan [PRIVATE] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">SMB Signing [SESUAI] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">Sandi Sharing [OFF]</tspan></text>
   <text x="24" y="154" class="term-font"><tspan fill="#38bdf8">======================================================================================</tspan></text>

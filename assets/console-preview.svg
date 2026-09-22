@@ -38,10 +38,10 @@
   <circle cx="54" cy="21" r="5.5" fill="#27c93f" stroke="#1aab29" stroke-width="0.5"/>
 
   <!-- Window Title -->
-  <text x="76" y="25" class="window-title">PowerShell (Admin) - Windows Printer Sharing Fix v2.4.0</text>
+  <text x="76" y="25" class="window-title">PowerShell (Admin) - Windows Printer Sharing Fix v2.4.1</text>
   <text x="24" y="54" class="term-font"><tspan fill="#38bdf8">======================================================================================</tspan></text>
   <text x="24" y="74" class="term-font"><tspan fill="#4ade80">   WINDOWS PRINTER SHARING FIX  |  Windows Network Printer Repair Tool</tspan></text>
-  <text x="24" y="94" class="term-font"><tspan fill="#38bdf8">   Version: 2.4.0  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT</tspan></text>
+  <text x="24" y="94" class="term-font"><tspan fill="#38bdf8">   Version: 2.4.1  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT</tspan></text>
   <text x="24" y="114" class="term-font"><tspan fill="#94a3b8">   Computer: DESKTOP-OFFICE01  |  User: Administrator</tspan></text>
   <text x="24" y="134" class="term-font"><tspan fill="#94a3b8">   STATUS: </tspan><tspan fill="#4ade80">Spooler [RUNNING] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">Network [PRIVATE] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">SMB Signing [OK] </tspan><tspan fill="#64748b">| </tspan><tspan fill="#4ade80">Pass Sharing [OFF]</tspan></text>
   <text x="24" y="154" class="term-font"><tspan fill="#38bdf8">======================================================================================</tspan></text>

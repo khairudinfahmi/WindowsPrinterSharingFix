@@ -81,14 +81,14 @@ def generate_main_menu():
     draw = ImageDraw.Draw(img)
     
     json_path = os.path.join(ASSETS_DIR, "console-lines.json")
-    version_str = "2.4.0"
+    version_str = "2.4.1"
     real_lines = []
     if os.path.exists(json_path):
         try:
             import json
             with open(json_path, "r", encoding="utf-8-sig") as jf:
                 data = json.load(jf)
-                version_str = data.get("version", "2.4.0")
+                version_str = data.get("version", "2.4.1")
                 real_lines = data.get("lines", [])
         except Exception as e:
             print(f"[WARN] Failed to read {json_path}: {e}")
@@ -253,14 +253,14 @@ def generate_social_banner():
     ly = 48
     
     json_path = os.path.join(ASSETS_DIR, "console-lines.json")
-    version_str = "2.4.0"
+    version_str = "2.4.1"
     real_lines = []
     if os.path.exists(json_path):
         try:
             import json
             with open(json_path, "r", encoding="utf-8-sig") as jf:
                 data = json.load(jf)
-                version_str = data.get("version", "2.4.0")
+                version_str = data.get("version", "2.4.1")
                 real_lines = data.get("lines", [])
         except Exception as e:
             print(f"[WARN] Failed to read {json_path}: {e}")

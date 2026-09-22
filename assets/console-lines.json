@@ -1,5 +1,5 @@
 {
-    "version":  "2.4.0",
+    "version":  "2.4.1",
     "lines":  [
                   {
                       "Segments":  [
@@ -20,7 +20,7 @@
                   {
                       "Segments":  [
                                        {
-                                           "Text":  "   Version: 2.4.0  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT",
+                                           "Text":  "   Version: 2.4.1  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT",
                                            "Color":  "Cyan"
                                        }
                                    ]

@@ -22,7 +22,7 @@ if (-not (Get-Module -ListAvailable -Name ps2exe)) {
     Install-Module -Name ps2exe -Force -Scope CurrentUser -AllowClobber
 }
 
-$appVersion = "2.4.0"
+$appVersion = "2.4.1"
 $vMatch = Select-String -Path $SourceFile -Pattern '^\$script:version\s*=\s*["'']([^"'']+)["'']'
 if ($vMatch) {
     $appVersion = $vMatch.Matches[0].Groups[1].Value.Trim()
