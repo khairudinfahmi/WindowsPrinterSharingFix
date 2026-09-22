@@ -23,7 +23,20 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
 
 ---
 
-## What's New in Version 2.4.0
+## What's New in Version 2.4.1
+
+1. **Scheduled Task Argument Splitting & Quote Escaping**:
+   - Resolved argument splitting issue in `PrinterFixNetworkWatchdog` scheduled task creation (`schtasks.exe /tr`), properly escaping inner quotation marks to eliminate `-EA` parsing error and guarantee continuous 15-minute background network profile monitoring.
+2. **Print Spooler Policy Lifecycle Triggers**:
+   - Integrated automated Print Spooler restart (`Restart-Service spooler -Force`) into `Fix-Discovery0x00000bc4`, `Fix-CSR` (Error 0x000006d1), and `Fix-NamedPipes` ensuring registry policy modifications take effect immediately without requiring a full system reboot.
+3. **Web Stream Documentation Auto-Fetch**:
+   - Automatically downloads and opens latest HTML documentation in Submenu 9 Option [2] when executing via one-line web stream (`irm | iex`).
+4. **Support & Multi-Chain Donations**:
+   - Integrated QRIS barcode and cryptocurrency donation addresses (BTC, ETH/EVM, SOL) in README and documentation.
+5. **Bilingual Message Standardization**:
+   - Standardized console output across discovery and network services to respect active language preference (`$script:lang`).
+
+### Core Features (v2.4.0 Milestone)
 
 1. **Native Bilingual Engine (English & Indonesian)**:
    - Toggle the interface language dynamically on the fly by pressing **`[L]`** at any menu or prompt.
