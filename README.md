@@ -220,8 +220,8 @@ Resolves Print Spooler service crashes, clears jammed documents, and establishes
 | # | Menu Option (Exact Console String) | Code | Details & Technical Benefit |
 | :---: | :--- | :---: | :--- |
 | **1** | **Clean Spooler Reset & Purge Jammed Print Queue Files (.spl/.shd)** | `[31] & [37]` | Terminates hung spooler processes, deletes all corrupted print artifacts (`.spl` and `.shd`) from `PRINTERS`, and performs a clean restart. |
-| **2** | **Configure Automatic Spooler Recovery on Crash (Auto-Restart)** | `[34]` | Configures Windows Service Controller to automatically restart the Print Spooler on first, second, and subsequent service failures. |
-| **3** | **Deploy Spooler Watchdog Scheduled Task (Monitors every 5 minutes)** | `[36]` | Registers a scheduled task that audits Spooler service health every 5 minutes and auto-starts it if terminated unexpectedly. |
+| **2** | **Configure Native Spooler Recovery on Crash (Auto-Restart in 2s via SCM)** | `[34]` | Configures Windows Service Control Manager to automatically restart Print Spooler in 2 seconds on crash with 0% CPU overhead. |
+| **3** | **Deploy / Remove Spooler Watchdog Scheduled Task** | `[36] & [90]` | Smart toggle: Deploys 5-minute health check if absent, or cleanly removes `SpoolerWatchdog` from Task Scheduler if active (`[90]`). |
 | **4** | **Repair & Reset Spooler Registry Dependencies (RPCSS & HTTP)** | `[35] & [38]` | Restores factory spooler dependencies (`RPCSS` and `http`), stripping corrupted third-party dependencies that prevent startup. |
 | **5** | **Restart Core System RPC & DCOM Services** | `[32]` | Audits and verifies core RPC foundation services (`RpcSs`, `DcomLaunch`) to eliminate *"The RPC server is unavailable"* errors. |
 | **6** | **Restart Remote Spooler Service on Target Computer** | `[33]` | Issues a remote spooler restart command across the network via PowerShell remoting/DCOM without requiring physical access. |
@@ -323,7 +323,7 @@ When automated playbooks (**ALLFIX [84]** or **Extreme Path [83]**) are executed
 3. **Resilient Scheduled Tasks**:
    - `PrinterFixPostUpdate` (triggered on system boot with a 30-second polling retry loop): Re-applies critical RPC, SMB guest, and Point & Print policies if monthly Windows Updates (*Patch Tuesday*) revert configurations, without disruptive mid-day restarts.
    - `PrinterFixNetworkWatchdog` (runs every 15 minutes): Automatically detects and restores network profiles to `Private` if adapter reconnections or router reboots temporarily drop them to `Public`.
-   - `SpoolerWatchdog` (runs every 5 minutes): Actively monitors the Print Spooler service and restarts it if terminated by unstable third-party drivers.
+   - `SpoolerWatchdog` (optional, runs every 5 minutes): Actively monitors the Print Spooler service and restarts it if terminated by unstable third-party drivers (can be removed anytime via Submenu 4 Option [3] or shortcut [90]).
    - *The legacy daily 10:00 AM task (`PrinterFixDaily`) has been completely removed to eliminate mid-day workflow interruptions.*
    - *All scheduled tasks are configured with battery exemption (`AllowStartIfOnBatteries`, `DontStopIfGoingOnBatteries`) to maintain protection on laptops.*
 4. **Clean Session & Ticket Eviction**: Executes `klist purge`, `ipconfig /flushdns`, and `nbtstat -RR` to flush stale NetBIOS names, expired Kerberos tickets, and cached DNS entries.
@@ -344,7 +344,7 @@ Starting with Windows 11 Version 24H2, Microsoft enforced mandatory **SMB Signin
 Yes. Windows Printer Sharing Fix registers the lightweight `PrinterFixPostUpdate` boot verification trigger. Whenever cumulative Windows Updates (e.g., KB5005565, KB5005568, KB5006670, or subsequent patches) replace system DLLs or reset registry keys, the trigger re-applies critical sharing configurations automatically on system restart without disruptive mid-day restarts.
 
 ### How does this utility compare to older 2021 PrintNightmare batch scripts?
-Legacy batch scripts from 2021 typically only set a single registry key (`RpcAuthnLevelPrivacyEnabled = 0`) which was patched and superseded by newer Windows cumulative updates. They cannot resolve modern Windows 11 24H2/25H2 SMB Signing restrictions, RPC Named Pipes overrides (`0x00000bc4`), Point and Print driver copy policy blocks (`0x00000002`), or socket keep-alive resets (`0x00000040`). This utility contains 89 specialized repair modules designed for current Windows 10, 11, and Server 2025 releases.
+Legacy batch scripts from 2021 typically only set a single registry key (`RpcAuthnLevelPrivacyEnabled = 0`) which was patched and superseded by newer Windows cumulative updates. They cannot resolve modern Windows 11 24H2/25H2 SMB Signing restrictions, RPC Named Pipes overrides (`0x00000bc4`), Point and Print driver copy policy blocks (`0x00000002`), or socket keep-alive resets (`0x00000040`). This utility contains 90 specialized repair modules designed for current Windows 10, 11, and Server 2025 releases.
 
 ---
 

@@ -377,17 +377,17 @@
             },
             {
                 "id": "34",
-                "title": "Configure Automatic Spooler Recovery on Crash (Auto-Restart)",
+                "title": "Configure Native Spooler Recovery on Crash (Auto-Restart in 2s via SCM)",
                 "problem": "Print Spooler crashes due to third-party driver faults and stays stopped indefinitely.",
-                "solution": "Configures Windows Service Controller failure actions via sc.exe to auto-restart spooler after 60 seconds on 1st, 2nd, and subsequent crashes.",
-                "whenToUse": "Production environments requiring high printer availability."
+                "solution": "Configures Windows Service Control Manager (SCM) failure actions via sc.exe to auto-restart spooler after 2 seconds on crash with 0% CPU overhead.",
+                "whenToUse": "High-availability production environments requiring zero downtime."
             },
             {
                 "id": "36",
-                "title": "Deploy Spooler Watchdog Scheduled Task (Monitors every 5 minutes)",
-                "problem": "Spooler silently terminates without notifying users or IT staff.",
-                "solution": "Registers an automated Scheduled Task running every 5 minutes (laptop battery-exempt) that checks and restarts spooler if offline.",
-                "whenToUse": "Print host computers serving multiple employees all day."
+                "title": "Deploy / Remove Spooler Watchdog Scheduled Task (Smart Toggle)",
+                "problem": "Spooler silently terminates or technician needs to remove background watchdog task.",
+                "solution": "Smart toggle: Deploys 5-minute watchdog task if absent, or cleanly removes SpoolerWatchdog task from Task Scheduler if already active (shortcut [90]).",
+                "whenToUse": "Managing optional background monitoring tasks on print host machines."
             },
             {
                 "id": "35",

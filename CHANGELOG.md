@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatically downloads and opens latest HTML documentation in Submenu 9 Option [2] when executing via one-line web stream (`irm | iex`).
 
 ### Added
+- **Native SCM Print Spooler Crash Recovery**:
+  - Upgraded `Set-SpoolerRecovery` to configure Windows Service Control Manager (`sc.exe failure spooler`) with an instant 2-second restart delay (`actions= restart/2000/restart/5000/restart/10000`), 24-hour reset period (`reset= 86400`), and `failureflag 1` for zero-overhead, kernel-level crash recovery that distinguishes crashes from normal administrative shutdowns.
+  - Added boot-time persistence for Native SCM recovery inside `PrinterFixReapply.ps1` to withstand cumulative updates such as KB5129195 (Build 26200.9457).
+- **Spooler Watchdog Clean Removal & Smart Toggle**:
+  - Added `Remove-SpoolerWatchdog` function (`schtasks.exe /delete /tn "SpoolerWatchdog" /f`) and Direct Action shortcut `[90]`.
+  - Implemented smart detection in Submenu 4 Option `[3]` to dynamically toggle between deploying and cleanly removing the 5-minute watchdog task.
 - **Support & Donations**:
   - Added QRIS barcode and multi-chain cryptocurrency donation addresses (BTC, ETH/EVM, SOL) in README and documentation.
 - **Bilingual Message Standardization**:

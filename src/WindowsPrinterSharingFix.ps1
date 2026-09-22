@@ -322,9 +322,11 @@ Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" 
     if ($svc -and $svc.Status -ne 'Running') { Start-Service $_ -EA SilentlyContinue }
 }
 
-# 6. Non-Destructive Spooler Validation (Starts spooler if offline, does not kill active jobs)
+# 6. Non-Destructive Spooler Validation & Native SCM Recovery (2s instant crash restart)
 $sp = Get-Service spooler -EA SilentlyContinue
 if ($sp -and $sp.Status -ne 'Running') { Start-Service spooler -EA SilentlyContinue }
+& sc.exe failure spooler reset= 86400 actions= restart/2000/restart/5000/restart/10000 > $null 2>&1
+& sc.exe failureflag spooler 1 > $null 2>&1
 
 # 7. Ensure Network Profiles are Private with Polling (Catches Wi-Fi/DHCP initialization up to 30s)
 for ($i = 0; $i -lt 6; $i++) {
@@ -1592,10 +1594,11 @@ function Fix-ModernSMB {
 function Set-SpoolerRecovery {
     Write-Log "Configuring Print Spooler automatic restart recovery..." -Type "INFO"
     try {
-        & sc.exe failure spooler reset= 0 actions= restart/60000/restart/60000/restart/60000 > $null 2>&1
+        & sc.exe failure spooler reset= 86400 actions= restart/2000/restart/5000/restart/10000 > $null 2>&1
+        & sc.exe failureflag spooler 1 > $null 2>&1
         if ($LASTEXITCODE -ne 0) { throw "sc.exe returned exit code $LASTEXITCODE" }
-        Write-Log "Spooler Auto-Restart Recovery configured." -Type "SUCCESS"
-        Write-Host "  [+] Spooler auto-restart on crash configured." -ForegroundColor Green
+        Write-Log "Spooler Auto-Restart Recovery configured (Native Windows SCM: 2s delay)." -Type "SUCCESS"
+        Write-Host $(if ($script:lang -eq "EN") { "  [+] Native Spooler crash auto-recovery enabled (Restarts in 2s via Windows SCM, 0% CPU overhead)." } else { "  [+] Pemulihan otomatis crash spooler aktif (Restart dalam 2 detik via Windows SCM, 0% beban CPU)." }) -ForegroundColor Green
     }
     catch {
         Write-Log "Set-SpoolerRecovery failed: $($_.Exception.Message)" -Type "ERROR"
@@ -1814,6 +1817,18 @@ function Set-SpoolerWatchdog {
     }
     catch {
         Write-Log "Failed Watchdog deployment: $($_.Exception.Message)" -Type "ERROR"
+    }
+}
+
+function Remove-SpoolerWatchdog {
+    Write-Log "Removing Spooler Watchdog Task..." -Type "INFO"
+    try {
+        & schtasks.exe /delete /tn "SpoolerWatchdog" /f > $null 2>&1
+        Write-Log "Spooler Watchdog task removed." -Type "SUCCESS"
+        Write-Host $(if ($script:lang -eq "EN") { "  [+] Spooler Watchdog task successfully removed from Task Scheduler." } else { "  [+] Tugas Spooler Watchdog berhasil dihapus dari Task Scheduler." }) -ForegroundColor Green
+    }
+    catch {
+        Write-Log "Failed to remove Spooler Watchdog: $($_.Exception.Message)" -Type "ERROR"
     }
 }
 
@@ -2967,8 +2982,8 @@ function Fix-HostServerRole {
     Write-Host $(if ($isEN) { "  [*] [7/8] Sanitizing Printer Share Names (Removing illegal characters & spaces)..." } else { "  [*] [7/8] Merapikan Nama Share Printer dari Spasi & Karakter Ilegal..." }) -ForegroundColor Cyan
     Sanitize-PrinterShareName
 
-    Write-Host $(if ($isEN) { "  [*] [8/8] Deploying Spooler Watchdog Scheduled Task & Restarting Spooler..." } else { "  [*] [8/8] Memasang Tugas Pemantau Spooler Otomatis (Watchdog) & Restart..." }) -ForegroundColor Cyan
-    Set-SpoolerWatchdog
+    Write-Host $(if ($isEN) { "  [*] [8/8] Configuring Native Spooler Crash Recovery (2s SCM) & Restarting Spooler..." } else { "  [*] [8/8] Memasang Pemulihan Otomatis Crash Spooler (2s SCM) & Restart Spooler..." }) -ForegroundColor Cyan
+    Set-SpoolerRecovery
     Reset-Spooler
 
     Write-Log "Host Server Optimization concluded." -Type "SUCCESS"
@@ -3516,6 +3531,7 @@ function Show-Help {
         '87' = @("Hapus Pemetaan Port Lokal UNC yang Pernah Dibuat", "Menghapus port lokal yang sebelumnya pernah dibuat oleh opsi [86].", "Membersihkan port pemetaan yang sudah tidak terpakai atau salah ketik.")
         '88' = @("Restart Komputer", "Merestart komputer saat ini secara langsung.", "Sangat disarankan setelah melakukan perbaikan agar seluruh perubahan sistem aktif.")
         '89' = @("Keluar dari Aplikasi", "Menutup dan keluar dari alat perbaikan ini.", "Selesai menggunakan aplikasi.")
+        '90' = @("Hapus Pemantau Spooler Terjadwal (Remove Spooler Watchdog)", "Menghapus tugas terjadwal SpoolerWatchdog dari Task Scheduler.", "Membersihkan pemantau spooler berkala jika tidak lagi dibutuhkan.")
     }
 
     $helpDataEN = @{
@@ -3608,6 +3624,7 @@ function Show-Help {
         '87' = @("Remove Mapped Local UNC Port", "Deletes previously created local UNC port mapping created by option [86].", "Cleans up outdated or mistyped UNC port mappings.")
         '88' = @("Restart Computer", "Reboots local computer immediately.", "Highly recommended after applying fixes so all system settings take full effect.")
         '89' = @("Exit Application", "Closes and exits this utility.", "Done using the application.")
+        '90' = @("Remove Spooler Watchdog Scheduled Task", "Deletes SpoolerWatchdog scheduled task from Task Scheduler.", "Cleans up the 5-minute background watchdog when no longer desired.")
     }
 
     $isEN = ($script:lang -eq "EN")
@@ -4070,13 +4087,23 @@ function Show-Submenu3 {
 function Show-Submenu4 {
     do {
         $isEN = ($script:lang -eq "EN")
+        $isWatchdogActive = $false
+        try {
+            $taskCheck = Get-ScheduledTask -TaskName "SpoolerWatchdog" -ErrorAction SilentlyContinue
+            if ($taskCheck -and $taskCheck.State -ne "Disabled") { $isWatchdogActive = $true }
+        } catch {}
+
         Show-Header -SubTitle $(if ($isEN) { "4. Print Spooler Service & Print Queue Maintenance" } else { "4. Layanan Print Spooler & Antrean Cetak" })
         Write-Host ""
         if ($isEN) {
             Write-Host "  [1] Clean Spooler Reset & Purge Jammed Print Queue Files (.spl/.shd)" -ForegroundColor Green
             Write-Host "      (Stops spooler, removes locked documents, and cleanly restarts service)" -ForegroundColor Gray
-            Write-Host "  [2] Configure Automatic Spooler Recovery on Crash (Auto-Restart)" -ForegroundColor White
-            Write-Host "  [3] Deploy Spooler Watchdog Scheduled Task (Monitors every 5 minutes)" -ForegroundColor White
+            Write-Host "  [2] Configure Native Spooler Recovery on Crash (Auto-Restart in 2s via SCM)" -ForegroundColor White
+            if ($isWatchdogActive) {
+                Write-Host "  [3] Remove / Disable Spooler Watchdog Scheduled Task [ACTIVE]" -ForegroundColor Yellow
+            } else {
+                Write-Host "  [3] Deploy Spooler Watchdog Scheduled Task (Monitors every 5 minutes)" -ForegroundColor White
+            }
             Write-Host "  [4] Repair & Reset Spooler Registry Dependencies (RPCSS & HTTP)" -ForegroundColor White
             Write-Host "  [5] Restart Core System RPC & DCOM Services" -ForegroundColor White
             Write-Host "  [6] Restart Remote Spooler Service on Target Computer" -ForegroundColor White
@@ -4089,8 +4116,12 @@ function Show-Submenu4 {
         } else {
             Write-Host "  [1] Reset Bersih Spooler & Hapus Berkas Antrean Cetak yang Nyangkut" -ForegroundColor Green
             Write-Host "      (Hentikan spooler, bersihkan antrean .spl/.shd, dan restart layanan)" -ForegroundColor Gray
-            Write-Host "  [2] Konfigurasi Pemulihan Otomatis Spooler Saat Crash (Auto-Restart)" -ForegroundColor White
-            Write-Host "  [3] Pasang Pemantau Spooler Otomatis (Watchdog Cek Tiap 5 Menit)" -ForegroundColor White
+            Write-Host "  [2] Konfigurasi Pemulihan Otomatis Spooler Saat Crash (Auto-Restart 2s SCM)" -ForegroundColor White
+            if ($isWatchdogActive) {
+                Write-Host "  [3] Hapus / Matikan Tugas Pemantau Spooler (Watchdog) [AKTIF]" -ForegroundColor Yellow
+            } else {
+                Write-Host "  [3] Pasang Pemantau Spooler Otomatis (Watchdog Cek Tiap 5 Menit)" -ForegroundColor White
+            }
             Write-Host "  [4] Perbaiki & Reset Dependensi Registri Spooler (RPCSS & HTTP)" -ForegroundColor White
             Write-Host "  [5] Restart Layanan Sistem RPC & DCOM" -ForegroundColor White
             Write-Host "  [6] Restart Layanan Spooler di Komputer Jarak Jauh (Remote Spooler)" -ForegroundColor White
@@ -4114,7 +4145,15 @@ function Show-Submenu4 {
                 Pause-User
             }
             '2' { Set-SpoolerRecovery; Pause-User }
-            '3' { Set-SpoolerWatchdog; Pause-User }
+            '3' {
+                if ($isWatchdogActive) {
+                    Remove-SpoolerWatchdog
+                } else {
+                    Set-SpoolerRecovery
+                    Set-SpoolerWatchdog
+                }
+                Pause-User
+            }
             '4' {
                 Reset-SpoolerDependency
                 Reset-SpoolerDependencyRegistry
@@ -4618,7 +4657,8 @@ function Invoke-Module {
         '87' { Remove-LocalPortUNC }
         '88' { Restart-PC }
         '89' { Write-Log $(if ($isEN) { "Application terminated." } else { "Aplikasi Dihentikan." }) -Type "INFO"; exit }
-        default { Write-Host $(if ($isEN) { "  [-] Module [$Code] not found. Enter valid code (1-89)." } else { "  [-] Modul [$Code] tidak ditemukan. Masukkan kode modul yang valid (1-89)." }) -ForegroundColor Red }
+        '90' { Remove-SpoolerWatchdog }
+        default { Write-Host $(if ($isEN) { "  [-] Module [$Code] not found. Enter valid code (1-90)." } else { "  [-] Modul [$Code] tidak ditemukan. Masukkan kode modul yang valid (1-90)." }) -ForegroundColor Red }
     }
 }
 
