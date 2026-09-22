@@ -129,7 +129,7 @@
                 "id": "84",
                 "title": "ALLFIX - Run 50 Automated Fixes Simultaneously",
                 "problem": "Cryptic printer sharing errors, RPC timeouts, or general network print connection failures across office PCs.",
-                "solution": "Executes 50 automated repair steps: 5-hive registry backup, GPO cache sync, RPC/DCOM audit, 0x11b/709/7c/40/02/7e patches, SMB guest auth, firewall, spooler reset, and watchdog.",
+                "solution": "Executes 50 automated repair steps: 5-hive registry backup, GPO cache sync, RPC/DCOM audit, 0x11b/709/7c/40/02/7e patches, SMB guest auth, firewall, spooler reset, and SCM crash recovery.",
                 "whenToUse": "PRIMARY RECOMMENDATION - The single most effective one-click solution resolving 98% of office network printing issues.",
                 "note": "Rebooting the PC upon completion is recommended for all registry states to activate."
             },
@@ -145,7 +145,7 @@
                 "id": "Host",
                 "title": "Optimize Host / Print Server PC (Connected directly to printer)",
                 "problem": "The computer physically connected to the printer via USB or direct cable is rejecting network print jobs from client PCs.",
-                "solution": "Configures remote RPC spooler endpoint, sets Private network profile, enables guest sharing, opens firewall/WSD ports (445, 135, 3702, 5353), sanitizes share names, and deploys Spooler Watchdog.",
+                "solution": "Configures remote RPC spooler endpoint, sets Private network profile, enables guest sharing, opens firewall/WSD ports (445, 135, 3702, 5353), sanitizes share names, and configures SCM auto-recovery.",
                 "whenToUse": "Execute directly on the PC that has the physical printer plugged in."
             },
             {
@@ -1102,7 +1102,7 @@
                                 class="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:shadow-md hover:border-brand-200 dark:hover:border-brand-800 transition-all">
                                 <h3 class="font-bold text-slate-900 dark:text-white text-lg">Input Command</h3>
                                 <p class="text-slate-600 dark:text-slate-400 mt-2.5 leading-relaxed">The main console
-                                    interface will map out all 89 execution modules. Type the numerical identifier
+                                    interface will map out all 90 execution modules. Type the numerical identifier
                                     (e.g., <code
                                         class="bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 text-sm font-mono text-brand-600 dark:text-brand-400">84</code>,
                                     <code

@@ -3876,7 +3876,7 @@ function Show-Help {
             Write-Host "  ======================================================================================" -ForegroundColor Cyan
         }
         else {
-            Write-Host $(if ($isEN) { "  [-] Module number '$Topic' not found. Enter a number between 1 and 89." } else { "  [-] Nomor modul '$Topic' tidak ditemukan. Masukkan angka 1-89." }) -ForegroundColor Red
+            Write-Host $(if ($isEN) { "  [-] Module number '$Topic' not found. Enter a number between 1 and 90." } else { "  [-] Nomor modul '$Topic' tidak ditemukan. Masukkan angka 1-90." }) -ForegroundColor Red
         }
     }
 }
@@ -3970,7 +3970,7 @@ function Show-Submenu1 {
             Write-Host "  [2] Extreme Path for Modern Windows 11 (24H2 / 25H2 / 26H2 & ARM64)" -ForegroundColor Yellow
             Write-Host "      (Bypasses RPC restrictions, SMB Signing, and new Win 11 security policies)" -ForegroundColor Gray
             Write-Host "  [3] Optimize Host / Print Server PC (Connected directly to printer)" -ForegroundColor White
-            Write-Host "      (Enforce remote RPC endpoint, Private network, guest sharing, and watchdog)" -ForegroundColor Gray
+            Write-Host "      (Enforce remote RPC endpoint, Private network, guest sharing, and SCM auto-recovery)" -ForegroundColor Gray
             Write-Host "  [4] Optimize Client PC (Connecting to shared printer over network)" -ForegroundColor White
             Write-Host "      (RPC Named Pipes, Point and Print bypass, SMB signing fix, HKCU permissions)" -ForegroundColor Gray
             Write-Host "  [5] Silent ALLFIX (Automated Fixes + Immediate Reboot)" -ForegroundColor Red
@@ -3989,7 +3989,7 @@ function Show-Submenu1 {
             Write-Host "  [2] Solusi Khusus Windows 11 Versi Terbaru (24H2 / 25H2 / 26H2 & ARM64)" -ForegroundColor Yellow
             Write-Host "      (Bypass proteksi RPC, SMB Signing, dan kebijakan baru Windows 11)" -ForegroundColor Gray
             Write-Host "  [3] Optimasi Komputer Host / Server Printer (PC yang terhubung kabel printer)" -ForegroundColor White
-            Write-Host "      (Izinkan RPC remote spooler, mode Private, akses tamu, dan pemantau otomatis)" -ForegroundColor Gray
+            Write-Host "      (Izinkan RPC remote spooler, mode Private, akses tamu, dan pemulihan otomatis SCM)" -ForegroundColor Gray
             Write-Host "  [4] Optimasi Komputer Klien (PC staf yang ingin menyambung ke printer)" -ForegroundColor White
             Write-Host "      (RPC Named Pipes, bypass Point & Print, nonaktifkan SMB Signing, izin HKCU)" -ForegroundColor Gray
             Write-Host "  [5] Silent ALLFIX (Perbaikan Otomatis + Langsung Reboot Otomatis)" -ForegroundColor Red

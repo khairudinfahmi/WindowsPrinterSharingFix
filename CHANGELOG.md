@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Integrated automated Print Spooler restart (`Restart-Service spooler -Force`) into `Fix-Discovery0x00000bc4`, `Fix-CSR` (Error 0x000006d1), and `Fix-NamedPipes` ensuring registry policy modifications take effect immediately without requiring a full system reboot.
 - **Web Stream Documentation Auto-Fetch**:
   - Automatically downloads and opens latest HTML documentation in Submenu 9 Option [2] when executing via one-line web stream (`irm | iex`).
+- **Forensic Console Stream Purity & Noise Elimination**:
+  - Implemented `-NoConsole` output routing across 40+ companion `Write-Log` calls, preventing duplicate log prints when companion `Write-Host` is already displayed.
+  - Suppressed non-critical DISM feature enablement and SCM service restart warnings (`3>$null`) across automated fixes.
+  - Standardized `-NoBanner` parameter on sub-routines invoked within automated suites (`Fix-V4ClassDriver`, `Sanitize-PrinterShareName`, `Parse-PrintEventLog`).
+  - Isolated post-fix event log parsing strictly to entries logged during the active session (`$script:sessionStartTime`), preventing stale historical logs from triggering false alarms.
+
+### Changed
+- **Streamlined ALLFIX to 50 Unique Non-Redundant Steps**:
+  - Completely deduplicated ALLFIX into 50 distinct technical milestones, eliminating redundant spooler restarts and duplicate 0x709 passes.
+  - Integrated dedicated steps for ARP/route reset, null session pipe whitelist, remote spooler RPC endpoint policy enforcement, and native SCM recovery validation.
 
 ### Added
 - **Native SCM Print Spooler Crash Recovery**:

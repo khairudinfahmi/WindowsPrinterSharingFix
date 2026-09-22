@@ -41,6 +41,11 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
    - Integrated QRIS barcode and cryptocurrency donation addresses (BTC, ETH/EVM, SOL) in README and documentation.
 7. **Bilingual Message Standardization**:
    - Standardized console output across discovery and network services to respect active language preference (`$script:lang`).
+8. **Forensic Console Stream Purity & 50 Unique ALLFIX Steps**:
+   - Eliminated log double-echoes across all diagnostic/fix companion routines via standard `-NoConsole` output routing.
+   - Suppressed non-critical DISM feature enablement and SCM service restart warnings (`3>$null`).
+   - Standardized `-NoBanner` on automated sequence sub-routines and isolated post-fix event log analysis strictly to the active running session.
+   - Completely deduplicated ALLFIX into 50 distinct technical milestones (including ARP/route reset, null session pipe whitelist, remote spooler RPC endpoint validation, and native SCM recovery).
 
 ### Core Features (v2.4.0 Milestone)
 
@@ -140,7 +145,7 @@ Quickly identify your Windows network printer error code and match it to its roo
 
 ## Menu & Submenu Reference (v2.4.1)
 
-The main console provides 89 direct execution module codes (`1`–`89`), structured into 8 dedicated categories (73 interactive submenu options) plus an interactive help engine:
+The main console provides 90 direct execution module codes (`1`–`90`), structured into 8 dedicated categories (73 interactive submenu options) plus an interactive help engine:
 
 <p align="center">
   <img src="assets/console-preview.svg" alt="Windows Printer Sharing Fix Terminal Interface" width="100%">
@@ -178,7 +183,7 @@ One-click fix routines that cover the most common and complex sharing failures.
 | :---: | :--- | :---: | :--- |
 | **1** | **ALLFIX - Run 50 Automated Fixes Simultaneously** | `[84]` | **Primary Recommendation**: Runs 50 successive repair steps across registry, Group Policy, RPC, SMB, firewall, and spooler. Resolves 98% of office network printing issues. |
 | **2** | **Extreme Path for Modern Windows 11 (24H2 / 25H2 / 26H2 & ARM64)** | `[83]` | Deploys deep hardening mitigations for recent Windows 11 builds: enables RPC over Named Pipes, relaxes strict SMB signing, and configures non-domain Kerberos fallback. |
-| **3** | **Optimize Host / Print Server PC (Connected directly to printer)** | `Playbook` | Dedicated playbook for the PC physically connected to the printer: enables remote RPC spooler endpoint, sets Private network, opens guest access, configures firewall/WSD, and deploys Watchdog. |
+| **3** | **Optimize Host / Print Server PC (Connected directly to printer)** | `Playbook` | Dedicated playbook for the PC physically connected to the printer: enables remote RPC spooler endpoint, sets Private network, opens guest access, configures firewall/WSD, and configures Native SCM auto-recovery. |
 | **4** | **Optimize Client PC (Connecting to shared printer over network)** | `Playbook` | Dedicated playbook for client PCs connecting to shared printers: enables RPC Named Pipes, bypasses Point & Print elevation, disables client SMB signing, and flushes DNS. |
 | **5** | **Silent ALLFIX (Automated Fixes + Immediate Reboot)** | `[85]` | Executes the 50-step ALLFIX routine without interactive prompts and immediately reboots the computer upon completion (ideal for sysadmins and unattended deployment). |
 | **6** | **Manage Windows Updates & Block Printer-Breaking Patches** | `[69]` | Pauses updates for 35 days, provides tools to roll back breaking cumulative updates, or toggles Windows Update services to protect working print configurations. |
