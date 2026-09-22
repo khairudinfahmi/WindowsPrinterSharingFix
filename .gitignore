@@ -21,6 +21,7 @@ release/*
 *.log
 *.txt
 *.tmp
+*release-notes*.md
 scratch/
 
 # ===========================
