@@ -1,17 +1,39 @@
-# Windows Printer Sharing Fix
+<div align="center">
 
-[![GitHub Stars](https://img.shields.io/github/stars/khairudinfahmi/WindowsPrinterSharingFix?style=flat&logo=github&color=gold)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/khairudinfahmi/WindowsPrinterSharingFix?style=flat&logo=github&color=blue)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/network/members)
-[![GitHub Issues](https://img.shields.io/github/issues/khairudinfahmi/WindowsPrinterSharingFix?style=flat&color=red)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/issues)
-[![Windows Compatibility](https://img.shields.io/badge/Windows-10%20%7C%2011%20(24H2%2F25H2%2F26H2)%20%7C%20Server%202025-0078D6?logo=windows&logoColor=white)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases)
-[![Version](https://img.shields.io/badge/version-2.4.1-emerald.svg?style=flat)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.1)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Architecture](https://img.shields.io/badge/architecture-x64%20%7C%20ARM64-orange.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
-[![Language](https://img.shields.io/badge/language-English%20%7C%20Indonesian-purple.svg)](https://github.com/khairudinfahmi/WindowsPrinterSharingFix)
+  <h1>Windows Printer Sharing Fix</h1>
 
-<p align="center">
-  <img src="assets/social-banner.png" alt="Windows Printer Sharing Fix Banner" width="100%">
-</p>
+  <p>
+    <strong>Automated diagnostic & remediation suite for Windows network printer sharing, RPC protocol restrictions, and Print Spooler connectivity.</strong>
+  </p>
+
+  <p>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases"><img src="https://img.shields.io/badge/Windows-10%20%7C%2011%20%7C%20Server-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows Compatibility"></a>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.1"><img src="https://img.shields.io/badge/Release-v2.4.1-10b981?style=for-the-badge&logo=github&logoColor=white" alt="Version"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-6366f1?style=for-the-badge" alt="License"></a>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix"><img src="https://img.shields.io/badge/Arch-x64%20%7C%20ARM64-ea580c?style=for-the-badge" alt="Architecture"></a>
+  </p>
+
+  <p>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/stargazers"><img src="https://img.shields.io/github/stars/khairudinfahmi/WindowsPrinterSharingFix?style=flat-square&logo=github&color=eab308" alt="GitHub Stars"></a>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/network/members"><img src="https://img.shields.io/github/forks/khairudinfahmi/WindowsPrinterSharingFix?style=flat-square&logo=github&color=3b82f6" alt="GitHub Forks"></a>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/issues"><img src="https://img.shields.io/github/issues/khairudinfahmi/WindowsPrinterSharingFix?style=flat-square&color=ef4444" alt="GitHub Issues"></a>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix"><img src="https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?style=flat-square&logo=powershell&logoColor=white" alt="PowerShell"></a>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix"><img src="https://img.shields.io/badge/Language-English%20%7C%20Indonesian-8b5cf6?style=flat-square" alt="Language"></a>
+  </p>
+
+  <p>
+    <a href="#quick-start-guide"><b>Quick Start</b></a> •
+    <a href="#option-1-official-windows-installer-recommended"><b>Download Installer</b></a> •
+    <a href="#instant-error-code-quick-lookup-matrix"><b>Instant Error Matrix</b></a> •
+    <a href="#option-4-unattended-cli-switches-automation--rmm"><b>CLI Automation</b></a> •
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.1"><b>Release Notes</b></a>
+  </p>
+
+  <br>
+
+  <img src="assets/social-banner.png" alt="Windows Printer Sharing Fix" width="100%">
+
+</div>
 
 > ⭐ **Found this helpful?** If this utility fixed your office printer sharing or saved you hours of troubleshooting, please **give this repository a Star**! It helps more sysadmins, IT technicians, and home office users discover this project.
 
@@ -23,58 +45,93 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
 
 ---
 
-## What's New in Version 2.4.1
+## Key Features
 
-1. **Native SCM Print Spooler Crash Recovery (2s Delay, 0% CPU Overhead)**:
-   - Upgraded `Set-SpoolerRecovery` to configure Windows Service Control Manager (`sc.exe failure spooler`) with an instant 2-second restart delay (`actions= restart/2000/restart/5000/restart/10000`), 24-hour reset period (`reset= 86400`), and `failureflag 1` for zero-overhead, kernel-level crash recovery that distinguishes crashes from normal administrative shutdowns.
-   - Added boot-time persistence for Native SCM recovery inside `PrinterFixReapply.ps1` to withstand cumulative updates such as KB5129195 (Build 26200.9457).
-2. **Spooler Watchdog Clean Removal & Smart Toggle**:
-   - Added `Remove-SpoolerWatchdog` function (`schtasks.exe /delete /tn "SpoolerWatchdog" /f`) and Direct Action shortcut `[90]`.
-   - Implemented smart detection in Submenu 4 Option `[3]` to dynamically toggle between deploying and cleanly removing the 5-minute watchdog task.
-3. **Scheduled Task Argument Splitting & Quote Escaping**:
-   - Resolved argument splitting issue in `PrinterFixNetworkWatchdog` scheduled task creation (`schtasks.exe /tr`), properly escaping inner quotation marks to eliminate `-EA` parsing error and guarantee continuous 15-minute background network profile monitoring.
-4. **Print Spooler Policy Lifecycle Triggers**:
-   - Integrated automated Print Spooler restart (`Restart-Service spooler -Force`) into `Fix-Discovery0x00000bc4`, `Fix-CSR` (Error 0x000006d1), and `Fix-NamedPipes` ensuring registry policy modifications take effect immediately without requiring a full system reboot.
-5. **Web Stream Documentation Auto-Fetch**:
-   - Automatically downloads and opens latest HTML documentation in Submenu 9 Option [2] when executing via one-line web stream (`irm | iex`).
-6. **Support & Multi-Chain Donations**:
-   - Integrated QRIS barcode and cryptocurrency donation addresses (BTC, ETH/EVM, SOL) in README and documentation.
-7. **Bilingual Message Standardization**:
-   - Standardized console output across discovery and network services to respect active language preference (`$script:lang`).
-8. **Forensic Console Stream Purity & 50 Unique ALLFIX Steps**:
-   - Eliminated log double-echoes across all diagnostic/fix companion routines via standard `-NoConsole` output routing.
-   - Suppressed non-critical DISM feature enablement and SCM service restart warnings (`3>$null`).
-   - Standardized `-NoBanner` on automated sequence sub-routines and isolated post-fix event log analysis strictly to the active running session.
-   - Completely deduplicated ALLFIX into 50 distinct technical milestones (including ARP/route reset, null session pipe whitelist, remote spooler RPC endpoint validation, and native SCM recovery).
-
-### Core Features (v2.4.0 Milestone)
-
-1. **Native Bilingual Engine (English & Indonesian)**:
-   - Toggle the interface language dynamically on the fly by pressing **`[L]`** at any menu or prompt.
-   - User language preference is persisted across sessions in the registry (`HKCU:\Software\WindowsPrinterSharingFix\Language`).
+1. **Bilingual Interface (English & Indonesian)**:
+   - Toggle the interface language anytime by pressing **`[L]`** at any menu or prompt.
+   - Your language preference is saved in the registry (`HKCU:\Software\WindowsPrinterSharingFix\Language`).
 2. **Real-Time System Health Banner**:
-   - The console header checks and displays the live status of the four core Windows printer sharing components every time a menu renders:
+   - The header displays the live status of the 4 core Windows printer sharing components every time a menu opens:
      ```text
      STATUS: Spooler [RUNNING] | Network [PRIVATE] | SMB Signing [OK] | Pass Sharing [OFF]
      ```
-   - Lets you spot network misconfigurations at a glance.
-3. **Reorganized Console Layout (Human-Friendly UI)**:
-   - Replaced the old single-screen menu with **8 categorized submenus + 1 interactive help system**, sized for standard 86-column console buffers.
-4. **Role-Based Optimization Playbooks**:
-   - **Printer Host / Server Playbook (`[3]` in Submenu 1)**: Configured for host PCs with direct USB or local printer connections.
-   - **Client Workstation Playbook (`[4]` in Submenu 1)**: Configured for client PCs connecting over the local network.
-5. **Modern Windows 11 Security Mitigations**:
-   - Works around modern RPC over Named Pipes restrictions (`RpcOverNamedPipes`, `RegisterSpoolerRemoteRpcEndPoint`).
-   - Mitigates mandatory SMB Signing enforcement introduced in Windows 11 24H2.
-   - Configures NTLMv2 fallback for non-domain Workgroup topologies.
+   - Lets you spot network misconfigurations immediately.
+3. **Clean Console Menu Layout**:
+   - Sized for standard 86-column console buffers with **8 categorized submenus + 1 interactive help system**.
+4. **Targeted Host vs Client Fixes**:
+   - **Host PC Playbook (`[3]` in Submenu 1)**: For the computer physically connected to the printer via USB.
+   - **Client PC Playbook (`[4]` in Submenu 1)**: For client computers connecting over the network.
+5. **Windows 11 Security Compatibility (RPC & SMB)**:
+   - Fixes modern RPC over Named Pipes restrictions (`RpcOverNamedPipes`, `RegisterSpoolerRemoteRpcEndPoint`).
+   - Fixes mandatory SMB Signing blocks introduced in Windows 11 24H2.
+   - Configures NTLMv2 fallback for local office Workgroups.
 6. **Direct Action Shortcuts**:
-   - Execute any classic module directly from the Main Menu (e.g., enter `84` for ALLFIX, `83` for Extreme Path, `86` for UNC Port Mapping, `31` for Spooler Reset) without drilling into submenus.
-7. **Real-Time Remote Printer Scanner & 1-Click Clipboard UNC Port Mapping**:
-   - Submenu 7 Options `[1]` and `[5]` feature an intelligent, real-time printer share scanner with dual-tier discovery (SMB + RPC).
-   - Non-blocking asynchronous socket probe (`Test-TargetPortFast`) eliminates 20–30s console hangs when remote computers are offline.
-   - Discovered printers are displayed in an interactive numbered table with real-time `[ONLINE]` status.
-   - Selecting a printer number automatically copies the complete UNC path (`\\HOST\PRINTER`) to the Windows Clipboard (`Ctrl+V` ready) and offers instant 1-click local port mapping (bypassing 0x00000709 without manual typing).
-   - Includes LAN Active Host Detection to find printer host PCs across local subnets automatically.
+   - Run any module directly from the Main Menu by number (e.g., `84` for ALLFIX, `83` for Extreme Path, `86` for UNC Port Mapping, `31` for Spooler Reset).
+7. **Network Printer Scanner & 1-Click UNC Port Mapping**:
+   - Fast, non-blocking network printer scanner with dual-tier discovery (SMB + RPC).
+   - Selecting a printer automatically copies its UNC path (`\\HOST\PRINTER`) to the Windows Clipboard and offers 1-click local port mapping to bypass Error 0x00000709.
+8. **CLI Automation & Diagnostic Operational Modes**:
+   - Execute unattended playbooks (`-AllFix`, `-ExtremePath`, `-SilentAllFix`, `-NoPause`) or dry-run inspection modes (`-Verify`, `-Plan`, `-Analyze`, `-Audit`) with standard exit codes (`0` = healthy, `1` = drift/action needed).
+
+---
+
+## What's New in Version 2.4.1
+
+1. **Fixed morning printer connection drops after cold boot**:
+   - Fixed an issue where computers powered on in the morning couldn't connect to shared printers because the Spooler service started before Wi-Fi or LAN finished connecting. Added a lightweight logon task (`PrinterFixLogonReconnect`) that wakes up the network session (`\\Host\IPC$`) and refreshes Spooler when the user logs in.
+   - The boot fix script (`PrinterFixReapply.ps1`) now performs a clean restart of the Spooler service (`Restart-Service spooler -Force`) during startup so boot-time RPC policies take effect immediately.
+   - Fixed Windows resetting the default printer overnight: purged the temporary `SessionDefaultDevices` registry key and locked `UserSelectedDefault = 1` and `LegacyDefaultPrinterMode = 1` across all local user profiles (`HKU\S-1-5-21-*`).
+   - Enabled NetBIOS over TCP/IP (`NetbiosOptions = 1`) on active network adapters in fix `0x00000040`.
+   - Disabled network card power saving (Energy Efficient Ethernet / Green Ethernet) and USB Selective Suspend so idle computers don't drop printer connections overnight.
+   - Saved printer credentials to both the user account and the `SYSTEM` vault (binding IP and hostname together) so background print jobs don't get authentication errors.
+   - Set the network watchdog task duration (`/du 9999:59`) so Windows 11 doesn't automatically stop it after 24 hours.
+   - Added an explicit exit in silent AllFix (`-SilentAllFix` / `-nuke`) so it reboots immediately without waiting for user input.
+
+2. **Added CLI switches and diagnostic modes**:
+   - Added command-line switches: `-AllFix`, `-ExtremePath`, `-SilentAllFix`, `-Diagnose`, `-Language EN|ID`, `-NoPause`.
+   - Added read-only diagnostic modes: `-Verify` (checks 41 registry settings and services), `-Plan` (dry-run showing all 50 steps without changing anything), `-Analyze` (compares current settings against recommended values), and `-Audit` (saves full diagnostic report to the backup folder).
+   - Added `-Debug` mode to print readback verification checks after each registry change.
+   - All switches are automatically forwarded when the script requests Administrator elevation via UAC. Read-only modes (`-Verify`, `-Plan`, `-Analyze`, `-Audit`) can run without admin privileges.
+
+3. **Automatic Spooler crash recovery via Windows SCM**:
+   - Configured the Windows Service Control Manager (`sc.exe failure spooler`) to automatically restart Spooler in 2 seconds if it crashes, with zero background CPU overhead.
+   - Added boot persistence for SCM recovery in `PrinterFixReapply.ps1` so Windows Updates don't overwrite it.
+
+4. **Cleaner console output and cleaner logs**:
+   - Removed duplicate log lines across companion fix routines.
+   - Suppressed harmless DISM and service restart warnings (`3>$null`).
+   - Isolated event log parsing to errors that happened during the current session, ignoring old historical errors.
+   - Consolidated ALLFIX into 50 clean, non-repeating steps.
+
+5. **Spooler Watchdog toggle**:
+   - Added option `[90]` and updated menu `[4] -> [3]` to easily remove or toggle the 5-minute watchdog task.
+
+6. **Fixed startup crash when run without admin rights**:
+   - Moved helper functions (`Pause-User`, `Clear-Screen`) before the admin check so the script doesn't throw an error when asking for elevation.
+
+7. **Auto-restore missing mscms.dll (Error 0x0000007e)**:
+   - Fix `0x0000007e` now automatically copies missing `mscms.dll` from `System32`/`SysWOW64` into printer driver directories (`x64\3` and `W32X86\3`), fixing driver load errors on mixed 32-bit and 64-bit networks.
+
+8. **Fixed date format bug in session logs**:
+   - Normalized timestamp parsing in AllFix post-run check to handle both dot (`.`) and colon (`:`) separators across different Windows regional settings.
+
+9. **Repaired ARM64 V4 Print Class Drivers**:
+   - Extended `Fix-V4ClassDriver` to check and fix corrupted Version-4 driver keys under `Windows ARM64\Drivers\Version-4`.
+
+10. **Immediate Spooler restart after registry changes**:
+    - Modules `0x00000bc4`, `0x000006d1` (CSR), and Named Pipes now restart Spooler immediately so you don't need to manually reboot.
+
+11. **Offline documentation auto-fetch**:
+    - Option `[9] -> [2]` now automatically downloads and opens the HTML documentation in your browser when running via the one-liner command (`irm | iex`).
+
+12. **Fixed scheduled task quote escaping**:
+    - Fixed quotation escaping in `schtasks.exe` arguments for `PrinterFixNetworkWatchdog` to prevent syntax errors.
+
+13. **Donation info and QRIS support**:
+    - Added QRIS and crypto addresses (BTC, ETH, SOL) in README and documentation.
+
+14. **Bilingual message cleanup**:
+    - Standardized all network and discovery messages to match the selected language (English / Indonesian).
 
 ---
 
@@ -115,8 +172,29 @@ Execute specialized playbooks directly via command line:
 # Execute the modern Windows 11 24H2/25H2/26H2 remediation playbook
 .\WindowsPrinterSharingFix.exe -ExtremePath
 
+# Quick read-only verification of 41 registry settings, network profiles & services
+.\WindowsPrinterSharingFix.exe -Verify
+
+# Dry-run of all 50 ALLFIX steps without making changes
+.\WindowsPrinterSharingFix.exe -Plan
+
+# Analyze registry drift and print targeted recommendations
+.\WindowsPrinterSharingFix.exe -Analyze
+
+# Full system audit saved to backup directory
+.\WindowsPrinterSharingFix.exe -Audit
+
+# Run fixes with verbose readback verification
+.\WindowsPrinterSharingFix.exe -Debug
+
 # Run full system diagnostics and export an interactive HTML report
 .\WindowsPrinterSharingFix.exe -Diagnose
+
+# Unattended automation for monitoring (Nagios/Zabbix/RMM): exit 0 if healthy, 1 if drift
+.\WindowsPrinterSharingFix.exe -Verify -NoPause
+
+# Unattended remediation without confirmation prompts
+.\WindowsPrinterSharingFix.exe -AllFix -NoPause
 
 # Launch in English explicitly
 .\WindowsPrinterSharingFix.exe -Language EN
@@ -140,6 +218,7 @@ Quickly identify your Windows network printer error code and match it to its roo
 | **0x80070005** | *Access is denied* | Insufficient NTFS / Spooler ACL permissions on `System32\Spool\Printers`. | Run `[06]` (Grants universal `Everyone` queue ACL) |
 | **0x00000002** | *The system cannot find the file specified* | Point & Print CopyFilesPolicy ingestion restriction blocking remote driver transfer. | Run `[08]` (Enables `UseSharedSpooler = 1`) |
 | **0x0000007e** | *The specified module could not be found* | Cross-architecture (32-bit client to 64-bit server) driver bitness mismatch. | Run `[09]` (Injects architecture compatibility keys) |
+| **Morning Disconnection** | *Printer offline after morning computer boot* | Spooler starts before Wi-Fi/DHCP network attachment completes. | Run `.\WindowsPrinterSharingFix.exe -AllFix` (deploys `PrinterFixLogonReconnect`) |
 
 ---
 
@@ -329,15 +408,16 @@ Built-in technical reference, diagnostic tools, and usage guidance for every mod
 
 When automated playbooks (**ALLFIX [84]** or **Extreme Path [83]**) are executed, the engine applies multiple safety and persistence mechanisms:
 
-1. **Group Policy Synchronization (`gpupdate /force`)**: Refreshes local Group Policy before writing registry overrides to prevent immediate policy rollback.
-2. **Pre-Change Registry Backup**: Backs up 5 critical registry hives to `C:\WindowsPrinterSharingFixBackup` before making any modifications.
-3. **Resilient Scheduled Tasks**:
-   - `PrinterFixPostUpdate` (triggered on system boot with a 30-second polling retry loop): Re-applies critical RPC, SMB guest, and Point & Print policies if monthly Windows Updates (*Patch Tuesday*) revert configurations, without disruptive mid-day restarts.
+1. **Pre-Change Registry Backup**: Backs up 5 critical registry hives to `C:\WindowsPrinterSharingFixBackup` before making any modifications.
+2. **Group Policy Synchronization (`gpupdate /force`)**: Refreshes local Group Policy before writing registry overrides to prevent immediate policy rollback.
+3. **Resilient Scheduled Tasks (Boot & Logon)**:
+   - `PrinterFixPostUpdate` (triggered on system boot with a 30-second polling retry loop): Re-applies critical RPC, SMB guest, and Point & Print policies if monthly Windows Updates (*Patch Tuesday*) revert configurations.
+   - `PrinterFixLogonReconnect` (triggered on user logon): Wakes up the network session (`\\Host\IPC$`) and refreshes Print Spooler so cold-booted computers connect reliably before background networking finishes.
    - `PrinterFixNetworkWatchdog` (runs every 15 minutes): Automatically detects and restores network profiles to `Private` if adapter reconnections or router reboots temporarily drop them to `Public`.
-   - `SpoolerWatchdog` (optional, runs every 5 minutes): Actively monitors the Print Spooler service and restarts it if terminated by unstable third-party drivers (can be removed anytime via Submenu 4 Option [3] or shortcut [90]).
-   - *The legacy daily 10:00 AM task (`PrinterFixDaily`) has been completely removed to eliminate mid-day workflow interruptions.*
-   - *All scheduled tasks are configured with battery exemption (`AllowStartIfOnBatteries`, `DontStopIfGoingOnBatteries`) to maintain protection on laptops.*
-4. **Clean Session & Ticket Eviction**: Executes `klist purge`, `ipconfig /flushdns`, and `nbtstat -RR` to flush stale NetBIOS names, expired Kerberos tickets, and cached DNS entries.
+   - `SpoolerWatchdog` (optional, runs every 5 minutes): Actively monitors the Print Spooler service and restarts it if terminated by unstable third-party drivers (toggleable via menu `[4] -> [3]` or shortcut `[90]`).
+   - *All scheduled tasks are configured with battery exemption (`AllowStartIfOnBatteries`, `DontStopIfGoingOnBatteries`) to maintain protection on laptops without battery drain.*
+4. **Automatic Spooler Crash Recovery (SCM)**: Configures the Windows Service Control Manager (`sc.exe failure spooler`) to instantly restart Print Spooler in 2 seconds upon crash without background polling overhead.
+5. **Clean Session & Ticket Eviction**: Executes `klist purge`, `ipconfig /flushdns`, and `nbtstat -RR` to flush stale NetBIOS names, expired Kerberos tickets, and cached DNS entries.
 
 ---
 
@@ -356,6 +436,9 @@ Yes. Windows Printer Sharing Fix registers the lightweight `PrinterFixPostUpdate
 
 ### How does this utility compare to older 2021 PrintNightmare batch scripts?
 Legacy batch scripts from 2021 typically only set a single registry key (`RpcAuthnLevelPrivacyEnabled = 0`) which was patched and superseded by newer Windows cumulative updates. They cannot resolve modern Windows 11 24H2/25H2 SMB Signing restrictions, RPC Named Pipes overrides (`0x00000bc4`), Point and Print driver copy policy blocks (`0x00000002`), or socket keep-alive resets (`0x00000040`). This utility contains 90 specialized repair modules designed for current Windows 10, 11, and Server 2025 releases.
+
+### Why does my shared printer keep disconnecting or showing offline every morning?
+Windows Print Spooler often starts before wireless (Wi-Fi) or dynamic DHCP Ethernet connections are fully established during morning cold boots, causing Windows to fail the network IPC handshake (`\\Host\IPC$`) and mark the printer as offline. Running **ALLFIX `[84]`** deploys the lightweight `PrinterFixLogonReconnect` scheduled task, which automatically pings the IPC share and refreshes the Print Spooler upon user login without requiring manual reboots or IT assistance.
 
 ---
 

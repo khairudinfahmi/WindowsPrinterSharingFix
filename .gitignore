@@ -20,6 +20,7 @@ release/*
 # ===========================
 *.log
 *.txt
+!llms.txt
 *.tmp
 *release-notes*.md
 scratch/

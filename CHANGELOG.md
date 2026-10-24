@@ -8,45 +8,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.4.1] - 2026-09-22
 
 ### Fixed
-- **Elevation Sequence & Hoisting**:
-  - Hoisted `Pause-User` and `Clear-Screen` helper functions prior to `Test-Administrator` and `Restart-Elevated` calls, preventing command execution errors when elevation is triggered without a script path.
-- **AllFix Session Log Date Normalization**:
-  - Normalized date parsing in `AllFix-Core` post-run log inspection to accept both dot (`.`) and colon (`:`) time separators, preventing parse exceptions during session analysis.
-- **RPC Bitness & Missing mscms.dll Restoration (Error 0x0000007e)**:
-  - Extended `Fix-RpcBitness0x0000007e` to automatically verify and restore missing `mscms.dll` from `System32`/`SysWOW64` into driver spool directories (`x64\3` and `W32X86\3`), eliminating the classic `ERROR_MOD_NOT_FOUND` driver load error.
-- **Windows ARM64 V4 Print Class Driver Registry Audit**:
-  - Expanded `Fix-V4ClassDriver` to inspect and repair corrupt Version-4 driver configurations under `Windows ARM64\Drivers\Version-4` alongside x64 and x86 architectures.
-- **Active User Credential Injection (Vault & Locked NTUSER.DAT Bypass)**:
-  - Enhanced `Inject-CrossUserCredentials` to detect the currently active user SID and directly inject credentials via `cmdkey.exe`, bypassing file lock conflicts on the current user's `NTUSER.DAT`.
-- **Documentation Technical Card Synchronization**:
-  - Synchronized technical reference cards for modules 13 (`Fix-NamedPipes`), 28 (`Rescue-NetworkProfile`), 68 (`Manage-BITS`), and 82 (`Enable-SMBGuest`) in `docs/documentation.html`, achieving 100% card coverage for all 87 repair modules.
-- **Scheduled Task Execution & Quotation Escaping**:
-  - Resolved argument splitting issue in `PrinterFixNetworkWatchdog` scheduled task creation (`schtasks.exe /tr`), properly escaping inner quotation marks to eliminate `-EA` parsing error and guarantee continuous 15-minute network profile monitoring.
-- **Print Spooler Policy Lifecycle Triggers**:
-  - Integrated automated Print Spooler restart (`Restart-Service spooler -Force`) into `Fix-Discovery0x00000bc4`, `Fix-CSR` (Error 0x000006d1), and `Fix-NamedPipes` ensuring registry policy modifications take effect immediately without requiring a full system reboot.
-- **Web Stream Documentation Auto-Fetch**:
-  - Automatically downloads and opens latest HTML documentation in Submenu 9 Option [2] when executing via one-line web stream (`irm | iex`).
-- **Forensic Console Stream Purity & Noise Elimination**:
-  - Implemented `-NoConsole` output routing across 40+ companion `Write-Log` calls, preventing duplicate log prints when companion `Write-Host` is already displayed.
-  - Suppressed non-critical DISM feature enablement and SCM service restart warnings (`3>$null`) across automated fixes.
-  - Standardized `-NoBanner` parameter on sub-routines invoked within automated suites (`Fix-V4ClassDriver`, `Sanitize-PrinterShareName`, `Parse-PrintEventLog`).
-  - Isolated post-fix event log parsing strictly to entries logged during the active session (`$script:sessionStartTime`), preventing stale historical logs from triggering false alarms.
+
+- **Morning Connection Drops After Cold Boot**:
+  - Boot script (`PrinterFixReapply.ps1`) now forces a clean restart of the Spooler service (`Restart-Service spooler -Force`) during startup so boot-time RPC policies take effect immediately.
+  - Added an `ONLOGON` task (`PrinterFixLogonReconnect`) that wakes up the network session (`\\Host\IPC$`) and refreshes Spooler when the user logs in in the morning before Wi-Fi/LAN is fully connected.
+  - Purged temporary `SessionDefaultDevices` registry key and locked `UserSelectedDefault = 1` alongside `LegacyDefaultPrinterMode = 1` across all local user profiles (`HKU\S-1-5-21-*`).
+  - Enabled NetBIOS over TCP/IP (`NetbiosOptions = 1`) on active network adapters in `Fix-Network0x00000040`.
+  - Disabled network card power saving (Energy Efficient Ethernet / Green Ethernet) and USB Selective Suspend so idle computers don't drop printer connections overnight.
+  - Stored printer credentials in both the user account and the `SYSTEM` vault (binding IP and hostname together) so background print jobs don't get authentication errors.
+  - Set the network watchdog task duration (`/du 9999:59`) so Windows 11 doesn't automatically stop it after 24 hours.
+  - Added explicit exit in silent AllFix (`-SilentAllFix` / `-nuke`) so it reboots immediately without waiting for user input.
+  - Added CLI parameters `-Debug`, `-Analyze`, `-Audit`, `-Plan`, and `-Verify` with automated switch forwarding in `Restart-Elevated` and non-elevated read-only inspection support.
+- **Startup Crash When Run Without Admin Rights**:
+  - Moved helper functions (`Pause-User`, `Clear-Screen`) before the admin check so the script doesn't throw an error when asking for elevation.
+- **Date Format Parsing in Session Logs**:
+  - Normalized date parsing in `AllFix-Core` post-run log inspection to accept both dot (`.`) and colon (`:`) time separators across different Windows regional settings.
+- **Auto-Restore Missing mscms.dll (Error 0x0000007e)**:
+  - Extended `Fix-RpcBitness0x0000007e` to automatically copy missing `mscms.dll` from `System32`/`SysWOW64` into printer driver directories (`x64\3` and `W32X86\3`), fixing driver load errors on mixed 32-bit and 64-bit networks.
+- **ARM64 V4 Print Class Drivers**:
+  - Expanded `Fix-V4ClassDriver` to check and fix corrupted Version-4 driver keys under `Windows ARM64\Drivers\Version-4`.
+- **User Credential Injection (Bypass Locked NTUSER.DAT)**:
+  - Enhanced `Inject-CrossUserCredentials` to detect the currently active user SID and directly inject credentials via `cmdkey.exe`, bypassing file lock conflicts on the user's `NTUSER.DAT`.
+- **Documentation Cards Coverage**:
+  - Added reference cards for modules 13 (`Fix-NamedPipes`), 28 (`Rescue-NetworkProfile`), 68 (`Manage-BITS`), and 82 (`Enable-SMBGuest`) in `docs/documentation.html`.
+- **Scheduled Task Argument Escaping**:
+  - Fixed quotation escaping in `schtasks.exe` arguments for `PrinterFixNetworkWatchdog` to prevent syntax errors.
+- **Immediate Spooler Restart on Policy Changes**:
+  - Added Spooler restart (`Restart-Service spooler -Force`) to `Fix-Discovery0x00000bc4`, `Fix-CSR` (0x000006d1), and `Fix-NamedPipes` so registry modifications take effect immediately without a manual reboot.
+- **Offline Documentation Auto-Fetch**:
+  - Option `[9] -> [2]` now automatically downloads and opens the HTML documentation in your browser when running via the one-liner command (`irm | iex`).
+- **Clean Console Output & Warning Cleanup**:
+  - Removed duplicate log lines across companion fix routines.
+  - Suppressed non-critical DISM and service restart warnings (`3>$null`).
+  - Standardized `-NoBanner` on automated sequence sub-routines.
+  - Isolated event log parsing to errors that happened during the current session, ignoring old historical errors.
 
 ### Changed
-- **Streamlined ALLFIX to 50 Unique Non-Redundant Steps**:
-  - Completely deduplicated ALLFIX into 50 distinct technical milestones, eliminating redundant spooler restarts and duplicate 0x709 passes.
-  - Integrated dedicated steps for ARP/route reset, null session pipe whitelist, remote spooler RPC endpoint policy enforcement, and native SCM recovery validation.
+
+- **Consolidated ALLFIX to 50 Steps**:
+  - Cleaned up ALLFIX into 50 distinct steps, removing redundant spooler restarts and duplicate 0x709 passes.
 
 ### Added
-- **Native SCM Print Spooler Crash Recovery**:
-  - Upgraded `Set-SpoolerRecovery` to configure Windows Service Control Manager (`sc.exe failure spooler`) with an instant 2-second restart delay (`actions= restart/2000/restart/5000/restart/10000`), 24-hour reset period (`reset= 86400`), and `failureflag 1` for zero-overhead, kernel-level crash recovery that distinguishes crashes from normal administrative shutdowns.
-  - Added boot-time persistence for Native SCM recovery inside `PrinterFixReapply.ps1` to withstand cumulative updates such as KB5129195 (Build 26200.9457).
-- **Spooler Watchdog Clean Removal & Smart Toggle**:
-  - Added `Remove-SpoolerWatchdog` function (`schtasks.exe /delete /tn "SpoolerWatchdog" /f`) and Direct Action shortcut `[90]`.
-  - Implemented smart detection in Submenu 4 Option `[3]` to dynamically toggle between deploying and cleanly removing the 5-minute watchdog task.
-- **Support & Donations**:
-  - Added QRIS barcode and multi-chain cryptocurrency donation addresses (BTC, ETH/EVM, SOL) in README and documentation.
-- **Bilingual Message Standardization**:
+
+- **Spooler Crash Auto-Recovery via Windows SCM**:
+  - Configured Windows Service Control Manager (`sc.exe failure spooler`) to automatically restart Spooler in 2 seconds if it crashes, with zero background CPU overhead.
+  - Added boot persistence for SCM recovery in `PrinterFixReapply.ps1` so Windows Updates don't overwrite it.
+- **Spooler Watchdog Toggle**:
+  - Added option `[90]` and updated menu `[4] -> [3]` to easily remove or toggle the 5-minute watchdog task.
+- **Donations & QRIS Support**:
+  - Added QRIS barcode and cryptocurrency donation addresses (BTC, ETH/EVM, SOL) in README and documentation.
+- **Unattended CLI Automation & Exit Code Support**:
+  - Added `-NoPause` switch across all operational modes (`-Verify`, `-Plan`, `-Analyze`, `-Audit`, `-AllFix`, `-ExtremePath`).
+  - Implemented exit codes for automated network monitoring (`exit 0` if all policies are compliant, `exit 1` if drift/failed/missing detected).
+  - Dynamically formatted executable invocation syntax in `-Plan`, `-Analyze`, and `-Audit` (`.exe` vs `.ps1` auto-detection).
+  - Suppressed duplicate `VERIFY MODE` banner when `-Analyze` or `-Audit` is executed.
+- **Bilingual Message Cleanup**:
   - Standardized console output across discovery and network services to respect active language preference (`$script:lang`).
 
 ---
@@ -54,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.4.0] - 2026-09-16
 
 ### Added
+
 - **Real-Time Remote Printer Scanner & 1-Click Clipboard UNC Port Mapping (Submenu 7, Options [1] & [5])**:
   - **Anti-Hang Socket Probe**: Implemented non-blocking asynchronous TCP probe (`Test-TargetPortFast`) on SMB (445) and RPC (135) with a strict 1000ms timeout, completely eliminating 20–30s console hangs when remote computers are offline.
   - **Real-Time Printer Discovery**: Added `Find-RemoteSharedPrinters` supporting dual-tier discovery (SMB share enumeration via `net view` with process timeout fallback + RPC/WMI query), bypassing modern Windows 11 remote RPC spooler restrictions.
@@ -70,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Instant Web Launch & Quick-Lookup Error Matrix**: Added an instant one-liner PowerShell execution method, an error code quick-lookup matrix, and a troubleshooting FAQ section to documentation.
 
 ### Fixed
+
 - **Registry Rollback & Safety Hardening**:
   - Differentiated between genuine restoration and zero-file restoration failure in `Rollback-Registry` to eliminate false-positive success notifications.
   - Automatically restarts the Print Spooler service upon successful registry rollback to reload restored policies immediately.
@@ -105,6 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.3.2] - 2026-06-16
 
 ### Security & Reliability Fixes
+
 - **Printer Name Error Prevention**: Fixed a crash (`WQL syntax error`) that frequently occurred when printer names contained a single quote (e.g., "Bob's Office") in the `Force-PrinterOnline` and `Manage-DefaultPrinter` features.
 - **Typo Crash Protection**: Added automatic protections to the menu selection. Accidentally typing letters instead of numbers will no longer crash the script.
 - **HTML Report Fix**: Updated the logging system so that special characters (`<`, `>`, `&`) no longer break the HTML diagnostic report's layout.
@@ -119,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.3.1] - 2026-06-14
 
 ### Fixed
+
 - Task Scheduler battery restriction: Disabled default AC power constraints (`AllowStartIfOnBatteries`, `DontStopIfGoingOnBatteries`) for all registered tasks (`PrinterFixPostUpdate`, `PrinterFixDaily`, `SpoolerWatchdog`, and `NetworkProfileWatchdog`). This resolves execution failure `0x800710E0` on laptop computers running on battery power.
 
 ---
@@ -126,6 +146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.3.0] - 2026-06-12
 
 ### Added
+
 - GPO intervention scanner (Option 80) now performs active domain membership queries, suppressing Domain Controller overwrite warnings and gpresult logs for Workgroup users.
 - Introduced recommended configuration mapping in GPO diagnostics, formatting matching parameters as `[Active Fix]` in Green and only flagging mismatches as `[!] Policy Override (Restricted)` in Red.
 - Added direct HKLM Print spooler configuration keys (`RpcOverNamedPipes`, `RpcOverTcp`) inside Option 2 and Option 13 to enforce RPC pathways under Windows 11 24H2+.
@@ -136,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened the auto-reapply scheduled task in `Set-PostPatchTuesdayTask` (Option 5) to directly force `RpcOverNamedPipes` and `RpcOverTcp` under the printer control parameters registry on boot.
 
 ### Fixed
+
 - Force-DefaultPrinterRegistry: Removed trailing colon from Device string that caused printer assignment failures.
 - Fix-CrossSignedDriverPolicy: Changed SilentlyContinue to Stop with post-write verification for registry operations.
 - Fix-AdvancedPointAndPrint: Filled empty catch blocks with proper error logging.
@@ -153,6 +175,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix-mDNS: Added dynamic path creation (`New-Item`) for `DNSClient` and `Dnscache` registries to prevent "Cannot find path" errors during `-ErrorAction Stop` strict enforcement.
 
 ### Improved
+
 - Added security warnings for credential injection and Point-and-Print operations.
 - Disable-PasswordSharing: Documented everyoneincludesanonymous security implications.
 - NTLMv2 conflict with Deep0x00000709 documented; NtlmMinClientSec aligned.
@@ -166,6 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Write-Log: Added fallback log path detection (TEMP/UserProfile) when C:\ is not writable.
 
 ### Changed
+
 - Renamed "AUTOMATED REPAIR SEQUENCES" to "AUTOMATED FIXES" across all UI and documentation.
 - Removed all external attribution from script header and console footer.
 - Cleaned up script synopsis to minimal project metadata only.
@@ -175,6 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.9] - 2026-05-17
 
 ### Added
+
 - Smarter suggestions for Event ID 372 error messages (identifying credential or network blockages).
 
 ---
@@ -182,9 +207,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.8] - 2026-05-17
 
 ### Added
+
 - Added wusa.exe fallback for update uninstalls (Option [69]). If DISM fails, it will try wusa automatically.
 
 ### Changed
+
 - Reorganized and aligned the 89-option menu for a cleaner look.
 - Cleaned up code.
 - Improved error messages for the update uninstaller.
@@ -194,10 +221,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.7] - 2026-05-17
 
 ### Added
+
 - **Remove Injected Port (Option [87])**: Added `Remove-LocalPortUNC` function to safely delete custom ports created by the UNC Port Mapping Bypass (Option [86]). Includes a Registry Purge fallback if standard removal is blocked by Windows security policies.
 - **UNC Port Mapping Bypass Polish**: Optimized `Map-LocalPortUNC` with improved diagnostic logging and direct registry injection verification.
 
 ### Changed
+
 - **Global ID Re-indexing**: Reorganized features into an 89-option architecture.
   - `[87]` Remove Injected Local Port (UNC)
   - `[88]` Reboot System
@@ -209,9 +238,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.6] - 2026-05-17
 
 ### Added
+
 - **Registry Bypass for Local Ports**: Significantly enhanced `Map-LocalPortUNC` (Option [86]) with a fallback mechanism. If the standard Windows API for port creation is blocked by RPC security policies, the tool now injects the UNC path directly into the registry and restarts the spooler to force availability.
 
 ### Changed
+
 - **Standardized Error Codes**: Expanded all hex error codes to their full 10-character format (e.g., 0x0000011b, 0x00000709) across the entire UI, console logs, and documentation for maximum clarity and enterprise compliance.
 - **Professional Language Polish**: Replaced "stiff" or AI-centric terminology (e.g., "mutated", "transmitted", "numerals") with natural, professional technical language ("updated", "issued", "numbers") to ensure a polished user experience.
 - **Function Standardization**: Renamed core repair functions to include their corresponding error codes (e.g., Fix-11b -> Fix-RpcAuthn0x0000011b) for better developer traceability and maintenance.
@@ -223,11 +254,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.5] - 2026-05-17
 
 ### Added
+
 - **UNC Port Bypass (Option [86])**: Added `Map-LocalPortUNC` function. This allows users to map a local port directly to a UNC path (`\\TargetIP\ShareName`), effectively bypassing persistent RPC "Check printer name" or "0x709" errors when standard sharing protocols fail.
 - **Enhanced PrintNightmare Bypasses**: Expanded `Fix-AdvancedPointAndPrint` (Option [56]) with critical registry overrides (`RestrictDriverInstallationToAdministrators = 0`, `NoWarningNoElevationOnInstall = 1`, etc.). This enables silent driver downloads from host machines even under strict modern security policies.
 - **AllFix Sequence Markers**: Added visual menu-mapping hints (e.g., `(Menu 64)`) to each step in the `AllFix-Core` sequence, allowing users to trace which individual fix corresponds to each automated step.
 
 ### Fixed
+
 - **Spooler Resilience**: Added explicit `Set-Service spooler -StartupType Automatic` during the Spooler Hard Reset (Option [31]) to ensure the service persists after a reboot.
 - **SMB Mutual Auth**: Added `RequireMutualAuthentication = 0` to `Fix-SMBSigning` (Option [16]) to ensure smooth NTLM fallback for workgroup environments.
 - **Network Discovery Hardening**: Integrated `nlasvc` (Network List Service) and `Dnscache` into `Fix-NetworkServices` (Option [04]) to ensure reliable profile detection.
@@ -239,6 +272,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.3] - 2026-05-16
 
 ### Fixed
+
 - **GPO Synchronization**: Moved `gpupdate /force` to the beginning of the `AllFix-Core` and `Extreme-25H2` sequences. This prevents domain-joined machines from reverting registry fixes immediately after script execution.
 - **Sequence Integrity**: Standardized the `AllFix-Core` sequence to a consistent 50-step repair flow, correcting duplicate numbering and inconsistent step labels.
 - **Error 0x00000709 (HKCU Permissions)**: Added `Fix-HKCU-PrinterKeyPerms` to grant FullControl to the printer registry key. This resolves "Access Denied" errors when writing to the Device key during printer assignment.
@@ -246,6 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Code Optimization**: Removed the legacy `Fix-709` dead code function, fully transitioning to the multi-layered `Fix-709-Deep` implementation.
 
 ### Added
+
 - **KB5089549 Driver Bypass**: Implemented `Fix-CrossSignedDriverPolicy` to disable the new cross-signed driver enforcement (Audit Mode) introduced in the May 2026 patch.
 - **Post-Update Automation**: Integrated `Set-PostPatchTuesdayTask`, which deploys a scheduled task (`PrinterFixPostUpdate`) to automatically re-apply critical registry fixes after Windows Updates or reboots.
 - **Enhanced KB List**: Updated `Manage-WindowsUpdate` with a curated list of known printer-breaking KBs from 2025-2026.
@@ -253,12 +288,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.2] - 2026-05-16
 
 ### Added
+
 - **Deep Fix 0x00000709**: Integrated a new multi-layered repair logic (Option [02]) targeting persistent 0x00000709 errors. Includes RPC Named Pipe enforcement, Kerberos disabling (`ForceKerberosForRpc=0`), and HKCU device key sanitation.
 - **Automated Deep Fix**: Integrated `Fix-709-Deep` into the `AllFix-Core` [84] and `Extreme-25H2` [83] sequences.
 
 ## [2.2.1] - 2026-05-16
 
 ### Fixed
+
 - **PrintBRM Migration**: Improved the launch logic for `PrintBrm.exe` (Option [81]) to open in a persistent CMD window with the help manual (`/?`) automatically displayed.
 - **DISM Capture**: Enhanced DISM uninstallation modules to correctly capture and report exit codes (0/3010) for verification.
 - **Windows Update Compliance**: Added registry keys (`PauseFeatureUpdatesStartTime`, `PauseUpdatesExpiryTime`) to ensure Windows 11 respects update pauses.
@@ -268,12 +305,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.0] - 2026-05-15
 
 ### Changed
+
 - **Feature Optimization**: Removed the non-essential "Auto-Inject F4/Folio Paper Size" feature (previously Option [50]) to streamline the toolkit.
-- **Global ID Re-indexing**: Reorganized all features into a strictly sequential 87-option architecture (down from 88). 
+- **Global ID Re-indexing**: Reorganized all features into a strictly sequential 87-option architecture (down from 88).
 - **UX Improvement**: Renamed "Case 2" troubleshooting to "STILL DENIED? (Persistent)" for better user clarity. Added strategic tips for manual credential injection (Option [60]) when automated fixes are blocked by modern Windows 11 security policies.
 - **AllFix Sequence**: Adjusted automated repair sequence from 50 to 49 steps.
 
 ### Fixed
+
 - **Redundant Code**: Purged legacy F4 injection logic and registry manipulation to reduce script footprint and potential security surface.
 
 ---
@@ -281,6 +320,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.1.1] - 2026-05-13
 
 ### Fixed
+
 - **F4 Paper Size Injection**: Resolved `System.Byte[]` type mismatch bug in `Inject-F4PaperSize` by refactoring array construction to a flat byte array.
 - **NTLMv2 Compatibility**: Upgraded `Fix-NTLMv2` to enforce Value 3 (Strict NTLMv2) for improved network storage (NAS) and modern print sharing compatibility.
 
@@ -289,6 +329,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.1.0] - 2026-05-10
 
 ### Changed
+
 - **Global ID Migration**: All 88 features have been reorganized into a strictly sequential, logical 3-column architecture for improved usability and consistency.
   - **Column 1 [01-30]**: Core Fixes & Network Services (Error codes, DNS, SMB, WSD, IPP, Firewall).
   - **Column 2 [31-60]**: Spooler, Drivers & Policies (Spooler management, V4 drivers, LSA, SAC, UAC).
@@ -306,6 +347,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AllFix**: Expanded from 42 to 50 automated repair steps.
 
 ### Fixed
+
 - `$colWidth` undefined variable causing PadRight crash in Show-Menu column 3.
 - BufferSize not set before WindowSize causing silent console resize failure.
 - 18 switch cases referencing non-existent function names (e.g., `Uninstall-KBUpdate` → `Manage-WindowsUpdate`).
@@ -318,6 +360,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2026-05-10
 
 ### Added
+
 - 18 new advanced diagnostic and repair modules, expanding total features from 70 to 88.
 - **Driver & Windows Update**: Universal Print V4 Fix, PCL/PostScript Toggle, KB Uninstall & Pause, Orphaned Driver Sweeper, Force-Kill Driver Process.
 - **Network & Port**: WSD to TCP/IP Converter, Network Socket Re-init, Rescue Network Profile (Watchdog), Ghost USB Port Eliminator.
@@ -327,6 +370,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Advanced Diagnostics**: GPO Intervention Detection (Policy Scan), PrintService Event Log Parser (Top 5).
 
 ### Changed
+
 - AllFix expanded from 42 to 50 automated repair steps with 8 new safe integrations.
 - Extreme Path (Win 11 24H2/25H2) enhanced with V4 Driver Fix, Spooler Dependency Reset, and Share Name Sanitization.
 - Menu system updated: dynamic row rendering supports variable-length columns.
@@ -337,6 +381,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.1] - 2026-05-04
 
 ### Changed
+
 - UI Enhancement: Highlighted primary operation modes in the CLI menu for better visibility.
 - Documentation: Updated OS Support requirements to clarify Legacy OS (Windows 7/8/8.1) as "Partial/Registry Support only".
 - Documentation: Replaced all emojis in the HTML manual with professional Lucide icons.
@@ -346,7 +391,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [1.0.0] - 2026-05-03
+
 ### Added
+
 - 70 comprehensive printer sharing diagnostic and repair options for Windows 10/11/Server environments.
 - Native support for Windows 11 24H2, 25H2, 26H2, and ARM64 (Snapdragon) architectures.
 - Native support for Windows Server 2019, 2022, and 2025.

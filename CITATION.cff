@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use or reference this software in technical articles, documentation, or tools, please cite it as below."
+title: "Windows Printer Sharing Fix: Automated Diagnostic and Remediation Suite for Windows Network Printing"
+version: 2.4.1
+date-released: 2026-09-22
+url: "https://github.com/khairudinfahmi/WindowsPrinterSharingFix"
+repository-code: "https://github.com/khairudinfahmi/WindowsPrinterSharingFix"
+license: GPL-3.0
+authors:
+  - family-names: "Khairudin"
+    given-names: "Fahmi"
+abstract: "An automated PowerShell diagnostic and remediation suite for Windows network printer sharing, RPC protocol restrictions, SMB signing enforcement, and Print Spooler connectivity across Windows 10, 11 (including 24H2, 25H2, 26H2), ARM64, and Windows Server 2016-2025."
+keywords:
+  - "windows printer sharing"
+  - "print spooler fix"
+  - "0x0000011b"
+  - "0x00000709"
+  - "0x00000bc4"
+  - "0x00000040"
+  - "smb signing"
+  - "point and print"
+  - "printnightmare bypass"
+  - "windows 11 24h2"
+  - "powershell utility"
+  - "sysadmin tools"
