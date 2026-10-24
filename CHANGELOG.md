@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.4.1] - 2026-09-22
 
 ### Fixed
+- **Elevation Sequence & Hoisting**:
+  - Hoisted `Pause-User` and `Clear-Screen` helper functions prior to `Test-Administrator` and `Restart-Elevated` calls, preventing command execution errors when elevation is triggered without a script path.
+- **AllFix Session Log Date Normalization**:
+  - Normalized date parsing in `AllFix-Core` post-run log inspection to accept both dot (`.`) and colon (`:`) time separators, preventing parse exceptions during session analysis.
+- **RPC Bitness & Missing mscms.dll Restoration (Error 0x0000007e)**:
+  - Extended `Fix-RpcBitness0x0000007e` to automatically verify and restore missing `mscms.dll` from `System32`/`SysWOW64` into driver spool directories (`x64\3` and `W32X86\3`), eliminating the classic `ERROR_MOD_NOT_FOUND` driver load error.
+- **Windows ARM64 V4 Print Class Driver Registry Audit**:
+  - Expanded `Fix-V4ClassDriver` to inspect and repair corrupt Version-4 driver configurations under `Windows ARM64\Drivers\Version-4` alongside x64 and x86 architectures.
+- **Active User Credential Injection (Vault & Locked NTUSER.DAT Bypass)**:
+  - Enhanced `Inject-CrossUserCredentials` to detect the currently active user SID and directly inject credentials via `cmdkey.exe`, bypassing file lock conflicts on the current user's `NTUSER.DAT`.
+- **Documentation Technical Card Synchronization**:
+  - Synchronized technical reference cards for modules 13 (`Fix-NamedPipes`), 28 (`Rescue-NetworkProfile`), 68 (`Manage-BITS`), and 82 (`Enable-SMBGuest`) in `docs/documentation.html`, achieving 100% card coverage for all 87 repair modules.
 - **Scheduled Task Execution & Quotation Escaping**:
   - Resolved argument splitting issue in `PrinterFixNetworkWatchdog` scheduled task creation (`schtasks.exe /tr`), properly escaping inner quotation marks to eliminate `-EA` parsing error and guarantee continuous 15-minute network profile monitoring.
 - **Print Spooler Policy Lifecycle Triggers**:
