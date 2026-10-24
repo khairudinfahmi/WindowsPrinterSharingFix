@@ -106,6 +106,23 @@ function Write-Log {
     }
 }
 
+function Clear-Screen {
+    try { [System.Console]::Clear() } catch { try { Clear-Host } catch {} }
+}
+
+function Pause-User {
+    Write-Host ""
+    if ($script:lang -eq "EN") {
+        Write-Host "  [>] Press ENTER to return..." -ForegroundColor Yellow
+    } else {
+        Write-Host "  [>] Tekan ENTER untuk kembali..." -ForegroundColor Yellow
+    }
+    try {
+        [void][System.Console]::ReadLine()
+    } catch {
+        try { [void](Read-Host) } catch {}
+    }
+}
 
 function Test-Administrator {
     $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
@@ -384,6 +401,7 @@ function Fix-Discovery0x00000bc4 {
         Set-ItemProperty -Path $path -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force -ErrorAction Stop
         Set-ItemProperty -Path $path -Name RpcTcpEnable -Value 1 -Type DWord -Force -ErrorAction Stop
         Set-ItemProperty -Path $path -Name RpcProtocols -Value 0x7 -Type DWord -Force -ErrorAction Stop
+        Set-ItemProperty -Path $path -Name RpcOverNamedPipes -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
         Set-ItemProperty -Path $path -Name ForceSetup -Value 1 -Type DWord -Force -ErrorAction Stop
 
         Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
@@ -1435,6 +1453,11 @@ function Fix-SMBSigning {
         Set-ItemProperty -Path $polLanman -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
         Set-ItemProperty -Path $polLanman -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
+        $polLanmanServer = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanServer"
+        if (-not (Test-Path $polLanmanServer)) { New-Item -Path $polLanmanServer -Force | Out-Null }
+        Set-ItemProperty -Path $polLanmanServer -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $polLanmanServer -Name EnableSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+
         try {
             if (Get-Command Set-SmbClientConfiguration -ErrorAction SilentlyContinue) {
                 Set-SmbClientConfiguration -RequireSecuritySignature $false -EnableSecuritySignature $false -Confirm:$false -Force -ErrorAction SilentlyContinue
@@ -1574,6 +1597,8 @@ function Fix-AdvancedPointAndPrint {
         $pkgPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint"
         if (-not (Test-Path $pkgPath)) { New-Item -Path $pkgPath -Force | Out-Null }
         Set-ItemProperty -Path $pkgPath -Name PackagePointAndPrintServerList -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-ItemProperty -Path $pkgPath -Name PackagePointAndPrintGlobalPolicy -Value 2 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $pkgPath -Name ListofServers -Value "*.*" -Type String -Force -ErrorAction SilentlyContinue
 
         Write-Log "Point & Print constraints & PrintNightmare entirely bypassed." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] PrintNightmare Elevation Restrictions and Point & Print fully neutralized." -ForegroundColor Green
@@ -1713,13 +1738,39 @@ function Fix-DriverCopy0x00000002 {
 }
 
 function Fix-RpcBitness0x0000007e {
-    Write-Log "Fixing Error 0x0000007e (RPC Bitness/Auth error)..." -Type "INFO" -NoConsole
+    Write-Log "Fixing Error 0x0000007e (RPC Bitness/Auth error & mscms.dll)..." -Type "INFO" -NoConsole
     try {
         $rpcPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC"
         if (-not (Test-Path $rpcPath)) { New-Item -Path $rpcPath -Force | Out-Null }
         Set-ItemProperty -Path $rpcPath -Name RpcAuthenticationLevel -Value 0 -Type DWord -Force -ErrorAction Stop
-        Write-Log "RPC Authentication downgraded." -Type "SUCCESS" -NoConsole
-        Write-Host "  [+] RPC Auth limitations removed for cross-architecture communication." -ForegroundColor Green
+
+        # Ensure CopyFilesPolicy is allowed so drivers can be ingested
+        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name CopyFilesPolicy -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+
+        # Fix missing mscms.dll in spool driver folders (resolves classic 0x0000007e ERROR_MOD_NOT_FOUND)
+        $sysMscms = "$env:SystemRoot\System32\mscms.dll"
+        if (Test-Path $sysMscms) {
+            $x64DriverDir = "$env:SystemRoot\System32\spool\drivers\x64\3"
+            if (Test-Path $x64DriverDir) {
+                $targetMscms = Join-Path $x64DriverDir "mscms.dll"
+                if (-not (Test-Path $targetMscms)) {
+                    Copy-Item -Path $sysMscms -Destination $targetMscms -Force -ErrorAction SilentlyContinue
+                    Write-Log "mscms.dll restored in x64 spool driver directory." -Type "SUCCESS" -NoConsole
+                }
+            }
+            $x86DriverDir = "$env:SystemRoot\System32\spool\drivers\W32X86\3"
+            if (Test-Path $x86DriverDir) {
+                $targetMscms86 = Join-Path $x86DriverDir "mscms.dll"
+                if (-not (Test-Path $targetMscms86)) {
+                    $sysMscms86 = "$env:SystemRoot\SysWOW64\mscms.dll"
+                    $src = if (Test-Path $sysMscms86) { $sysMscms86 } else { $sysMscms }
+                    Copy-Item -Path $src -Destination $targetMscms86 -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+
+        Write-Log "RPC Authentication downgraded & driver module paths verified." -Type "SUCCESS" -NoConsole
+        Write-Host "  [+] RPC Auth limitations removed and driver modules verified for 0x0000007e." -ForegroundColor Green
     }
     catch {
         Write-Log "Failed to fix 0x0000007e: $($_.Exception.Message)" -Type "ERROR"
@@ -1999,24 +2050,27 @@ function Fix-V4ClassDriver {
         Write-Host "  ======================================================================"
     }
     try {
-        $v4Path = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Drivers\Version-4"
-        if (-not (Test-Path $v4Path)) {
-            $v4Path = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows NT x86\Drivers\Version-4"
-        }
+        $v4Paths = @(
+            "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Drivers\Version-4",
+            "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows ARM64\Drivers\Version-4",
+            "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows NT x86\Drivers\Version-4"
+        )
         $corrupted = @()
         $corruptedDirs = @()
-        if (Test-Path $v4Path) {
-            $drivers = Get-ChildItem $v4Path -ErrorAction SilentlyContinue
-            foreach ($drv in $drivers) {
-                $props = Get-ItemProperty $drv.PSPath -ErrorAction SilentlyContinue
-                if ($props.InfPath) {
-                    $driverDir = $props.DriverPath
-                    if ($driverDir) {
-                        $parentDir = Split-Path $driverDir -Parent
-                        $configDll = Join-Path $parentDir "PrintConfig.dll"
-                        if (-not (Test-Path $configDll)) {
-                            $corrupted += $drv.PSChildName
-                            $corruptedDirs += $parentDir
+        foreach ($v4Path in $v4Paths) {
+            if (Test-Path $v4Path) {
+                $drivers = Get-ChildItem $v4Path -ErrorAction SilentlyContinue
+                foreach ($drv in $drivers) {
+                    $props = Get-ItemProperty $drv.PSPath -ErrorAction SilentlyContinue
+                    if ($props.InfPath) {
+                        $driverDir = $props.DriverPath
+                        if ($driverDir) {
+                            $parentDir = Split-Path $driverDir -Parent
+                            $configDll = Join-Path $parentDir "PrintConfig.dll"
+                            if (-not (Test-Path $configDll)) {
+                                $corrupted += $drv.PSChildName
+                                $corruptedDirs += $parentDir
+                            }
                         }
                     }
                 }
@@ -2549,11 +2603,25 @@ function Inject-CrossUserCredentials {
     try {
         $profiles = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -match '^S-1-5-21-' }
         $injected = 0
+        $currentUserSID = try { [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value } catch { "" }
         foreach ($usrProf in $profiles) {
             $sid = $usrProf.PSChildName
             $profilePath = (Get-ItemProperty $usrProf.PSPath -ErrorAction SilentlyContinue).ProfileImagePath
             $userName = Split-Path $profilePath -Leaf
             Write-Host "  [*] Injecting credential for user: $userName ($sid)..." -ForegroundColor Cyan
+
+            # For currently active user, inject directly without attempting to load locked NTUSER.DAT
+            if ($currentUserSID -and $sid -eq $currentUserSID) {
+                try {
+                    $procCurr = Start-Process -FilePath "cmdkey.exe" -ArgumentList "/add:$ip", "/user:$usr", "/pass:`"$pass`"" -WindowStyle Hidden -Wait -PassThru
+                    if ($procCurr.ExitCode -eq 0) {
+                        $injected++
+                        Write-Log "Injected credential directly for current active user $userName." -Type "SUCCESS"
+                        continue
+                    }
+                } catch {}
+            }
+
             $ntuser = Join-Path $profilePath "NTUSER.DAT"
             if (Test-Path $ntuser) {
                 $LASTEXITCODE = 0; & reg load "HKU\$sid" "$ntuser" > $null 2>&1
@@ -3391,9 +3459,10 @@ function AllFix-Core {
         if (Test-Path $script:logFile) {
             $allLogLines = Get-Content -Path $script:logFile -ErrorAction SilentlyContinue
             foreach ($logLine in $allLogLines) {
-                if ($logLine -match '^(\d{4}-\d{2}-\d{2}\s+\d{2}\.\d{2}\.\d{2})\s+-\s+ERROR\s+-\s+(.+)$') {
+                if ($logLine -match '^(\d{4}-\d{2}-\d{2}\s+\d{2}[:\.]\d{2}[:\.]\d{2})\s+-\s+ERROR\s+-\s+(.+)$') {
                     try {
-                        $errDate = [DateTime]::ParseExact($matches[1], 'yyyy-MM-dd HH.mm.ss', $null)
+                        $cleanDate = $matches[1] -replace '\.', ':'
+                        $errDate = [DateTime]::ParseExact($cleanDate, 'yyyy-MM-dd HH:mm:ss', $null)
                         if ($script:sessionStartTime -and ($errDate -ge $script:sessionStartTime.AddSeconds(-5))) {
                             $sessionErrors += $logLine
                         }
@@ -3881,10 +3950,6 @@ function Show-Help {
     }
 }
 
-function Clear-Screen {
-    try { [System.Console]::Clear() } catch { try { Clear-Host } catch {} }
-}
-
 function Invoke-SystemReboot {
     try {
         Restart-Computer -Force -ErrorAction Stop
@@ -3895,20 +3960,6 @@ function Invoke-SystemReboot {
             Write-Log "Failed to trigger automatic reboot: $($_.Exception.Message)" -Type "WARNING"
             Write-Host "  [-] Please reboot your computer manually." -ForegroundColor Yellow
         }
-    }
-}
-
-function Pause-User {
-    Write-Host ""
-    if ($script:lang -eq "EN") {
-        Write-Host "  [>] Press ENTER to return..." -ForegroundColor Yellow
-    } else {
-        Write-Host "  [>] Tekan ENTER untuk kembali..." -ForegroundColor Yellow
-    }
-    try {
-        [void][System.Console]::ReadLine()
-    } catch {
-        try { [void](Read-Host) } catch {}
     }
 }
 

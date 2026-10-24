@@ -237,6 +237,13 @@
                 "problem": "Architecture mismatch between 32-bit and 64-bit endpoints preventing driver load.",
                 "solution": "Forces registry compliance for cross-architecture drivers and configures RPC bitness policies.",
                 "whenToUse": "Connecting 64-bit client to 32-bit host server or vice versa."
+            },
+            {
+                "id": "13",
+                "title": "Enforce RPC via Named Pipes & TCP Protocol",
+                "problem": "Network printer connection fails due to restrictive RPC protocol endpoints or port blocking.",
+                "solution": "Configures RpcOverNamedPipes = 1 and opens required RPC dynamic ports in registry.",
+                "whenToUse": "Printer connection fails when standard TCP RPC endpoints are blocked by firewall or network policy."
             }
         ]
     },
@@ -355,6 +362,20 @@
                 "problem": "Need to connect to Unix/Linux print servers or legacy hardware via Line Printer Remote.",
                 "solution": "Installs and enables LPR Port Monitor and LPD Service Windows features.",
                 "whenToUse": "Connecting to Unix print queues or legacy industrial label printers."
+            },
+            {
+                "id": "28",
+                "title": "Rescue Network Profile (Auto-Enforce Private)",
+                "problem": "Windows periodically reverts network adapter connection from Private to Public after rebooting.",
+                "solution": "Sets network Category to Private and registers a scheduled task to guard the private profile.",
+                "whenToUse": "Printer sharing stops working after every PC reboot due to network flipping to Public."
+            },
+            {
+                "id": "82",
+                "title": "Open SMB Guest Access & Remove Anonymous Blocks",
+                "problem": "Connecting to printer share asks for username and password even though password sharing is disabled.",
+                "solution": "Configures AllowInsecureGuestAuth = 1 on LanmanWorkstation registry allowing anonymous guest access.",
+                "whenToUse": "Workgroup computers fail to access shared printer without credential prompts."
             }
         ]
     },
@@ -417,6 +438,13 @@
                 "solution": "Executes a remote spooler restart command on the target host via PowerShell remoting.",
                 "whenToUse": "Restarting remote server spoolers from an admin workstation.",
                 "note": "Requires Administrative credentials on the target host."
+            },
+            {
+                "id": "68",
+                "title": "Restart Background Intelligent Transfer Service (BITS)",
+                "problem": "Printer drivers fail to download automatically across the network or hang indefinitely.",
+                "solution": "Restarts BITS service and resets background transfer queue to clear stuck driver file downloads.",
+                "whenToUse": "Driver downloads hang or fail when connecting to a network shared printer."
             }
         ]
     },
