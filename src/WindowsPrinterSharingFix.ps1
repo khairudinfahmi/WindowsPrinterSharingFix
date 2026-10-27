@@ -162,6 +162,7 @@ function Write-Log {
 
 function Set-SafeReg {
     [CmdletBinding()]
+    [OutputType([bool])]
     param(
         [Parameter(Position=0, Mandatory=$true)]
         [string]$Path,
@@ -174,7 +175,7 @@ function Set-SafeReg {
 
         [string]$Type,
 
-        [switch]$Force,
+        [switch]$Force = $true,
 
         [switch]$Silent
     )
@@ -203,9 +204,9 @@ function Set-SafeReg {
     }
     try {
         if (-not (Microsoft.PowerShell.Management\Test-Path -Path $Path)) {
-            Microsoft.PowerShell.Management\New-Item -Path $Path -Force -ErrorAction SilentlyContinue | Out-Null
+            Microsoft.PowerShell.Management\New-Item -Path $Path -Force:$Force -ErrorAction SilentlyContinue | Out-Null
         }
-        Microsoft.PowerShell.Management\Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type $Type -Force -ErrorAction Stop
+        Microsoft.PowerShell.Management\Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type $Type -Force:$Force -ErrorAction Stop
         if ($script:IsDebugMode) {
             $actualObj = Microsoft.PowerShell.Management\Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
             $actual = if ($null -ne $actualObj) { $actualObj.$Name } else { $null }
