@@ -33,7 +33,7 @@ System administrators and RMM tools can invoke the tool directly without interac
 ## Error Code Quick Lookup & Technical Root Cause
 
 - `0x0000011b` (RpcAuthnLevelPrivacyEnabled): Fixes RPC authentication requirements enforced after CVE-2021-1678 / PrintNightmare security patches.
-- `0x00000709` / `0x7c` (PointAndPrint Restrictions): Resolves driver download elevation blocks and misconfigured Spooler RPC endpoints across Workgroups.
+- `0x00000709` / `0x00000006` / `0x7c` (PointAndPrint & Invalid Handle): Resolves driver download elevation blocks, purges stale HKCU connection ghost handles (`ERROR_INVALID_HANDLE`), and fixes misconfigured Spooler RPC endpoints across Workgroups.
 - `0x00000bc4` / `0x80070bc4` (No Printers Found): Enforces RPC over Named Pipes (`RpcOverNamedPipes = 1` and `RegisterSpoolerRemoteRpcEndPoint = 2`) required by Windows 11 22H2+.
 - `0x00000040` (Network Name No Longer Available): Fixes KeepConn socket keep-alives, enables NetBIOS over TCP/IP, and optimizes SMB TCP window sizes.
 - `0x80070035` (Network Path Not Found): Restores Function Discovery Provider Host (`FDPHost`), Function Discovery Resource Publication (`FDResPub`), and SSDP/UPnP device broadcast discovery.

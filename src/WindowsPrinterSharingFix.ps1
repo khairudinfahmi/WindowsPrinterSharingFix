@@ -339,6 +339,17 @@ function Fix-Deep0x00000709 {
             Write-Log "SessionDefaultDevices subkey removed." -Type "SUCCESS" -NoConsole
         }
 
+        # Purge stale network printer connection ghost handles (resolves Error 0x00000006 ERROR_INVALID_HANDLE)
+        $connKey = "HKCU:\Printers\Connections"
+        if (Test-Path $connKey) {
+            Write-Host "  [!] Purging stale network printer connection handles in HKCU\Printers\Connections..." -ForegroundColor Yellow
+            Remove-Item -Path "$connKey\*" -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Log "HKCU Printers Connections ghost handles purged (0x00000006 fix)." -Type "SUCCESS" -NoConsole
+        }
+
+        # Disconnect any hanging or stale SMB sessions
+        try { & net.exe use * /delete /y > $null 2>&1 } catch {}
+
         Set-ItemProperty -Path $deviceKey -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force
         Set-ItemProperty -Path $deviceKey -Name UserSelectedDefault -Value 1 -Type DWord -Force
 
@@ -495,6 +506,10 @@ foreach ($prof in $profiles) {
             Remove-Item -Path (Join-Path $winKey "SessionDefaultDevices") -Recurse -Force -EA SilentlyContinue
             Remove-ItemProperty -Path $winKey -Name "Device" -EA SilentlyContinue
         }
+        $userConnKey = "Registry::HKEY_USERS\$sid\Printers\Connections"
+        if (Test-Path $userConnKey) {
+            Remove-Item -Path "$userConnKey\*" -Recurse -Force -EA SilentlyContinue
+        }
         for ($retry = 1; $retry -le 5; $retry++) {
             & reg.exe unload "HKU\$sid" > $null 2>&1
             if ($LASTEXITCODE -eq 0) { break }
@@ -549,6 +564,9 @@ if (Test-Path $winKey) {
     Remove-ItemProperty -Path $winKey -Name "Device" -EA SilentlyContinue
     Set-ItemProperty -Path $winKey -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force -EA SilentlyContinue
     Set-ItemProperty -Path $winKey -Name UserSelectedDefault -Value 1 -Type DWord -Force -EA SilentlyContinue
+}
+if (Test-Path "HKCU:\Printers\Connections") {
+    Remove-Item -Path "HKCU:\Printers\Connections\*" -Recurse -Force -EA SilentlyContinue
 }
 
 # 4. If system just booted (uptime under 300s), refresh Spooler so network printer RPC binds cleanly
@@ -4398,7 +4416,7 @@ function Show-Submenu2 {
         Write-Host ""
         if ($isEN) {
             Write-Host "  [1] Error 0x0000011b - Patch RPC Authentication Block (RpcAuthnLevelPrivacy)" -ForegroundColor White
-            Write-Host "  [2] Error 0x00000709 / 0x7c - Network Printer Connection Failure (Point and Print / RPC)" -ForegroundColor White
+            Write-Host "  [2] Error 0x00000709 / 0x00000006 - Network Printer Connection & Invalid Handle (Point and Print / RPC)" -ForegroundColor White
             Write-Host "  [3] Error 0x00000bc4 - No Printers Were Found (Enforce RPC Named Pipes)" -ForegroundColor White
             Write-Host "  [4] Error 0x80070035 - Network Path Not Found (Initialize Discovery Services)" -ForegroundColor White
             Write-Host "  [5] Error 0x000006d1 - Disable Client-Side Rendering (CSR)" -ForegroundColor White
@@ -4414,7 +4432,7 @@ function Show-Submenu2 {
             Write-Host "Select error number [1-9], L, or B: " -NoNewline -ForegroundColor Yellow
         } else {
             Write-Host "  [1] Error 0x0000011b - Atasi Pemblokiran Otentikasi RPC (RpcAuthnLevelPrivacy)" -ForegroundColor White
-            Write-Host "  [2] Error 0x00000709 / 0x7c - Gagal Sambung Printer Sharing (Point and Print / RPC)" -ForegroundColor White
+            Write-Host "  [2] Error 0x00000709 / 0x00000006 - Gagal Sambung Printer & Invalid Handle (Point and Print / RPC)" -ForegroundColor White
             Write-Host "  [3] Error 0x00000bc4 - Printer Jaringan Tidak Ditemukan (No Printers Found)" -ForegroundColor White
             Write-Host "  [4] Error 0x80070035 - Jalur Jaringan Tidak Ditemukan (Nyalakan Servis Jaringan)" -ForegroundColor White
             Write-Host "  [5] Error 0x000006d1 - Matikan Client-Side Rendering (CSR)" -ForegroundColor White

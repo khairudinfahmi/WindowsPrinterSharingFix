@@ -209,7 +209,7 @@ Quickly identify your Windows network printer error code and match it to its roo
 | Error Code / Symptom | Exact Windows Error Message | Root Cause & Security Policy | Recommended Action / CLI Switch |
 | :--- | :--- | :--- | :--- |
 | **0x0000011b** | *Operation failed with error 0x0000011b* | RPC authentication level requirement (`CVE-2021-1678`) introduced by Windows security updates. | Run `[01]` or `.\WindowsPrinterSharingFix.exe -AllFix` |
-| **0x00000709** / **0x7c** | *Operation could not be completed (error 0x00000709)* | Point and Print driver elevation requirement or RPC named pipes binding refusal. | Run `[02]`, `[56]`, or UNC Port Mapping `[86]` |
+| **0x00000709** / **0x00000006** / **0x7c** | *Operation could not be completed (error 0x00000709 / 0x00000006)* | Point and Print driver elevation requirement, stale connection ghost handles (`ERROR_INVALID_HANDLE`), or RPC named pipes binding refusal. | Run `[02]`, `[56]`, or UNC Port Mapping `[86]` |
 | **0x00000bc4** | *No printers were found* | Windows 11 default RPC connection protocol restricted to TCP rather than Named Pipes. | Run `[03]` (Forces `RpcUseNamedPipeProtocol = 1`) |
 | **0x00000040** | *The specified network name is no longer available* | Stale SMB keep-alive sessions, socket timeout, or driver provider disconnection. | Run `[07]` (Sets `KeepConn=65535` & extends timeouts) |
 | **SMB Signing Refusal** | *You can't access this shared folder because your organization's security policies block unauthenticated guest access* | Windows 11 24H2/25H2 mandatory SMB signing requirement (`RequireSecuritySignature`). | Run `[16]` or `.\WindowsPrinterSharingFix.exe -ExtremePath` |
@@ -275,7 +275,7 @@ Targeted fix modules mapped to specific hexadecimal Windows network print error 
 | # | Menu Option (Exact Console String) | Code | Root Cause & Technical Fix |
 | :---: | :--- | :---: | :--- |
 | **1** | **Error 0x0000011b - Patch RPC Authentication Block (RpcAuthnLevelPrivacy)** | `[01]` | Mitigates CVE-2021-1678 RPC authentication requirements by setting `RpcAuthnLevelPrivacyEnabled = 0` under `Control\Print`. |
-| **2** | **Error 0x00000709 / 0x7c - Network Printer Connection Failure (Point and Print / RPC)** | `[02]` | Resolves printer name/driver binding failures by setting `CopyFilesPolicy = 1`, `ForceLegacyPrintDriver = 1`, and standardizing multi-layer RPC protocol bindings. |
+| **2** | **Error 0x00000709 / 0x00000006 - Network Printer Connection & Invalid Handle (Point and Print / RPC)** | `[02]` | Resolves printer name/driver binding failures, purges stale HKCU connection ghost handles (`ERROR_INVALID_HANDLE`), sets `CopyFilesPolicy = 1`, and standardizes multi-layer RPC protocol bindings. |
 | **3** | **Error 0x00000bc4 - No Printers Were Found (Enforce RPC Named Pipes)** | `[03]` | Fixes "No printers were found" by forcing `RpcUseNamedPipeProtocol = 1` and `RpcProtocols = 7` under Group Policy Printer overrides. |
 | **4** | **Error 0x80070035 - Network Path Not Found (Initialize Discovery Services)** | `[04]` | Fixes "The network path was not found" by automating and starting Discovery services (`fdPHost`, `FDResPub`, `SSDPSRV`, `upnphost`). |
 | **5** | **Error 0x000006d1 - Disable Client-Side Rendering (CSR)** | `[05]` | Fixes Client-Side Rendering (CSR) spooling crashes by setting `DisableClientSideRendering = 1`, shifting rendering directly to the host spooler. |
