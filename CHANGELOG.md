@@ -17,8 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Hardened `reg.exe load` and `reg.exe unload` operations across `Set-PostPatchTuesdayTask` and `Inject-CrossUserCredentials` with mounted hive detection and garbage collection (`[GC]::Collect(); [GC]::WaitForPendingFinalizers()`), eliminating temporary profile creation risks.
 - **CLI Language Override**:
   - Fixed parameter precedence where `-Language EN` / `-Language ID` from CLI was overwritten by hardcoded default assignments.
-- **Safe Registry Proxy**:
-  - Integrated `Set-ItemProperty` proxy wrapper to route all registry operations through `Set-SafeReg`, enabling verified readback comparison under `-Debug`, simulated execution under `-Plan`, and read-only protections under `-ReadOnlyMode`.
+- **Direct Set-SafeReg Architecture & Analyzer Compliance**:
+  - Refactored all 118 registry modifications across fix routines to invoke `Set-SafeReg` directly, eliminating cmdlet proxy overrides (`PSAvoidOverwritingBuiltInCmdlets`), ensuring full PSScriptAnalyzer compliance, and enabling verified readback comparison under `-Debug`, simulated execution under `-Plan`, and read-only protections under `-ReadOnlyMode`.
 - **Audit Mode Detailed Snapshot**:
   - Upgraded `Invoke-AuditMode` (`-Audit`) to record complete path-level registry item snapshots (`Details`) into audit report logs instead of summary-only metrics.
 - **Clean Rollback & Backup Retention**:
