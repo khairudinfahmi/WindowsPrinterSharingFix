@@ -163,6 +163,8 @@ function Write-Log {
 function Set-SafeReg {
     [CmdletBinding()]
     [OutputType([bool])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSProvideOutputTypeAttribute', '')]
     param(
         [Parameter(Position=0, Mandatory=$true)]
         [string]$Path,
@@ -179,6 +181,7 @@ function Set-SafeReg {
 
         [switch]$Silent
     )
+    $useForce = [bool]$Force
     if ([string]::IsNullOrWhiteSpace($Type)) {
         if ($Value -is [string[]] -or $Value -is [System.Array]) {
             $Type = "MultiString"
@@ -204,9 +207,9 @@ function Set-SafeReg {
     }
     try {
         if (-not (Microsoft.PowerShell.Management\Test-Path -Path $Path)) {
-            Microsoft.PowerShell.Management\New-Item -Path $Path -Force:$Force -ErrorAction SilentlyContinue | Out-Null
+            Microsoft.PowerShell.Management\New-Item -Path $Path -Force:$useForce -ErrorAction SilentlyContinue | Out-Null
         }
-        Microsoft.PowerShell.Management\Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type $Type -Force:$Force -ErrorAction Stop
+        Microsoft.PowerShell.Management\Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type $Type -Force:$useForce -ErrorAction Stop
         if ($script:IsDebugMode) {
             $actualObj = Microsoft.PowerShell.Management\Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
             $actual = if ($null -ne $actualObj) { $actualObj.$Name } else { $null }
