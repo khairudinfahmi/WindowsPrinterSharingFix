@@ -161,13 +161,33 @@ function Write-Log {
 }
 
 function Set-SafeReg {
+    [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)][string]$Path,
-        [Parameter(Mandatory=$true)][string]$Name,
+        [Parameter(Position=0, Mandatory=$true)]
+        [string]$Path,
+
+        [Parameter(Position=1, Mandatory=$true)]
+        [string]$Name,
+
+        [Parameter(Position=2)]
         $Value,
-        [string]$Type = "DWord",
+
+        [string]$Type,
+
+        [switch]$Force,
+
         [switch]$Silent
     )
+    if ([string]::IsNullOrWhiteSpace($Type)) {
+        if ($Value -is [string[]] -or $Value -is [System.Array]) {
+            $Type = "MultiString"
+        } elseif ($Value -is [int] -or $Value -is [long] -or $Value -is [uint32] -or $Value -is [uint64]) {
+            $Type = "DWord"
+        } else {
+            $Type = "String"
+        }
+    }
+
     $full = "$Path\$Name"
     $expDisplay = if ($Value -is [System.Array]) { ($Value -join ",") } else { "$Value" }
 
@@ -176,7 +196,7 @@ function Set-SafeReg {
         return $true
     }
     if ($script:IsReadOnlyMode) {
-        if (-not $Silent) {
+        if (-not $Silent -and $ErrorActionPreference -ne 'SilentlyContinue') {
             Write-Host "  [READ-ONLY] Would set $full = $expDisplay ($Type)" -ForegroundColor DarkGray
         }
         return $false
@@ -215,54 +235,13 @@ function Set-SafeReg {
         }
         return $true
     } catch {
-        if (-not $Silent) {
+        if (-not $Silent -and $ErrorActionPreference -ne 'SilentlyContinue') {
             if ($script:IsDebugMode) {
                 Write-Host "  [DEBUG][FAIL] $full : $($_.Exception.Message)" -ForegroundColor Red
             }
             Write-Log "Set-SafeReg failed: $full : $($_.Exception.Message)" -Type "ERROR" -NoConsole
         }
         return $false
-    }
-}
-
-function Set-ItemProperty {
-    [CmdletBinding()]
-    param(
-        [Parameter(Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-        [Alias('PSPath','LiteralPath')]
-        [string]$Path,
-
-        [Parameter(Position=1, Mandatory=$true)]
-        [string]$Name,
-
-        [Parameter(Position=2)]
-        $Value,
-
-        [string]$Type,
-
-        [switch]$Force,
-
-        [switch]$PassThru
-    )
-    $effectiveType = if ($PSBoundParameters.ContainsKey('Type') -and -not [string]::IsNullOrWhiteSpace($Type)) {
-        $Type
-    } elseif ($Value -is [string[]] -or $Value -is [System.Array]) {
-        "MultiString"
-    } elseif ($Value -is [int] -or $Value -is [long] -or $Value -is [uint32] -or $Value -is [uint64]) {
-        "DWord"
-    } else {
-        "String"
-    }
-
-    $isSilent = ($ErrorActionPreference -eq 'SilentlyContinue' -or $ErrorActionPreference -eq 'Ignore')
-    $ok = Set-SafeReg -Path $Path -Name $Name -Value $Value -Type $effectiveType -Silent:$isSilent
-    if (-not $ok -and $ErrorActionPreference -eq 'Stop' -and (-not $script:IsReadOnlyMode)) {
-        throw "Failed to set registry property: $Path\$Name"
-    }
-    if ($PassThru -and (-not $script:IsReadOnlyMode)) {
-        try {
-            return (Microsoft.PowerShell.Management\Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue)
-        } catch {}
     }
 }
 
@@ -358,7 +337,7 @@ Initialize-Log
 function Fix-RpcAuthn0x0000011b {
     Write-Log "Patching Error 0x0000011b (RpcAuthnLevelPrivacy)..." -Type "INFO" -NoConsole
     try {
-        Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Print" -Name RpcAuthnLevelPrivacyEnabled -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path "HKLM:\System\CurrentControlSet\Control\Print" -Name RpcAuthnLevelPrivacyEnabled -Value 0 -Type DWord -Force -ErrorAction Stop
         Write-Log "Registry 0x0000011b successfully applied." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] RPC Authentication Level Privacy requirement disabled." -ForegroundColor Green
     }
@@ -373,26 +352,26 @@ function Fix-Deep0x00000709 {
 
         $rpcPath = "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC"
         if (-not (Test-Path $rpcPath)) { New-Item -Path $rpcPath -Force | Out-Null }
-        Set-ItemProperty -Path $rpcPath -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $rpcPath -Name RpcTcpEnable            -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $rpcPath -Name RpcProtocols            -Value 7 -Type DWord -Force
-        Set-ItemProperty -Path $rpcPath -Name RpcOverNamedPipes       -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $rpcPath -Name RpcAuthenticationLevel  -Value 0 -Type DWord -Force
-        Set-ItemProperty -Path $rpcPath -Name ForceKerberosForRpc     -Value 0 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name RpcTcpEnable            -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name RpcProtocols            -Value 7 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name RpcOverNamedPipes       -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name RpcAuthenticationLevel  -Value 0 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name ForceKerberosForRpc     -Value 0 -Type DWord -Force
 
         $polPrinters = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
         if (-not (Test-Path $polPrinters)) { New-Item -Path $polPrinters -Force | Out-Null }
-        Set-ItemProperty -Path $polPrinters -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $polPrinters -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
         $printPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Print"
-        Set-ItemProperty -Path $printPath -Name RpcAuthnLevelPrivacyEnabled -Value 0 -Type DWord -Force
-        Set-ItemProperty -Path $printPath -Name DnsOnWire              -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $printPath -Name CopyFilesPolicy        -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $printPath -Name RpcOverNamedPipes       -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $printPath -Name RpcOverTcp              -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $printPath -Name RpcAuthnLevelPrivacyEnabled -Value 0 -Type DWord -Force
+        Set-SafeReg -Path $printPath -Name DnsOnWire              -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $printPath -Name CopyFilesPolicy        -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $printPath -Name RpcOverNamedPipes       -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $printPath -Name RpcOverTcp              -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
         $lanPath = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
-        Set-ItemProperty -Path $lanPath -Name DisableStrictNameChecking -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $lanPath -Name DisableStrictNameChecking -Value 1 -Type DWord -Force
 
         $deviceKey = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows"
         $deviceVal = (Get-ItemProperty $deviceKey -ErrorAction SilentlyContinue).Device
@@ -421,16 +400,16 @@ function Fix-Deep0x00000709 {
         # Disconnect any hanging or stale SMB sessions
         try { & net.exe use * /delete /y > $null 2>&1 } catch {}
 
-        Set-ItemProperty -Path $deviceKey -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $deviceKey -Name UserSelectedDefault -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $deviceKey -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $deviceKey -Name UserSelectedDefault -Value 1 -Type DWord -Force
 
         $wppPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP"
         if (-not (Test-Path $wppPath)) { New-Item -Path $wppPath -Force | Out-Null }
-        Set-ItemProperty -Path $wppPath -Name Enabled -Value 0 -Type DWord -Force
+        Set-SafeReg -Path $wppPath -Name Enabled -Value 0 -Type DWord -Force
 
         $lsaMSV = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"
-        Set-ItemProperty -Path $lsaMSV -Name NtlmMinClientSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $lsaMSV -Name NtlmMinServerSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $lsaMSV -Name NtlmMinClientSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $lsaMSV -Name NtlmMinServerSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
 
         Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
 
@@ -450,12 +429,12 @@ function Fix-CrossSignedDriverPolicy {
         $ciPath = "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config"
         if (-not (Test-Path $ciPath)) { New-Item -Path $ciPath -Force | Out-Null }
 
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config" `
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config" `
             -Name VulnerableDriverBlocklistEnable -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
 
         $polPath = "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy"
         if (-not (Test-Path $polPath)) { New-Item -Path $polPath -Force | Out-Null }
-        Set-ItemProperty -Path $polPath `
+        Set-SafeReg -Path $polPath `
             -Name VerifiedAndReputablePolicyState -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
         Write-Log "Cross-signed driver enforcement set to permissive (post-KB5089549 fix)." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] KB5089549 driver policy enforcement neutralized." -ForegroundColor Green
@@ -697,11 +676,11 @@ function Fix-Discovery0x00000bc4 {
         $path = "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC"
         if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
 
-        Set-ItemProperty -Path $path -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $path -Name RpcTcpEnable -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $path -Name RpcProtocols -Value 0x7 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $path -Name RpcOverNamedPipes -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $path -Name ForceSetup -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name RpcTcpEnable -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name RpcProtocols -Value 0x7 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name RpcOverNamedPipes -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $path -Name ForceSetup -Value 1 -Type DWord -Force -ErrorAction Stop
 
         Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
         Write-Log "RPC Endpoint Mapper forced via Named Pipes & TCP." -Type "SUCCESS" -NoConsole
@@ -735,7 +714,7 @@ function Fix-CSR {
         $path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
         if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
 
-        Set-ItemProperty -Path $path -Name DisableClientSideRendering -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name DisableClientSideRendering -Value 1 -Type DWord -Force -ErrorAction Stop
         Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
         Write-Log "CSR successfully disabled." -Type "SUCCESS" -NoConsole
         Write-Host $(if ($script:lang -eq "EN") { "  [+] Client-Side Rendering disabled; Host will process print jobs." } else { "  [+] Client-Side Rendering dinonaktifkan; Komputer host akan memproses pekerjaan cetak." }) -ForegroundColor Green
@@ -779,11 +758,11 @@ function Enable-SMBGuest {
     try {
         $path = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"
         if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
-        Set-ItemProperty -Path $path -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -ErrorAction Stop
 
         $pathServer = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
         if (-not (Test-Path $pathServer)) { New-Item -Path $pathServer -Force | Out-Null }
-        Set-ItemProperty -Path $pathServer -Name EnableSecuritySignature -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $pathServer -Name EnableSecuritySignature -Value 0 -Type DWord -Force -ErrorAction Stop
 
         Write-Log "Guest access enabled." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] SMB credential protection lowered to permit Guest access." -ForegroundColor Green
@@ -848,7 +827,7 @@ function Disable-FastStartup {
     try {
         $pwrPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power"
         if (-not (Test-Path $pwrPath)) { New-Item -Path $pwrPath -Force | Out-Null }
-        Set-ItemProperty -Path $pwrPath -Name "HiberbootEnabled" -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $pwrPath -Name "HiberbootEnabled" -Value 0 -Type DWord -Force -ErrorAction Stop
         Write-Log "Fast Startup disabled permanently." -Type "SUCCESS" -NoConsole
         Write-Host $(if ($script:lang -eq "EN") { "  [+] Windows Fast Startup disabled (prevents stale socket/driver hibernation)." } else { "  [+] Fast Startup dinonaktifkan (mencegah soket/spooler macet saat PC dinyalakan esok hari)." }) -ForegroundColor Green
     }
@@ -860,9 +839,9 @@ function Disable-FastStartup {
 function Disable-PasswordSharing {
     Write-Log "Disabling Password Protected Sharing..." -Type "INFO" -NoConsole
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name limitblankpassworduse -Value 0 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name everyoneincludesanonymous -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name restrictnullsessaccess -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name limitblankpassworduse -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name everyoneincludesanonymous -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name restrictnullsessaccess -Value 0 -Type DWord -Force -ErrorAction Stop
 
         Write-Log "Password Protected Sharing disabled." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] Network shares opened (Everyone = Anonymous)." -ForegroundColor Green
@@ -878,19 +857,19 @@ function Fix-NamedPipes {
         $rpcPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC"
         if (-not (Test-Path $rpcPath)) { New-Item -Path $rpcPath -Force | Out-Null }
 
-        Set-ItemProperty -Path $rpcPath -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $rpcPath -Name RpcTcpEnable -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $rpcPath -Name RpcProtocols -Value 0x7 -Type DWord -Force
-        Set-ItemProperty -Path $rpcPath -Name RpcOverNamedPipes -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $rpcPath -Name ForceKerberosForRpc -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $rpcPath -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name RpcTcpEnable -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name RpcProtocols -Value 0x7 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name RpcOverNamedPipes -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $rpcPath -Name ForceKerberosForRpc -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
 
         $polPrinters = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
         if (-not (Test-Path $polPrinters)) { New-Item -Path $polPrinters -Force | Out-Null }
-        Set-ItemProperty -Path $polPrinters -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $polPrinters -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
         $printPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Print"
-        Set-ItemProperty -Path $printPath -Name RpcOverNamedPipes -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $printPath -Name RpcOverTcp -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $printPath -Name RpcOverNamedPipes -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $printPath -Name RpcOverTcp -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
         Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
         Write-Log "Named Pipes activated." -Type "SUCCESS" -NoConsole
@@ -1248,7 +1227,7 @@ function Disable-IPv6 {
     try {
         $tcp6Path = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters"
         if (-not (Test-Path $tcp6Path)) { New-Item -Path $tcp6Path -Force | Out-Null }
-        Set-ItemProperty -Path $tcp6Path -Name DisabledComponents -Value 0xffffffff -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $tcp6Path -Name DisabledComponents -Value 0xffffffff -Type DWord -Force -ErrorAction Stop
         Write-Log "IPv6 disabled via registry change." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] IPv6 disabled to prevent routing conflicts. System reboot required." -ForegroundColor Green
     }
@@ -1513,7 +1492,7 @@ function Invoke-PortMappingDirect {
         try {
             $portRegPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Ports"
             if (-not (Test-Path $portRegPath)) { New-Item -Path $portRegPath -Force | Out-Null }
-            Set-ItemProperty -Path $portRegPath -Name $cleanUNC -Value "" -Type String -Force -ErrorAction Stop
+            Set-SafeReg -Path $portRegPath -Name $cleanUNC -Value "" -Type String -Force -ErrorAction Stop
             $mapped = $true
             Write-Log "Local Port created via Registry Injection: $cleanUNC" -Type "SUCCESS" -NoConsole
             Write-Host $(if ($isEN) { "  [+] REGISTRY BYPASS SUCCESS! Port $cleanUNC is now registered." } else { "  [+] BYPASS REGISTRI BERHASIL! Port $cleanUNC sekarang terdaftar." }) -ForegroundColor Green
@@ -1798,19 +1777,19 @@ function Uninstall-Printer {
 function Fix-SMBSigning {
     Write-Log "Disabling SMB Signing enforcement & Mutual Auth..." -Type "INFO" -NoConsole
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireMutualAuthentication -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireMutualAuthentication -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
 
         $polLanman = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation"
         if (-not (Test-Path $polLanman)) { New-Item -Path $polLanman -Force | Out-Null }
-        Set-ItemProperty -Path $polLanman -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $polLanman -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $polLanman -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $polLanman -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
         $polLanmanServer = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanServer"
         if (-not (Test-Path $polLanmanServer)) { New-Item -Path $polLanmanServer -Force | Out-Null }
-        Set-ItemProperty -Path $polLanmanServer -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $polLanmanServer -Name EnableSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $polLanmanServer -Name RequireSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $polLanmanServer -Name EnableSecuritySignature -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
 
         try {
             if (Get-Command Set-SmbClientConfiguration -ErrorAction SilentlyContinue) {
@@ -1847,11 +1826,11 @@ function Fix-mDNS {
     try {
         $dnsPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient"
         if (-not (Test-Path $dnsPath)) { New-Item -Path $dnsPath -Force | Out-Null }
-        Set-ItemProperty -Path $dnsPath -Name EnableMulticast -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $dnsPath -Name EnableMulticast -Value 1 -Type DWord -Force -ErrorAction Stop
 
         $dnsCachePath = "HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters"
         if (-not (Test-Path $dnsCachePath)) { New-Item -Path $dnsCachePath -Force | Out-Null }
-        Set-ItemProperty -Path $dnsCachePath -Name EnableMDNS -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $dnsCachePath -Name EnableMDNS -Value 1 -Type DWord -Force -ErrorAction Stop
 
         Write-Log "mDNS/LLMNR protocols activated." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] mDNS/LLMNR protocols activated." -ForegroundColor Green
@@ -1894,7 +1873,7 @@ function Fix-WSDFirewall {
 function Fix-LSAProtection {
     Write-Log "Downgrading LSA Protection (Permitting legacy authentication)..." -Type "INFO" -NoConsole
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name RunAsPPL -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name RunAsPPL -Value 0 -Type DWord -Force -ErrorAction Stop
         Write-Log "LSA PPL enforcement downgraded." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] LSA Protection downgraded." -ForegroundColor Green
     }
@@ -1909,7 +1888,7 @@ function Fix-SAC {
     try {
         $ciConfig = "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config"
         if (-not (Test-Path $ciConfig)) { New-Item -Path $ciConfig -Force | Out-Null }
-        Set-ItemProperty -Path $ciConfig -Name "VerifiedAndReputablePolicyState" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $ciConfig -Name "VerifiedAndReputablePolicyState" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
         Write-Log "SAC active bypass deployed." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] Smart App Control bypassed." -ForegroundColor Green
     }
@@ -1939,20 +1918,20 @@ function Fix-AdvancedPointAndPrint {
     try {
         $path = "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint"
         if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
-        Set-ItemProperty -Path $path -Name InForest -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $path -Name TrustedServers -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $path -Name ServerList -Value "*.*" -Type String -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name InForest -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name TrustedServers -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name ServerList -Value "*.*" -Type String -Force -ErrorAction Stop
 
-        Set-ItemProperty -Path $path -Name RestrictDriverInstallationToAdministrators -Value 0 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $path -Name NoWarningNoElevationOnInstall -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $path -Name NoWarningNoElevationOnUpdate -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $path -Name UpdatePromptSettings -Value 2 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name RestrictDriverInstallationToAdministrators -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name NoWarningNoElevationOnInstall -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name NoWarningNoElevationOnUpdate -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $path -Name UpdatePromptSettings -Value 2 -Type DWord -Force -ErrorAction Stop
 
         $pkgPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint"
         if (-not (Test-Path $pkgPath)) { New-Item -Path $pkgPath -Force | Out-Null }
-        Set-ItemProperty -Path $pkgPath -Name PackagePointAndPrintServerList -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $pkgPath -Name PackagePointAndPrintGlobalPolicy -Value 2 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $pkgPath -Name ListofServers -Value "*.*" -Type String -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $pkgPath -Name PackagePointAndPrintServerList -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $pkgPath -Name PackagePointAndPrintGlobalPolicy -Value 2 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $pkgPath -Name ListofServers -Value "*.*" -Type String -Force -ErrorAction SilentlyContinue
 
         Write-Log "Point & Print constraints & PrintNightmare entirely bypassed." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] PrintNightmare Elevation Restrictions and Point & Print fully neutralized." -ForegroundColor Green
@@ -1994,7 +1973,7 @@ function Fix-UACTokenFilter {
     try {
         $sysPol = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
         if (-not (Test-Path $sysPol)) { New-Item -Path $sysPol -Force | Out-Null }
-        Set-ItemProperty -Path $sysPol -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $sysPol -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord -Force -ErrorAction Stop
         Write-Log "LocalAccountTokenFilterPolicy set to 1." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] UAC network administration token filtering disabled." -ForegroundColor Green
     }
@@ -2007,7 +1986,7 @@ function Reset-SpoolerDependency {
     Write-Log "Purging third-party Spooler dependencies..." -Type "INFO" -NoConsole
     try {
         $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Spooler"
-        Set-ItemProperty -Path $regPath -Name DependOnService -Value @("RPCSS","http") -Type MultiString -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $regPath -Name DependOnService -Value @("RPCSS","http") -Type MultiString -Force -ErrorAction SilentlyContinue
         & sc.exe config spooler depend= RPCSS/http > $null 2>&1
         Write-Log "Dependencies explicitly reset to RPCSS and http (IPP compliant)." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] Print Spooler dependencies repaired for modern IPP support." -ForegroundColor Green
@@ -2025,7 +2004,7 @@ function Fix-ProviderOrder {
         if ($currentOrder) {
             $arr = $currentOrder -split "," | Where-Object { $_ -ne "LanmanWorkstation" -and $_ -ne "" }
             $newOrder = "LanmanWorkstation," + ($arr -join ",")
-            Set-ItemProperty -Path $path -Name ProviderOrder -Value $newOrder -Force
+            Set-SafeReg -Path $path -Name ProviderOrder -Value $newOrder -Force
             Write-Log "Provider Order explicitly updated (LanmanWorkstation prioritized)." -Type "SUCCESS" -NoConsole
             Write-Host "  [+] Provider Order explicitly updated (LanmanWorkstation prioritized)." -ForegroundColor Green
         }
@@ -2038,7 +2017,7 @@ function Fix-ProviderOrder {
 function Fix-NTLMv2 {
     Write-Log "Enforcing Strict NTLMv2 Response Compliance (NAS and Samba Compatible)..." -Type "INFO" -NoConsole
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name LmCompatibilityLevel -Value 3 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name LmCompatibilityLevel -Value 3 -Type DWord -Force -ErrorAction Stop
         Write-Log "Strict NTLMv2 successfully enforced." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] Strict NTLMv2 enforced (Level 3). NAS and modern print sharing connections secured." -ForegroundColor Green
     }
@@ -2053,19 +2032,19 @@ function Fix-Network0x00000040 {
         # Configure client connection keep-alive and session timeouts (prevents 0x40 ERROR_NETNAME_DELETED)
         $lanParam = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"
         if (-not (Test-Path $lanParam)) { New-Item -Path $lanParam -Force | Out-Null }
-        Set-ItemProperty -Path $lanParam -Name KeepConn -Value 65535 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $lanParam -Name SessTimeout -Value 300 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $lanParam -Name ExtendedSessTimeout -Value 1000 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $lanParam -Name KeepConn -Value 65535 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $lanParam -Name SessTimeout -Value 300 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $lanParam -Name ExtendedSessTimeout -Value 1000 -Type DWord -Force -ErrorAction SilentlyContinue
 
         # Prevent server from auto-disconnecting idle printer sessions
         $srvParam = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
         if (-not (Test-Path $srvParam)) { New-Item -Path $srvParam -Force | Out-Null }
-        Set-ItemProperty -Path $srvParam -Name autodisconnect -Value 0xFFFFFFFF -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $srvParam -Name autodisconnect -Value 0xFFFFFFFF -Type DWord -Force -ErrorAction SilentlyContinue
 
         # Ensure Print Provider for LAN Manager is valid
         $lanManProv = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Providers\LanMan Print Services"
         if (-not (Test-Path $lanManProv)) { New-Item -Path $lanManProv -Force | Out-Null }
-        Set-ItemProperty -Path $lanManProv -Name Name -Value "win32spl.dll" -Type String -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $lanManProv -Name Name -Value "win32spl.dll" -Type String -Force -ErrorAction SilentlyContinue
 
         # Non-destructive user-mode cache purge without stopping kernel redirector services
         try { & net.exe use * /delete /y > $null 2>&1 } catch {}
@@ -2081,7 +2060,7 @@ function Fix-Network0x00000040 {
             $netbtPath = "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces"
             if (Test-Path $netbtPath) {
                 Get-ChildItem -Path $netbtPath -ErrorAction SilentlyContinue | ForEach-Object {
-                    Set-ItemProperty -Path $_.PSPath -Name NetbiosOptions -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+                    Set-SafeReg -Path $_.PSPath -Name NetbiosOptions -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
                 }
             }
             Write-Log "NetBIOS over TCP/IP enforced (NetbiosOptions=1)." -Type "SUCCESS" -NoConsole
@@ -2099,7 +2078,7 @@ function Fix-Network0x00000040 {
             & powercfg.exe /SETACTIVE SCHEME_CURRENT > $null 2>&1
             $usbPath = "HKLM:\SYSTEM\CurrentControlSet\Services\USB"
             if (-not (Test-Path $usbPath)) { New-Item -Path $usbPath -Force | Out-Null }
-            Set-ItemProperty -Path $usbPath -Name DisableSelectiveSuspend -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+            Set-SafeReg -Path $usbPath -Name DisableSelectiveSuspend -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
             Write-Log "NIC & USB Power Saving disabled (Continuous link state maintained)." -Type "SUCCESS" -NoConsole
         } catch {}
 
@@ -2114,7 +2093,7 @@ function Fix-Network0x00000040 {
 function Fix-DriverCopy0x00000002 {
     Write-Log "Fixing Error 0x00000002 (Driver CopyFilesPolicy)..." -Type "INFO" -NoConsole
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name CopyFilesPolicy -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name CopyFilesPolicy -Value 1 -Type DWord -Force -ErrorAction Stop
         Write-Log "CopyFilesPolicy activated." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] CopyFilesPolicy allowed so OS can ingest missing drivers from Host." -ForegroundColor Green
     }
@@ -2128,10 +2107,10 @@ function Fix-RpcBitness0x0000007e {
     try {
         $rpcPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC"
         if (-not (Test-Path $rpcPath)) { New-Item -Path $rpcPath -Force | Out-Null }
-        Set-ItemProperty -Path $rpcPath -Name RpcAuthenticationLevel -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $rpcPath -Name RpcAuthenticationLevel -Value 0 -Type DWord -Force -ErrorAction Stop
 
         # Ensure CopyFilesPolicy is allowed so drivers can be ingested
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name CopyFilesPolicy -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name CopyFilesPolicy -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
         # Fix missing mscms.dll in spool driver folders (resolves classic 0x0000007e ERROR_MOD_NOT_FOUND)
         $sysMscms = "$env:SystemRoot\System32\mscms.dll"
@@ -2177,7 +2156,7 @@ function Manage-WPP {
     if ($opt -eq '1') {
         try {
             Write-Log "Enabling WPP Mode..." -Type "INFO"
-            Set-ItemProperty -Path $wppPath -Name Enabled -Value 1 -Type DWord -Force -ErrorAction Stop
+            Set-SafeReg -Path $wppPath -Name Enabled -Value 1 -Type DWord -Force -ErrorAction Stop
             Write-Host "  [+] WPP Enabled." -ForegroundColor Yellow
         } catch {
             Write-Log "Failed to enable WPP: $($_.Exception.Message)" -Type "ERROR"
@@ -2186,7 +2165,7 @@ function Manage-WPP {
     if ($opt -eq '2') {
         try {
             Write-Log "Disabling WPP Mode..." -Type "INFO"
-            Set-ItemProperty -Path $wppPath -Name Enabled -Value 0 -Type DWord -Force -ErrorAction Stop
+            Set-SafeReg -Path $wppPath -Name Enabled -Value 0 -Type DWord -Force -ErrorAction Stop
             Write-Host "  [+] WPP Successfully Disabled (Compatibility Mode)." -ForegroundColor Green
         } catch {
             Write-Log "Failed to disable WPP: $($_.Exception.Message)" -Type "ERROR"
@@ -2227,8 +2206,8 @@ function Manage-DefaultPrinter {
     try {
         $regWin = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows"
         if (-not (Test-Path $regWin)) { New-Item -Path $regWin -Force | Out-Null }
-        Set-ItemProperty -Path $regWin -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $regWin -Name UserSelectedDefault -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $regWin -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $regWin -Name UserSelectedDefault -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
         Write-Host $(if ($isEN) { "  [+] Windows automatic default printer management disabled (LegacyDefaultPrinterMode = 1)." } else { "  [+] Pengubahan otomatis printer default oleh Windows dinonaktifkan (LegacyDefaultPrinterMode = 1)." }) -ForegroundColor Green
     } catch {}
 
@@ -2307,8 +2286,8 @@ function Fix-RDPPrinter {
     try {
         $tsPath = "HKLM:\Software\Policies\Microsoft\Windows NT\Terminal Services"
         if (-not (Test-Path $tsPath)) { New-Item -Path $tsPath -Force | Out-Null }
-        Set-ItemProperty -Path $tsPath -Name fDisableCpm -Value 0 -Type DWord -Force -ErrorAction Stop
-        Set-ItemProperty -Path $tsPath -Name fEnablePrintRDR -Value 1 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $tsPath -Name fDisableCpm -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path $tsPath -Name fEnablePrintRDR -Value 1 -Type DWord -Force -ErrorAction Stop
         Write-Log "RDP Redirection activated." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] Local printers are now visible during Remote Desktop (RDP) sessions." -ForegroundColor Green
     }
@@ -2369,7 +2348,7 @@ function Fix-PrintToPDF {
 function Fix-CredentialGuard {
     Write-Log "Bypassing Credential Guard Restrictions (Strict NTLM)..." -Type "INFO" -NoConsole
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name LsaCfgFlags -Value 0 -Type DWord -Force -ErrorAction Stop
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name LsaCfgFlags -Value 0 -Type DWord -Force -ErrorAction Stop
         Write-Log "Credential Guard protection (LsaCfgFlags) disabled." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] Strict NTLM blockade in Win 11 Pro/Enterprise alleviated." -ForegroundColor Green
     }
@@ -2407,7 +2386,7 @@ function Create-RestorePoint {
         Enable-ComputerRestore -Drive "C:\" -ErrorAction SilentlyContinue
         $srKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore"
         if (Test-Path $srKey) {
-            Set-ItemProperty -Path $srKey -Name "SystemRestorePointCreationFrequency" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+            Set-SafeReg -Path $srKey -Name "SystemRestorePointCreationFrequency" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
         }
         $warnMsg = $null
         Checkpoint-Computer -Description "WinPrinterSharingFix-SafetyBackup" -RestorePointType "MODIFY_SETTINGS" -WarningVariable warnMsg -ErrorAction Stop
@@ -2651,20 +2630,20 @@ function Manage-WindowsUpdate {
                 $pauseEnd = (Get-Date).AddDays(35).ToString("yyyy-MM-ddTHH:mm:ssZ", [System.Globalization.CultureInfo]::InvariantCulture)
 
                 # Set GPO Policy registry overrides
-                Set-ItemProperty -Path $wuPath -Name PauseQualityUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
-                Set-ItemProperty -Path $wuPath -Name PauseFeatureUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
-                Set-ItemProperty -Path $wuPath -Name PauseUpdatesExpiryTime -Value $pauseEnd -Force -ErrorAction Stop
-                Set-ItemProperty -Path $wuPath -Name SetDisableUXWUAccess -Value 1 -Type DWord -Force -ErrorAction Stop
+                Set-SafeReg -Path $wuPath -Name PauseQualityUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
+                Set-SafeReg -Path $wuPath -Name PauseFeatureUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
+                Set-SafeReg -Path $wuPath -Name PauseUpdatesExpiryTime -Value $pauseEnd -Force -ErrorAction Stop
+                Set-SafeReg -Path $wuPath -Name SetDisableUXWUAccess -Value 1 -Type DWord -Force -ErrorAction Stop
 
                 # Set UX Settings registry overrides (used by Windows Settings UX on Home & Pro)
                 $uxPath = "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
                 if (-not (Test-Path $uxPath)) { New-Item -Path $uxPath -Force | Out-Null }
-                Set-ItemProperty -Path $uxPath -Name PauseUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
-                Set-ItemProperty -Path $uxPath -Name PauseFeatureUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
-                Set-ItemProperty -Path $uxPath -Name PauseQualityUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
-                Set-ItemProperty -Path $uxPath -Name PauseFeatureUpdatesEndTime -Value $pauseEnd -Force -ErrorAction Stop
-                Set-ItemProperty -Path $uxPath -Name PauseQualityUpdatesEndTime -Value $pauseEnd -Force -ErrorAction Stop
-                Set-ItemProperty -Path $uxPath -Name PauseUpdatesExpiryTime -Value $pauseEnd -Force -ErrorAction Stop
+                Set-SafeReg -Path $uxPath -Name PauseUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
+                Set-SafeReg -Path $uxPath -Name PauseFeatureUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
+                Set-SafeReg -Path $uxPath -Name PauseQualityUpdatesStartTime -Value $pauseStart -Force -ErrorAction Stop
+                Set-SafeReg -Path $uxPath -Name PauseFeatureUpdatesEndTime -Value $pauseEnd -Force -ErrorAction Stop
+                Set-SafeReg -Path $uxPath -Name PauseQualityUpdatesEndTime -Value $pauseEnd -Force -ErrorAction Stop
+                Set-SafeReg -Path $uxPath -Name PauseUpdatesExpiryTime -Value $pauseEnd -Force -ErrorAction Stop
 
                 Write-Host "  [+] Windows Update fully paused for 35 days (GPO and Settings UX overrides applied)." -ForegroundColor Green
                 Write-Log "Windows Update paused until $pauseEnd." -Type "SUCCESS"
@@ -2682,14 +2661,14 @@ function Manage-WindowsUpdate {
 
                 # Disable WaaSMedicSvc via registry bypass if present (sc config WaaSMedicSvc start= disabled returns Access Denied)
                 if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc") {
-                    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" -Name Start -Value 4 -Type DWord -Force -ErrorAction SilentlyContinue
+                    Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" -Name Start -Value 4 -Type DWord -Force -ErrorAction SilentlyContinue
                     Stop-Service -Name "WaaSMedicSvc" -Force -ErrorAction SilentlyContinue | Out-Null
                 }
 
                 # Configure NoAutoUpdate in Policies registry
                 $auPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
                 if (-not (Test-Path $auPath)) { New-Item -Path $auPath -Force | Out-Null }
-                Set-ItemProperty -Path $auPath -Name NoAutoUpdate -Value 1 -Type DWord -Force -ErrorAction Stop
+                Set-SafeReg -Path $auPath -Name NoAutoUpdate -Value 1 -Type DWord -Force -ErrorAction Stop
 
                 Write-Log "Windows Update Services permanently disabled (Medic blocked)." -Type "SUCCESS" -NoConsole
                 Write-Host "  [+] Core Windows Update services (wuauserv, UsoSvc, bits, WaaSMedicSvc) disabled." -ForegroundColor Green
@@ -2707,7 +2686,7 @@ function Manage-WindowsUpdate {
 
                 # Restore WaaSMedicSvc to manual if present
                 if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc") {
-                    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" -Name Start -Value 3 -Type DWord -Force -ErrorAction SilentlyContinue
+                    Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" -Name Start -Value 3 -Type DWord -Force -ErrorAction SilentlyContinue
                 }
 
                 # Remove NoAutoUpdate restriction
@@ -3080,7 +3059,7 @@ function Reset-SpoolerDependencyRegistry {
         if ($current) {
             Write-Host "  [*] Current dependencies: $($current -join ', ')" -ForegroundColor Yellow
         }
-        Set-ItemProperty -Path $regPath -Name DependOnService -Value @("RPCSS","http") -Type MultiString -Force -ErrorAction Stop
+        Set-SafeReg -Path $regPath -Name DependOnService -Value @("RPCSS","http") -Type MultiString -Force -ErrorAction Stop
         Write-Log "Spooler DependOnService reset to factory defaults (RPCSS, http)." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] Spooler dependencies reset to: RPCSS, http" -ForegroundColor Green
         Write-Host "  [*] Restarting Spooler to apply..." -ForegroundColor Cyan
@@ -3156,7 +3135,7 @@ function Inject-CrossUserCredentials {
                         # Inject RunOnce to execute the script (script self-deletes after running)
                         $runOncePath = "Registry::HKEY_USERS\$sid\Software\Microsoft\Windows\CurrentVersion\RunOnce"
                         if (-not (Test-Path $runOncePath)) { New-Item -Path $runOncePath -Force | Out-Null }
-                        Set-ItemProperty -Path $runOncePath -Name "PrinterCredFix" -Value "`"$credScript`"" -Type String -Force -ErrorAction Stop
+                        Set-SafeReg -Path $runOncePath -Name "PrinterCredFix" -Value "`"$credScript`"" -Type String -Force -ErrorAction Stop
                         Write-Log "Injected RunOnce credential command for $userName." -Type "SUCCESS"
                         $injected++
                     } catch {
@@ -3220,7 +3199,7 @@ function Force-DefaultPrinterRegistry {
     Write-Log "Force-setting default printer via registry injection..." -Type "INFO"
     try {
         $regWin = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows"
-        Set-ItemProperty -Path $regWin -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $regWin -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
         $printers = @(Get-Printer -ErrorAction Stop)
         if (-not $printers -or $printers.Count -eq 0) { Write-Host "  [-] No printers found." -ForegroundColor Red; return }
         $idx = 1
@@ -3234,7 +3213,7 @@ function Force-DefaultPrinterRegistry {
         if ($selIdx -lt 0 -or $selIdx -ge $printers.Count) { Write-Host "  [-] Invalid selection." -ForegroundColor Red; return }
         $target = $printers[$selIdx]
         $deviceStr = "$($target.Name),winspool,$($target.PortName):"
-        Set-ItemProperty -Path $regWin -Name Device -Value $deviceStr -Type String -Force -ErrorAction Stop
+        Set-SafeReg -Path $regWin -Name Device -Value $deviceStr -Type String -Force -ErrorAction Stop
         Write-Log "Default printer forced via registry: $($target.Name)" -Type "SUCCESS" -NoConsole
         Write-Host "  [+] Default printer set to: $($target.Name) (Registry bypass applied)." -ForegroundColor Green
     }
@@ -3585,7 +3564,7 @@ function Fix-HostServerRole {
     try {
         $polPrint = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
         if (-not (Test-Path $polPrint)) { New-Item -Path $polPrint -Force | Out-Null }
-        Set-ItemProperty -Path $polPrint -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $polPrint -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
     } catch {}
 
     Write-Host $(if ($isEN) { "  [*] [3/8] Enforcing Network Connection Profile to Private..." } else { "  [*] [3/8] Mengubah Profil Jaringan ke Mode Private..." }) -ForegroundColor Cyan
@@ -3764,8 +3743,8 @@ function Fix-NullSessionPipes {
         foreach ($p in $requiredPipes) {
             if ($newPipes -notcontains $p) { $newPipes += $p }
         }
-        Set-ItemProperty -Path $srvParam -Name "NullSessionPipes" -Value $newPipes -Type MultiString -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $srvParam -Name "restrictnullsessaccess" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $srvParam -Name "NullSessionPipes" -Value $newPipes -Type MultiString -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $srvParam -Name "restrictnullsessaccess" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
         Write-Log "NullSessionPipes (spoolss) and anonymous share access configured." -Type "SUCCESS" -NoConsole
         Write-Host $(if ($script:lang -eq "EN") { "  [+] NullSessionPipes & anonymous spooler access verified." } else { "  [+] Akses pipa sesi null (spoolss) & guest spooler berhasil dikonfigurasi." }) -ForegroundColor Green
     }
@@ -3793,7 +3772,7 @@ function Fix-RemoteSpoolerRpcEndpoint {
     try {
         $polPrint = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
         if (-not (Test-Path $polPrint)) { New-Item -Path $polPrint -Force | Out-Null }
-        Set-ItemProperty -Path $polPrint -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $polPrint -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
         # Restart spooler so RPC endpoint policy changes take effect immediately
         Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
         Start-Sleep -Seconds 1
@@ -3852,8 +3831,8 @@ function AllFix-Core {
 
     Write-Host $(if ($isEN) { "  [*] [12/50] Enabling DnsOnWire, StrictNameChecking & UAC Token Filter Bypass..." } else { "  [*] [12/50] Mengaktifkan Nama Jaringan & Bypass Filter Token UAC..." }) -ForegroundColor Cyan
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name DnsOnWire -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name DisableStrictNameChecking -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name DnsOnWire -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name DisableStrictNameChecking -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
     }
     catch {}
     Fix-UACTokenFilter
@@ -3873,7 +3852,7 @@ function AllFix-Core {
 
     Write-Host $(if ($isEN) { "  [*] [17/50] Disabling Print Driver Isolation Policy..." } else { "  [*] [17/50] Mematikan Isolasi Driver Printer..." }) -ForegroundColor Cyan
     try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force
     }
     catch {}
 
@@ -3906,7 +3885,7 @@ function AllFix-Core {
     try {
         $wppKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP"
         if (-not (Test-Path $wppKey)) { New-Item -Path $wppKey -Force | Out-Null }
-        Set-ItemProperty -Path $wppKey -Name Enabled -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $wppKey -Name Enabled -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
     }
     catch {}
 
@@ -4115,13 +4094,13 @@ function Extreme-25H2 {
     try {
         $wppKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP"
         if (-not (Test-Path $wppKey)) { New-Item -Path $wppKey -Force | Out-Null }
-        Set-ItemProperty -Path $wppKey -Name Enabled -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name DnsOnWire -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name DisableStrictNameChecking -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $wppKey -Name Enabled -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name DnsOnWire -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name DisableStrictNameChecking -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
         $lsaMsv = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"
         if (-not (Test-Path $lsaMsv)) { New-Item -Path $lsaMsv -Force | Out-Null }
-        Set-ItemProperty -Path $lsaMsv -Name NtlmMinClientSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-ItemProperty -Path $lsaMsv -Name NtlmMinServerSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $lsaMsv -Name NtlmMinClientSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $lsaMsv -Name NtlmMinServerSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
     }
     catch {}
 
@@ -4941,7 +4920,7 @@ function Show-Submenu5 {
         switch ($sub) {
             '1' { Force-KillDriverProcess; Pause-User }
             '2' {
-                Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force
+                Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force
                 Write-Host $(if ($isEN) { "  [+] Driver Isolation Disabled." } else { "  [+] Isolasi Driver Dinonaktifkan." }) -ForegroundColor Green
                 Pause-User
             }
@@ -5333,7 +5312,7 @@ function Invoke-Module {
         '37' { Nuke-PrintQueue }
         '38' { Reset-SpoolerDependencyRegistry }
         '39' { Manage-Drivers }
-        '40' { Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force; Write-Host $(if ($isEN) { "  [+] Driver Isolation Disabled." } else { "  [+] Isolasi Driver Dinonaktifkan." }) -ForegroundColor Green }
+        '40' { Set-SafeReg -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name IsolationPolicy -Value 0 -Type DWord -Force; Write-Host $(if ($isEN) { "  [+] Driver Isolation Disabled." } else { "  [+] Isolasi Driver Dinonaktifkan." }) -ForegroundColor Green }
         '41' { Fix-V4ClassDriver }
         '42' { Switch-DriverMode }
         '43' { Sweep-OrphanedDrivers }
