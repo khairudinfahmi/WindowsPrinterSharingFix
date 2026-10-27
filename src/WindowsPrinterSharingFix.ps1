@@ -3416,12 +3416,24 @@ function Fix-ClientWorkstationRole {
     Disable-FastStartup
     try { $LASTEXITCODE = 0; ipconfig /flushdns > $null 2>&1 } catch {}
 
+    # Purge stale network printer connection ghost handles (0x00000006 fix) & hanging SMB sessions
+    $connKey = "HKCU:\Printers\Connections"
+    if (Test-Path $connKey) {
+        Remove-Item -Path "$connKey\*" -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    $winKey = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows"
+    if (Test-Path $winKey) {
+        Remove-Item -Path (Join-Path $winKey "SessionDefaultDevices") -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-ItemProperty -Path $winKey -Name "Device" -ErrorAction SilentlyContinue
+    }
+    try { & net.exe use * /delete /y > $null 2>&1 } catch {}
+
     Write-Log "Client Workstation Optimization concluded." -Type "SUCCESS" -NoConsole
     Write-Host ""
     Write-Host $(if ($isEN) { "  [+] Client Workstation optimization completed successfully!" } else { "  [+] Optimasi Komputer Klien berhasil diterapkan!" }) -ForegroundColor Green
     Write-Host $(if ($isEN) { "  [i] Try connecting to the shared printer now (e.g. \\ComputerName\PrinterName)." } else { "  [i] Silakan coba sambungkan kembali printer sharing sekarang (contoh: \\NamaKomputer\NamaPrinter)." }) -ForegroundColor Cyan
     Write-Host $(if ($isEN) { "  [i] If still prompted for password, save credentials via Menu 6 -> 1." } else { "  [i] Jika masih meminta sandi, simpan kredensial via Menu 6 -> 1." }) -ForegroundColor Yellow
-    Write-Host $(if ($isEN) { "  [i] If error 0x709 persists, use Local Port UNC Mapping via Menu 7 -> 1." } else { "  [i] Jika masih muncul error 0x709, gunakan Pemetaan Port UNC via Menu 7 -> 1." }) -ForegroundColor Yellow
+    Write-Host $(if ($isEN) { "  [i] If error 0x709 or 0x00000006 persists, use Local Port UNC Mapping via Menu 7 -> 1." } else { "  [i] Jika masih muncul error 0x709 atau 0x00000006, gunakan Pemetaan Port UNC via Menu 7 -> 1." }) -ForegroundColor Yellow
 }
 
 # Windows Printer Sharing Fix - Interactive Engine & Bilingual UI
@@ -3584,7 +3596,7 @@ function AllFix-Core {
     Write-Host $(if ($isEN) { "  [*] [5/50] Patching Error 0x0000011b (RpcAuthnLevelPrivacy)..." } else { "  [*] [5/50] Memperbaiki Error 0x0000011b (RpcAuthnLevelPrivacy)..." }) -ForegroundColor Cyan
     Fix-RpcAuthn0x0000011b
 
-    Write-Host $(if ($isEN) { "  [*] [6/50] Deep Fix Error 0x00000709 (Multi-Layer RPC & Point and Print)..." } else { "  [*] [6/50] Memperbaiki Error 0x00000709 (Jalur RPC & Point and Print)..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [6/50] Deep Fix Error 0x00000709 / 0x00000006 (Multi-Layer RPC & Point and Print)..." } else { "  [*] [6/50] Memperbaiki Error 0x00000709 / 0x00000006 (Jalur RPC & Point and Print)..." }) -ForegroundColor Cyan
     Fix-Deep0x00000709
 
     Write-Host $(if ($isEN) { "  [*] [7/50] Aligning KB5089549 Driver Policy & HKCU Permissions..." } else { "  [*] [7/50] Menyelaraskan Kebijakan Driver & Izin Registri HKCU..." }) -ForegroundColor Cyan
@@ -3931,7 +3943,7 @@ function Show-Help {
 
     $helpDataID = @{
         '1'  = @("Perbaiki Error 0x0000011b (RpcAuthnLevelPrivacy)", "Mematikan kebijakan registri RpcAuthnLevelPrivacyEnabled agar otentikasi RPC tidak memblokir koneksi printer sharing.", "Sering terjadi setelah update rutin Windows 10/11.")
-        '2'  = @("Perbaiki Error 0x00000709 (Point and Print / Jalur RPC)", "Menerapkan perbaikan bertingkat: Named Pipes RPC, bypass otentikasi, pembersihan HKCU, dan override Point and Print.", "Error persisten 0x00000709 saat menyambung printer sharing di Windows 11. Perlu dijalankan juga di PC Server/Host.")
+        '2'  = @("Perbaiki Error 0x00000709 / 0x00000006 (Point and Print / Invalid Handle)", "Menerapkan perbaikan bertingkat: Named Pipes RPC, bypass otentikasi, pembersihan ghost connection HKCU, dan override Point and Print.", "Error persisten 0x00000709 atau 0x00000006 (ERROR_INVALID_HANDLE) saat menyambung printer sharing di Windows 11. Perlu dijalankan juga di PC Server/Host.")
         '3'  = @("Bypass Error 0x00000bc4 (Printer Tidak Ditemukan)", "Memaksa protokol RPC menggunakan Named Pipes agar printer sharing dapat ditemukan.", "Muncul pesan 'No printers were found' padahal jaringan normal.")
         '4'  = @("Perbaiki Error 0x80070035 (Jalur Jaringan Tidak Ditemukan)", "Mengotomatiskan layanan fdPHost, FDResPub, SSDPSRV, dan upnphost agar PC terdeteksi di Network.", "Komputer target tidak muncul di jaringan atau muncul error 'The network path was not found'.")
         '5'  = @("Matikan Client-Side Rendering (Error 0x000006d1)", "Mengaktifkan DisableClientSideRendering di registri agar proses rendering ditangani oleh server.", "Pekerjaan cetak gagal karena masalah rendering driver di sisi client.")
@@ -4015,7 +4027,7 @@ function Show-Help {
         '83' = @("Solusi Khusus Windows 11 Versi Terbaru (24H2 / 25H2 / 26H2 & ARM64)", "Kombinasi perbaikan untuk kebijakan ketat Windows 11 (SMB signing, guest access, RPC Named Pipes, bypass driver blocklist).", "Gunakan jika Windows 11 Build 26000 ke atas masih menolak koneksi printer.")
         '84' = @("ALLFIX - Jalankan 50 Perbaikan Otomatis Sekaligus", "Menjalankan 50 langkah perbaikan sistem, registri, RPC, SMB, firewall, dan spooler secara berurutan.", "REKOMENDASI UTAMA - solusi paling praktis untuk hampir semua masalah printer kantor.")
         '85' = @("Silent ALLFIX (Perbaikan Otomatis + Langsung Restart)", "Menjalankan seluruh 50 perbaikan secara otomatis tanpa prompt lalu merestart komputer.", "Khusus situasi darurat atau penanganan massal oleh teknisi tanpa konfirmasi manual.")
-        '86' = @("Petakan Port Lokal ke Jalur UNC (Bypass Ampuh 0x00000709)", "Membuat port lokal baru yang langsung diarahkan ke path printer host (contoh: \\\\SERVER\\PRINTER).", "Solusi terbaik jika Windows menolak menghubungkan printer sharing melalui cara biasa.")
+        '86' = @("Petakan Port Lokal ke Jalur UNC (Bypass Ampuh 0x00000709 / 0x00000006)", "Membuat port lokal baru via injeksi registri yang langsung diarahkan ke path printer host (contoh: \\\\SERVER\\PRINTER).", "Solusi pamungkas jika Windows menolak menghubungkan printer sharing melalui cara biasa atau dialog GUI mental.")
         '87' = @("Hapus Pemetaan Port Lokal UNC yang Pernah Dibuat", "Menghapus port lokal yang sebelumnya pernah dibuat oleh opsi [86].", "Membersihkan port pemetaan yang sudah tidak terpakai atau salah ketik.")
         '88' = @("Restart Komputer", "Merestart komputer saat ini secara langsung.", "Sangat disarankan setelah melakukan perbaikan agar seluruh perubahan sistem aktif.")
         '89' = @("Keluar dari Aplikasi", "Menutup dan keluar dari alat perbaikan ini.", "Selesai menggunakan aplikasi.")
@@ -4024,7 +4036,7 @@ function Show-Help {
 
     $helpDataEN = @{
         '1'  = @("Fix Error 0x0000011b (RpcAuthnLevelPrivacy)", "Disables RpcAuthnLevelPrivacyEnabled registry policy to prevent RPC authentication from blocking printer connections.", "Frequently occurs after regular Windows 10/11 cumulative updates.")
-        '2'  = @("Deep Fix Error 0x00000709 (Point and Print / RPC Path)", "Multi-layer fix: RPC Named Pipes, authentication bypass, HKCU cleanup, and Point and Print elevation override.", "Persistent 0x00000709 error when connecting to shared printers. Should also be run on the Host/Server PC.")
+        '2'  = @("Deep Fix Error 0x00000709 / 0x00000006 (Point and Print / Invalid Handle)", "Multi-layer fix: RPC Named Pipes, authentication bypass, HKCU ghost connection cleanup, and Point and Print elevation override.", "Persistent 0x00000709 or 0x00000006 (ERROR_INVALID_HANDLE) error when connecting to shared printers. Should also be run on the Host/Server PC.")
         '3'  = @("Bypass Error 0x00000bc4 (No Printers Found)", "Forces RPC protocol to use Named Pipes so shared printers can be discovered across the network.", "Displays 'No printers were found' even though the local network is operational.")
         '4'  = @("Fix Error 0x80070035 (Network Path Not Found)", "Automates fdPHost, FDResPub, SSDPSRV, and upnphost services so host PC appears in Network Places.", "Target PC is invisible in Network or throws 'The network path was not found'.")
         '5'  = @("Disable Client-Side Rendering (Error 0x000006d1)", "Enables DisableClientSideRendering in registry to offload print rendering tasks directly to the server.", "Print jobs fail due to driver rendering issues on the client side.")
@@ -4108,7 +4120,7 @@ function Show-Help {
         '83' = @("Extreme Path for Modern Windows 11 (24H2 / 25H2 / 26H2 & ARM64)", "Combined fix for strict Win 11 policies (SMB, RPC, SAC, WPP).", "Essential if Windows 11 Build 26000+ still rejects network printer connections.")
         '84' = @("ALLFIX - Run 50 Automated Fixes Simultaneously", "Runs 50 sequential system, registry, RPC, SMB, firewall, and spooler fixes.", "PRIMARY RECOMMENDATION - the ultimate one-click fix for network printer sharing.")
         '85' = @("Silent ALLFIX (Automated Fixes + Immediate Reboot)", "Runs all 50 automated fixes without interactive prompts and immediately reboots.", "Designed for technicians or automated mass deployments.")
-        '86' = @("Map Local Port to UNC Share (Ultimate 0x00000709 Bypass)", "Creates a local printer port pointing directly to host UNC share (e.g. \\\\SERVER\\PRINTER).", "Ultimate solution when Windows rejects normal printer sharing connections.")
+        '86' = @("Map Local Port to UNC Share (Ultimate 0x00000709 / 0x00000006 Bypass)", "Creates a local printer port via registry injection pointing directly to host UNC share (e.g. \\\\SERVER\\PRINTER).", "Ultimate solution when Windows rejects normal printer sharing connections or GUI port creation fails.")
         '87' = @("Remove Mapped Local UNC Port", "Deletes previously created local UNC port mapping created by option [86].", "Cleans up outdated or mistyped UNC port mappings.")
         '88' = @("Restart Computer", "Reboots local computer immediately.", "Highly recommended after applying fixes so all system settings take full effect.")
         '89' = @("Exit Application", "Closes and exits this utility.", "Done using the application.")
@@ -5312,7 +5324,7 @@ function Invoke-PlanMode {
         "[3/50]  Refresh Group Policy cache (gpupdate /force)",
         "[4/50]  Audit & initialize RPC/DCOM services",
         "[5/50]  Patch Error 0x0000011b (RpcAuthnLevelPrivacy=0)",
-        "[6/50]  Deep Fix 0x00000709 (RPC multi-layer + Point&Print)",
+        "[6/50]  Deep Fix 0x00000709 / 0x00000006 (RPC multi-layer + Point&Print)",
         "[7/50]  Align KB5089549 driver policy + HKCU permissions",
         "[8/50]  Bypass 0x00000bc4 (RPC Named Pipes for discovery)",
         "[9/50]  Fix 0x00000040 (KeepConn + SessTimeout + NetBIOS + Power Saving)",

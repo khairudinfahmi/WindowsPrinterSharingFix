@@ -69,7 +69,7 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
    - Run any module directly from the Main Menu by number (e.g., `84` for ALLFIX, `83` for Extreme Path, `86` for UNC Port Mapping, `31` for Spooler Reset).
 7. **Network Printer Scanner & 1-Click UNC Port Mapping**:
    - Fast, non-blocking network printer scanner with dual-tier discovery (SMB + RPC).
-   - Selecting a printer automatically copies its UNC path (`\\HOST\PRINTER`) to the Windows Clipboard and offers 1-click local port mapping to bypass Error 0x00000709.
+   - Selecting a printer automatically copies its UNC path (`\\HOST\PRINTER`) to the Windows Clipboard and offers 1-click local port mapping to bypass Error 0x00000709 / 0x00000006.
 8. **CLI Automation & Diagnostic Operational Modes**:
    - Execute unattended playbooks (`-AllFix`, `-ExtremePath`, `-SilentAllFix`, `-NoPause`) or dry-run inspection modes (`-Verify`, `-Plan`, `-Analyze`, `-Audit`) with standard exit codes (`0` = healthy, `1` = drift/action needed).
 
@@ -363,7 +363,7 @@ Direct connection methods when standard Windows Network Discovery fails.
 
 | # | Menu Option (Exact Console String) | Code | Details & Technical Benefit |
 | :---: | :--- | :---: | :--- |
-| **1** | **Map Local Port to UNC Share (Auto-Scan or Manual Bypass for Error 0x00000709)** | `[86]` | Ultimate workaround for error 0x00000709: supports auto-scanning remote hosts to pick printers from a live list (zero manual typing) or direct manual UNC input. Injects Local Port, restarts Spooler, and auto-copies UNC to clipboard. |
+| **1** | **Map Local Port to UNC Share (Auto-Scan or Manual Bypass for Error 0x00000709 / 0x00000006)** | `[86]` | Ultimate workaround for error 0x00000709 and 0x00000006: supports auto-scanning remote hosts to pick printers from a live list (zero manual typing) or direct manual UNC input. Injects Local Port directly via registry, restarts Spooler, and auto-copies UNC to clipboard. |
 | **2** | **Remove Previously Created Local UNC Port Mapping** | `[87]` | Cleans up and unbinds previously created local UNC port mappings from the print spooler. |
 | **3** | **Convert WSD Printer Port to Stable Standard TCP/IP Socket** | `[26]` | Converts unreliable WSD (Web Services on Devices) ports to standard Raw TCP/IP ports (Port 9100) to eliminate phantom offline status. |
 | **4** | **Add Standard TCP/IP Printer Port Manually** | `[29]` | Creates a direct Raw TCP/IP printing port (Port 9100) using the target printer's static IP address via WMI. |
