@@ -162,7 +162,7 @@ function Write-Log {
 
 function Set-SafeReg {
     [CmdletBinding()]
-    [OutputType([bool])]
+    [OutputType([void])]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSProvideOutputTypeAttribute', '')]
     param(
@@ -197,13 +197,13 @@ function Set-SafeReg {
 
     if ($script:IsPlanMode) {
         Write-Host "  [PLAN] $full = $expDisplay ($Type)" -ForegroundColor DarkGray
-        return $true
+        return
     }
     if ($script:IsReadOnlyMode) {
         if (-not $Silent -and $ErrorActionPreference -ne 'SilentlyContinue') {
             Write-Host "  [READ-ONLY] Would set $full = $expDisplay ($Type)" -ForegroundColor DarkGray
         }
-        return $false
+        return
     }
     try {
         if (-not (Microsoft.PowerShell.Management\Test-Path -Path $Path)) {
@@ -232,12 +232,12 @@ function Set-SafeReg {
             if (-not $isMatch) {
                 Write-Host "  [DEBUG][MISMATCH] $full expected=$expDisplay actual=$actDisplay" -ForegroundColor Red
                 Write-Log "DEBUG MISMATCH: $full expected=$expDisplay actual=$actDisplay" -Type "WARNING" -NoConsole
-                return $false
+                return
             } else {
                 Write-Host "  [DEBUG][OK] $full = $actDisplay" -ForegroundColor DarkGreen
             }
         }
-        return $true
+        return
     } catch {
         if (-not $Silent -and $ErrorActionPreference -ne 'SilentlyContinue') {
             if ($script:IsDebugMode) {
@@ -245,7 +245,7 @@ function Set-SafeReg {
             }
             Write-Log "Set-SafeReg failed: $full : $($_.Exception.Message)" -Type "ERROR" -NoConsole
         }
-        return $false
+        return
     }
 }
 
