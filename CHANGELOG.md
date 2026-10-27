@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Error 0x00000006 (ERROR_INVALID_HANDLE) & Ghost Connection Purge**:
+  - Enhanced `Fix-Deep0x00000709`, `PrinterFixReapply.ps1`, and `PrinterFixLogon.ps1` to automatically purge stale network printer connection keys under `HKCU:\Printers\Connections` and `HKU\*\Printers\Connections`, breaking the `0x709` $\leftrightarrow$ `0x00000006` credential loop and clearing hanging SMB sessions (`net use * /delete /y`).
 - **Morning Connection Drops After Cold Boot**:
   - Boot script (`PrinterFixReapply.ps1`) now forces a clean restart of the Spooler service (`Restart-Service spooler -Force`) during startup so boot-time RPC policies take effect immediately.
   - Added an `ONLOGON` task (`PrinterFixLogonReconnect`) that wakes up the network session (`\\Host\IPC$`) and refreshes Spooler when the user logs in in the morning before Wi-Fi/LAN is fully connected.

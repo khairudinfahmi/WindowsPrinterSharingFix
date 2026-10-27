@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>COMPLETE DOCUMENTATION - Windows Printer Sharing Fix</title>
-    <meta name="description" content="Complete documentation and technical reference for Windows Printer Sharing Fix (v2.4.1). Automated PowerShell repair utility for 0x0000011b, 0x00000709, 0x00000bc4, 0x00000040, SMB Signing, RPC Named Pipes, and Point & Print on Windows 10, 11 (24H2/25H2), and Server 2025.">
-    <meta name="keywords" content="0x0000011b, 0x00000709, 0x00000bc4, 0x00000040, 0x80070035, smb signing, point and print, printnightmare bypass, windows printer sharing fix, windows 11 24h2 printer, windows update printer fix, print spooler fix, network printer fix">
+    <meta name="description" content="Complete documentation and technical reference for Windows Printer Sharing Fix (v2.4.1). Automated PowerShell repair utility for 0x0000011b, 0x00000709, 0x00000006, 0x00000bc4, 0x00000040, SMB Signing, RPC Named Pipes, and Point & Print on Windows 10, 11 (24H2/25H2), and Server 2025.">
+    <meta name="keywords" content="0x0000011b, 0x00000709, 0x00000006, invalid handle, 0x00000bc4, 0x00000040, 0x80070035, smb signing, point and print, printnightmare bypass, windows printer sharing fix, windows 11 24h2 printer, windows update printer fix, print spooler fix, network printer fix">
     <meta name="author" content="Khairudin Fahmi">
     <meta property="og:title" content="Windows Printer Sharing Fix - Complete Documentation & Reference">
-    <meta property="og:description" content="Automated repair utility for Windows network printer sharing errors (0x0000011b, 0x00000709, 0x00000bc4, 0x00000040, SMB Signing).">
+    <meta property="og:description" content="Automated repair utility for Windows network printer sharing errors (0x0000011b, 0x00000709, 0x00000006, 0x00000bc4, 0x00000040, SMB Signing).">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://github.com/khairudinfahmi/WindowsPrinterSharingFix">
     <meta property="og:image" content="https://raw.githubusercontent.com/khairudinfahmi/WindowsPrinterSharingFix/main/assets/social-banner.png">
@@ -18,7 +18,7 @@
     <meta property="og:image:alt" content="Windows Printer Sharing Fix Banner">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Windows Printer Sharing Fix - Complete Documentation">
-    <meta name="twitter:description" content="Automated repair utility for Windows network printer sharing errors (0x0000011b, 0x00000709, 0x00000bc4, 0x00000040, SMB Signing).">
+    <meta name="twitter:description" content="Automated repair utility for Windows network printer sharing errors (0x0000011b, 0x00000709, 0x00000006, 0x00000bc4, 0x00000040, SMB Signing).">
     <meta name="twitter:image" content="https://raw.githubusercontent.com/khairudinfahmi/WindowsPrinterSharingFix/main/assets/social-banner.png">
 
     <script type="application/ld+json">
@@ -217,9 +217,9 @@
             },
             {
                 "id": "02",
-                "title": "Error 0x00000709 / 0x7c - Network Printer Connection Failure (Point and Print / RPC)",
-                "problem": "Persistent error 0x00000709 or 0x0000007c blocking printer connection and driver installation.",
-                "solution": "Applies multi-layered RPC protocols, sets CopyFilesPolicy = 1, ForceLegacyPrintDriver = 1, and clears stale HKCU device keys.",
+                "title": "Error 0x00000709 / 0x00000006 - Network Printer Connection & Invalid Handle (Point and Print / RPC)",
+                "problem": "Persistent error 0x00000709 or 0x00000006 (ERROR_INVALID_HANDLE) blocking printer connection and driver installation.",
+                "solution": "Applies multi-layered RPC protocols, sets CopyFilesPolicy = 1, purges stale HKCU connection ghost handles, and clears stale HKCU device keys.",
                 "whenToUse": "When standard fixes fail on Windows 11 (22H2, 23H2, 24H2+). Apply on both Host and Client."
             },
             {
