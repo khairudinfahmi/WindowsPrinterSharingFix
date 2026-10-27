@@ -177,11 +177,11 @@ function Set-SafeReg {
 
         [string]$Type,
 
-        [switch]$Force = $true,
+        [switch]$Force,
 
         [switch]$Silent
     )
-    $useForce = [bool]$Force
+    $useForce = if ($PSBoundParameters.ContainsKey('Force')) { [bool]$Force } else { $true }
     if ([string]::IsNullOrWhiteSpace($Type)) {
         if ($Value -is [string[]] -or $Value -is [System.Array]) {
             $Type = "MultiString"
