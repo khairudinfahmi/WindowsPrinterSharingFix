@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.2] - 2026-10-27
+
+### Fixed
+
+- **Persistent Printer Connections**:
+  - Resolved regression in boot (`PrinterFixPostUpdate`) and logon (`PrinterFixLogonReconnect`) scheduled tasks that inadvertently purged `HKCU:\Printers\Connections\*` and user default `Device` registry values on every system reboot and user login.
+- **Orphaned Driver Sweeper**:
+  - Hardened `Sweep-OrphanedDrivers` (Module 43) to cross-reference active printer drivers (`Get-Printer` / `Get-PrinterDriver`), protecting installed hardware drivers from accidental deletion and implementing language-neutral ClassGuid `{4d36e979-e325-11ce-bfc1-08002be10318}` driver discovery.
+- **User Hive Lock Prevention**:
+  - Hardened `reg.exe load` and `reg.exe unload` operations across `Set-PostPatchTuesdayTask` and `Inject-CrossUserCredentials` with mounted hive detection and garbage collection (`[GC]::Collect(); [GC]::WaitForPendingFinalizers()`), eliminating temporary profile creation risks.
+- **CLI Language Override**:
+  - Fixed parameter precedence where `-Language EN` / `-Language ID` from CLI was overwritten by hardcoded default assignments.
+- **Safe Registry Proxy**:
+  - Integrated `Set-ItemProperty` proxy wrapper to route all registry operations through `Set-SafeReg`, enabling verified readback comparison under `-Debug`, simulated execution under `-Plan`, and read-only protections under `-ReadOnlyMode`.
+- **Audit Mode Detailed Snapshot**:
+  - Upgraded `Invoke-AuditMode` (`-Audit`) to record complete path-level registry item snapshots (`Details`) into audit report logs instead of summary-only metrics.
+- **Clean Rollback & Backup Retention**:
+  - Hardened `Backup-Registry` to preserve original configuration snapshots (`*.orig.reg`), track initially missing policy hives, purge script-generated policies on rollback, and stop scheduled tasks before rolling back.
+- **Submenu Polish**:
+  - Removed double-reset invocations in Submenu 4 (Option 1 & 4), removed redundant interactive prompts in Submenu 5 (Option 5 & 8), enforced `LegacyDefaultPrinterMode = 1` in `Manage-DefaultPrinter`, and included `NetworkProfileWatchdog` in `Remove-SpoolerWatchdog`.
+
 ## [2.4.1] - 2026-09-22
 
 ### Fixed

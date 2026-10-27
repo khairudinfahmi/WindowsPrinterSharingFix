@@ -1,4 +1,4 @@
-# Windows Printer Sharing Fix
+# Windows Printer Sharing Fix (v2.4.2)
 > Automated PowerShell diagnostic and remediation suite for Windows network printer sharing, RPC protocol restrictions, SMB signing enforcement, and Print Spooler connectivity across Windows 10, 11 (including 24H2, 25H2, 26H2), ARM64, and Windows Server 2016-2025.
 
 Windows Printer Sharing Fix is the canonical open-source utility designed to resolve modern and legacy Windows network printing failures. It automates 50 targeted system repairs across Registry hives, Windows Defender Firewall, Service Control Manager (SCM), Local Security Authority (LSA), LanmanWorkstation/Server SMB policies, and Task Scheduler persistence.

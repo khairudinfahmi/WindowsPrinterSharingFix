@@ -8,7 +8,7 @@
 
   <p>
     <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases"><img src="https://img.shields.io/badge/Windows-10%20%7C%2011%20%7C%20Server-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows Compatibility"></a>
-    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.1"><img src="https://img.shields.io/badge/Release-v2.4.1-10b981?style=for-the-badge&logo=github&logoColor=white" alt="Version"></a>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.2"><img src="https://img.shields.io/badge/Release-v2.4.2-10b981?style=for-the-badge&logo=github&logoColor=white" alt="Version"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-6366f1?style=for-the-badge" alt="License"></a>
     <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix"><img src="https://img.shields.io/badge/Arch-x64%20%7C%20ARM64-ea580c?style=for-the-badge" alt="Architecture"></a>
   </p>
@@ -26,7 +26,7 @@
     <a href="#option-1-official-windows-installer-recommended"><b>Download Installer</b></a> •
     <a href="#instant-error-code-quick-lookup-matrix"><b>Instant Error Matrix</b></a> •
     <a href="#option-4-unattended-cli-switches-automation--rmm"><b>CLI Automation</b></a> •
-    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.1"><b>Release Notes</b></a>
+    <a href="https://github.com/khairudinfahmi/WindowsPrinterSharingFix/releases/tag/v2.4.2"><b>Release Notes</b></a>
   </p>
 
   <br>
@@ -75,7 +75,7 @@ Fully supports **Windows 10**, **Windows 11 (including 24H2, 25H2, 26H2+)**, **A
 
 ---
 
-## What's New in Version 2.4.1
+## What's New in Version 2.4.2
 
 1. **Fixed morning printer connection drops after cold boot**:
    - Fixed an issue where computers powered on in the morning couldn't connect to shared printers because the Spooler service started before Wi-Fi or LAN finished connecting. Added a lightweight logon task (`PrinterFixLogonReconnect`) that wakes up the network session (`\\Host\IPC$`) and refreshes Spooler when the user logs in.
@@ -222,7 +222,7 @@ Quickly identify your Windows network printer error code and match it to its roo
 
 ---
 
-## Menu & Submenu Reference (v2.4.1)
+## Menu & Submenu Reference (v2.4.2)
 
 The main console provides 90 direct execution module codes (`1`–`90`), structured into 8 dedicated categories (73 interactive submenu options) plus an interactive help engine:
 
@@ -233,7 +233,7 @@ The main console provides 90 direct execution module codes (`1`–`90`), structu
 ```text
 ======================================================================================
    WINDOWS PRINTER SHARING FIX  |  Windows Network Printer Repair Tool
-   Version: 2.4.1  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT
+   Version: 2.4.2  |  System: WINDOWS 11 PRO 24H2 26200 64-BIT
    Computer: DESKTOP-OFFICE01  |  User: Administrator
    STATUS: Spooler [RUNNING] | Network [PRIVATE] | SMB Signing [OK] | Pass Sharing [OFF]
 ======================================================================================
