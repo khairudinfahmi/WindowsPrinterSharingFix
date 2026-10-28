@@ -24,6 +24,8 @@ release/*
 *.tmp
 *release-notes*.md
 scratch/
+docs/new_documentation.html
+*new_documentation*
 
 # ===========================
 # Legacy / Backup Folders
