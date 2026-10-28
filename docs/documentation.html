@@ -1111,7 +1111,7 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
-                        <a href="/src/WindowsPrinterSharingFix.ps1" download="WindowsPrinterSharingFix.ps1"
+                        <a id="downloadPs1Link" href="https://raw.githubusercontent.com/khairudinfahmi/WindowsPrinterSharingFix/main/src/WindowsPrinterSharingFix.ps1" target="_blank" rel="noopener noreferrer" download="WindowsPrinterSharingFix.ps1"
                             class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors shadow-sm whitespace-nowrap shrink-0">
                             <i data-lucide="download" class="w-4 h-4"></i>
                             <span>Download .PS1 Script (v2.4.2)</span>
@@ -3045,6 +3045,39 @@
 
             const copyOneLinerBtn = document.getElementById('copyOneLinerBtn');
             const copyOneLinerLabel = document.getElementById('copyOneLinerLabel');
+            const downloadPs1Link = document.getElementById('downloadPs1Link');
+            if (downloadPs1Link) {
+                downloadPs1Link.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    let scriptText = null;
+                    if (window.location.protocol === 'file:') {
+                        try {
+                            const r = await fetch('../src/WindowsPrinterSharingFix.ps1');
+                            if (r.ok) scriptText = await r.text();
+                        } catch {}
+                    }
+                    if (!scriptText) {
+                        try {
+                            const r = await fetch('https://raw.githubusercontent.com/khairudinfahmi/WindowsPrinterSharingFix/main/src/WindowsPrinterSharingFix.ps1');
+                            if (r.ok) scriptText = await r.text();
+                        } catch {}
+                    }
+                    if (scriptText) {
+                        const blob = new Blob([scriptText], { type: 'text/plain;charset=utf-8' });
+                        const blobUrl = URL.createObjectURL(blob);
+                        const tempA = document.createElement('a');
+                        tempA.href = blobUrl;
+                        tempA.download = 'WindowsPrinterSharingFix.ps1';
+                        document.body.appendChild(tempA);
+                        tempA.click();
+                        document.body.removeChild(tempA);
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+                        return;
+                    }
+                    window.location.href = 'https://raw.githubusercontent.com/khairudinfahmi/WindowsPrinterSharingFix/main/src/WindowsPrinterSharingFix.ps1';
+                });
+            }
+
             if (copyOneLinerBtn && copyOneLinerLabel) {
                 copyOneLinerBtn.addEventListener('click', async () => {
                     const cmd = 'irm https://raw.githubusercontent.com/khairudinfahmi/WindowsPrinterSharingFix/main/src/WindowsPrinterSharingFix.ps1 | iex';
