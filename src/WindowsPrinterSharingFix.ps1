@@ -39,6 +39,20 @@ param(
 
 $DebugPreference = 'SilentlyContinue'
 
+$script:version    = "2.4.3"
+$script:backupDir  = "C:\WindowsPrinterSharingFixBackup"
+$script:silentNuke = $nuke
+$script:NoPause    = [bool]$NoPause
+
+# Detect execution host environment (.exe vs .ps1) FIRST before WOW64 check
+$script:isExe = $false
+try {
+    $mainMod = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    if ($mainMod -match '\.exe$' -and $mainMod -notmatch 'powershell' -and $mainMod -notmatch 'pwsh') {
+        $script:isExe = $true
+    }
+} catch {}
+
 # WOW64 Guard: If running in 32-bit PowerShell on 64-bit OS, relaunch via 64-bit PowerShell (Sysnative)
 # Prevents HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print from being silently redirected to Wow6432Node
 if ([Environment]::Is64BitOperatingSystem -and (-not [Environment]::Is64BitProcess) -and (-not $script:isExe)) {
@@ -60,21 +74,6 @@ if ([Environment]::Is64BitOperatingSystem -and (-not [Environment]::Is64BitProce
         }
     }
 }
-
-
-$script:version    = "2.4.3"
-$script:backupDir  = "C:\WindowsPrinterSharingFixBackup"
-$script:silentNuke = $nuke
-$script:NoPause    = [bool]$NoPause
-
-# Detect execution host environment (.exe vs .ps1)
-$script:isExe = $false
-try {
-    $mainMod = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-    if ($mainMod -match '\.exe$' -and $mainMod -notmatch 'powershell' -and $mainMod -notmatch 'pwsh') {
-        $script:isExe = $true
-    }
-} catch {}
 
 # Mode flags
 $script:IsDebugMode    = [bool]$Debug
@@ -479,6 +478,7 @@ function Repair-Deep0x00000006AndV3Driver {
         Write-Host "  [PLAN] Would execute 10-layer 0x00000006 handle & V3 driver remediation." -ForegroundColor Cyan
         return
     }
+    if ($script:IsReadOnlyMode) { return }
 
     try {
         # --- LAYER 1: Terminate Spooler & Handle-Holding Helper Processes ---
@@ -492,11 +492,13 @@ function Repair-Deep0x00000006AndV3Driver {
             Start-Sleep -Milliseconds 600
         } catch {}
 
-        # --- LAYER 2: Purge HKLM Stale Remote Server / Connection Keys ---
+        # --- LAYER 2: Purge HKLM Stale Remote Server / Connection Keys (Plural 'Providers' + SYSTEM LanMan) ---
         $hklmPurgePaths = @(
-            "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider\Servers",
+            "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Providers",
+            "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Providers\LanMan Print Services\Servers",
             "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\LanMan Print Services\Servers",
             "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Connections",
+            "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Connections",
             "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\V4 Connections"
         )
         foreach ($p in $hklmPurgePaths) {
@@ -514,13 +516,16 @@ function Repair-Deep0x00000006AndV3Driver {
 
         $hkcuWin = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows"
         Remove-SafeReg -Path "$hkcuWin\SessionDefaultDevices"
-        Remove-SafeReg -Path $hkcuWin -Name "Device"
+        $curDev = (Get-ItemProperty -Path $hkcuWin -Name "Device" -ErrorAction SilentlyContinue).Device
+        if ($curDev -and $curDev -like "\\*") {
+            Remove-SafeReg -Path $hkcuWin -Name "Device"
+        }
 
-        foreach ($devKey in @("HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Devices", "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\PrinterPorts")) {
+        foreach ($devKey in @("HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Devices", "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\PrinterPorts", "HKCU:\Printers\DevModes2", "HKCU:\Printers\DevModePerUser", "HKCU:\Printers\Settings")) {
             if (Test-Path $devKey) {
                 $prop = Get-ItemProperty -Path $devKey -ErrorAction SilentlyContinue
                 if ($prop) {
-                    $prop.PSObject.Properties | Where-Object { $_.Name -like "\\*" } | ForEach-Object {
+                    $prop.PSObject.Properties | Where-Object { $_.Name -like "\\*" -or $_.Name -like ",,*" } | ForEach-Object {
                         Remove-SafeReg -Path $devKey -Name $_.Name
                     }
                 }
@@ -537,31 +542,53 @@ function Repair-Deep0x00000006AndV3Driver {
                 Remove-SafeReg -Path "$uPrinters\DevModes2" -RecurseChildrenOnly
                 Remove-SafeReg -Path "$uPrinters\DevModePerUser" -RecurseChildrenOnly
                 Remove-SafeReg -Path "$uPrinters\Settings" -RecurseChildrenOnly
+                foreach ($uSub in @("DevModes2", "DevModePerUser", "Settings")) {
+                    $uSubPath = "$uPrinters\$uSub"
+                    if (Test-Path $uSubPath) {
+                        $uProp = Get-ItemProperty -Path $uSubPath -ErrorAction SilentlyContinue
+                        if ($uProp) {
+                            $uProp.PSObject.Properties | Where-Object { $_.Name -like "\\*" -or $_.Name -like ",,*" } | ForEach-Object {
+                                Remove-SafeReg -Path $uSubPath -Name $_.Name
+                            }
+                        }
+                    }
+                }
             }
             $uWin = "Registry::HKEY_USERS\$uSid\Software\Microsoft\Windows NT\CurrentVersion\Windows"
             Remove-SafeReg -Path "$uWin\SessionDefaultDevices"
-            Remove-SafeReg -Path $uWin -Name "Device"
+            $uDev = (Get-ItemProperty -Path $uWin -Name "Device" -ErrorAction SilentlyContinue).Device
+            if ($uDev -and $uDev -like "\\*") {
+                Remove-SafeReg -Path $uWin -Name "Device"
+            }
         }
 
         # --- LAYER 4: Clear Corrupted Point & Print Package Cache (PCC) ---
-        $pccDir = Join-Path $env:WINDIR "System32\spool\drivers\x64\PCC"
-        if (Test-Path $pccDir) {
-            try {
-                Get-ChildItem -Path $pccDir -Recurse -Force -ErrorAction SilentlyContinue |
-                    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-            } catch {}
+        foreach ($pccSub in @("x64\PCC", "W32X86\PCC")) {
+            $pccDir = Join-Path $env:WINDIR "System32\spool\drivers\$pccSub"
+            if (Test-Path $pccDir) {
+                try {
+                    Get-ChildItem -Path $pccDir -Recurse -Force -ErrorAction SilentlyContinue |
+                        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+                } catch {}
+            }
         }
-        $pkgServersKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\PackageInstallation\Servers"
-        Remove-SafeReg -Path $pkgServersKey -RecurseChildrenOnly
+        $pkgInstKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\PackageInstallation"
+        if (Test-Path $pkgInstKey) {
+            Get-ChildItem -Path $pkgInstKey -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -eq "Servers" } | ForEach-Object {
+                Remove-SafeReg -Path $_.PSPath -RecurseChildrenOnly
+            }
+        }
 
-        # --- LAYER 5: Enforce Universal Print Processor 'winprint' & RAW Datatype ---
+        # --- LAYER 5: Enforce Universal Print Processor 'winprint' ---
         $proc64 = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Print Processors\winprint"
         Set-SafeReg -Path $proc64 -Name "Driver" -Value "winprint.dll" -Type String -Force
         $proc32 = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows NT x86\Print Processors\winprint"
-        Set-SafeReg -Path $proc32 -Name "Driver" -Value "winprint.dll" -Type String -Force
+        if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows NT x86") {
+            Set-SafeReg -Path $proc32 -Name "Driver" -Value "winprint.dll" -Type String -Force
+        }
 
-        # --- LAYER 6: V3 Driver Framework Integrity Check & Self-Healing ---
-        $isWin10Client = ([Environment]::OSVersion.Version.Major -eq 10 -and [Environment]::OSVersion.Version.Build -lt 22000)
+        # --- LAYER 6: V3 Driver Framework Integrity Check & Self-Healing (Subfolder \Amd64\ Aware) ---
+        $isWin10Client = ($script:buildNumber -lt 22000)
         $spoolV3Dir = Join-Path $env:WINDIR "System32\spool\drivers\x64\3"
         if (Test-Path $spoolV3Dir) {
             Get-ChildItem -Path $spoolV3Dir -File -ErrorAction SilentlyContinue | Where-Object { $_.Length -eq 0 } |
@@ -574,16 +601,21 @@ function Repair-Deep0x00000006AndV3Driver {
                         Sort-Object LastWriteTime -Descending
                     if ($ntprintDirs -and $ntprintDirs.Count -gt 0) {
                         $goodSource = $ntprintDirs[0].FullName
-                        $v3Files = @("UNIDRV.DLL", "UNIDRVUI.DLL", "UNIRES.DLL", "PSCRIPT5.DLL", "PS5UI.DLL")
+                        $v3Files = @("UNIDRV.DLL", "UNIDRVUI.DLL", "UNIRES.DLL", "UNIDRV.HLP", "STDNAMES.GPD", "PSCRIPT5.DLL", "PS5UI.DLL")
                         foreach ($vf in $v3Files) {
-                            $srcFile = Join-Path $goodSource $vf
+                            $srcObj = Get-ChildItem -Path $goodSource -Filter $vf -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
                             $dstFile = Join-Path $spoolV3Dir $vf
-                            if ((Test-Path $srcFile) -and (Test-Path $dstFile)) {
+                            if ($srcObj) {
                                 try {
-                                    $dstBuild = (Get-ItemProperty $dstFile -ErrorAction SilentlyContinue).VersionInfo.ProductBuildPart
-                                    if ($dstBuild -ge 22000) {
-                                        Copy-Item -Path $srcFile -Destination $dstFile -Force -ErrorAction SilentlyContinue
-                                        Write-Log "Restored native Win10 V3 driver: $vf from DriverStore (was build $dstBuild)." -Type "SUCCESS" -NoConsole
+                                    $needCopy = (-not (Test-Path $dstFile))
+                                    $dstBuild = 0
+                                    if (-not $needCopy) {
+                                        $dstBuild = (Get-Item $dstFile -ErrorAction SilentlyContinue).VersionInfo.FileBuildPart
+                                        if ($dstBuild -ge 22000) { $needCopy = $true }
+                                    }
+                                    if ($needCopy) {
+                                        Copy-Item -Path $srcObj.FullName -Destination $dstFile -Force -ErrorAction SilentlyContinue
+                                        Write-Log "Restored native Win10 V3 driver file: $vf from DriverStore (was build $dstBuild)." -Type "SUCCESS" -NoConsole
                                     }
                                 } catch {}
                             }
@@ -596,12 +628,13 @@ function Repair-Deep0x00000006AndV3Driver {
         # --- LAYER 7: Point and Print Policy Alignment ---
         Fix-AdvancedPointAndPrint
 
-        # --- LAYER 8: Client-Side Rendering (CSR) & EMF Despooling ---
+        # --- LAYER 8: Client-Side Rendering (CSR) & EMF Despooling (Plural 'Providers') ---
         $polPrinters = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
         Set-SafeReg -Path $polPrinters -Name ForceCSREMFDespooling -Value 0 -Type DWord -Force
         Remove-SafeReg -Path $polPrinters -Name DisableClientSideRendering
-        $csrProv = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider"
-        Set-SafeReg -Path $csrProv -Name CSRDisabled -Value 0 -Type DWord -Force
+        $csrProv = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Providers"
+        Set-SafeReg -Path $csrProv -Name RemovePrintersAtLogoff -Value 0 -Type DWord -Force
+        Remove-SafeReg -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider"
 
         # --- LAYER 9: SMB Session & Kerberos Flush ---
         try { & net.exe use * /delete /y > $null 2>&1 } catch {}
@@ -988,8 +1021,9 @@ function Fix-CSR {
         Set-SafeReg -Path $path -Name ForceCSREMFDespooling -Value 0 -Type DWord -Force
         Remove-SafeReg -Path $path -Name DisableClientSideRendering
 
-        $csrProv = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider"
-        Set-SafeReg -Path $csrProv -Name CSRDisabled -Value 0 -Type DWord -Force
+        $csrProv = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Providers"
+        Set-SafeReg -Path $csrProv -Name RemovePrintersAtLogoff -Value 0 -Type DWord -Force
+        Remove-SafeReg -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider"
 
         if (-not $script:IsReadOnlyMode) {
             Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
