@@ -3631,11 +3631,12 @@ function Detect-GPOIntervention {
         )
 
         $recommendations = @{
-            "DisableClientSideRendering" = 1
+            "ForceCSREMFDespooling" = 0
             "RestrictDriverInstallationToAdministrators" = 0
-            "InForest" = 1
-            "TrustedServers" = 1
-            "ServerList" = "*.*"
+            "InForest" = 0
+            "TrustedServers" = 0
+            "Restricted" = 0
+            "PackagePointAndPrintOnly" = 0
             "NoWarningNoElevationOnInstall" = 1
             "NoWarningNoElevationOnUpdate" = 1
             "UpdatePromptSettings" = 2
@@ -3643,11 +3644,12 @@ function Detect-GPOIntervention {
             "RpcTcpEnable" = 1
             "RpcProtocols" = 7
             "ForceSetup" = 1
+            "RpcAuthentication" = 0
             "RpcAuthenticationLevel" = 0
             "RpcOverNamedPipes" = 1
             "ForceKerberosForRpc" = 0
             "Enabled" = 0
-            "PackagePointAndPrintServerList" = 1
+            "PackagePointAndPrintServerList" = 0
             "RequireSecuritySignature" = 0
             "EnableSecuritySignature" = 0
         }
@@ -4121,6 +4123,7 @@ function AllFix-Core {
 
     Write-Host $(if ($isEN) { "  [*] [6/50] Deep Fix Error 0x00000709 / 0x00000006 (Multi-Layer RPC & Point and Print)..." } else { "  [*] [6/50] Memperbaiki Error 0x00000709 / 0x00000006 (Jalur RPC & Point and Print)..." }) -ForegroundColor Cyan
     Fix-Deep0x00000709
+    Optimize-HostPrinters
 
     Write-Host $(if ($isEN) { "  [*] [7/50] Aligning KB5089549 Driver Policy & HKCU Permissions..." } else { "  [*] [7/50] Menyelaraskan Kebijakan Driver & Izin Registri HKCU..." }) -ForegroundColor Cyan
     Fix-CrossSignedDriverPolicy
@@ -4369,6 +4372,7 @@ function Extreme-25H2 {
     try { $LASTEXITCODE = 0; gpupdate /force > $null 2>&1 } catch {}
 
     Fix-Deep0x00000709
+    Optimize-HostPrinters
     Fix-CrossSignedDriverPolicy
     Fix-HKCU-PrinterKeyPerms
     Set-PostPatchTuesdayTask
@@ -5806,7 +5810,7 @@ function Invoke-VerifyMode {
     $procDriver = $null
     try { $procDriver = (Get-ItemProperty -Path $proc64Key -Name Driver -ErrorAction Stop).Driver } catch { $procDriver = $null }
     if ($procDriver -eq "winprint.dll") {
-        $lineStr = ("  [OK]      {0,-40} = localspl.dll" -f "winprint Print Processor Driver")
+        $lineStr = ("  [OK]      {0,-40} = winprint.dll" -f "winprint Print Processor Driver")
         Write-Host $lineStr -ForegroundColor Green
         $details += $lineStr
         $ok++
@@ -5817,36 +5821,43 @@ function Invoke-VerifyMode {
         $fail++
     }
 
-    # Deep Handle Check (Error 0x00000006 Split-Brain Handles)
-    $staleConnCount = 0
+    # Deep Handle Check (Error 0x00000006 Split-Brain / Broken Handles Only)
+    $brokenHandleCount = 0
     try {
         $connKey = "HKCU:\Printers\Connections"
-        if (Test-Path $connKey) {
-            $staleConnCount += @(Get-ChildItem -Path $connKey -ErrorAction SilentlyContinue).Count
+        $activeConns = if (Test-Path $connKey) { @(Get-ChildItem -Path $connKey -ErrorAction SilentlyContinue) } else { @() }
+        foreach ($ac in $activeConns) {
+            $acProps = Get-ItemProperty -Path $ac.PSPath -ErrorAction SilentlyContinue
+            # Handle dianggap korup jika subkey koneksi ada tetapi tidak memiliki nilai Server atau Provider
+            if (-not $acProps -or (-not $acProps.Server) -or (-not $acProps.Provider)) {
+                $brokenHandleCount++
+            }
         }
-        $csrKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider\Servers"
-        if (Test-Path $csrKey) {
-            $staleConnCount += @(Get-ChildItem -Path $csrKey -ErrorAction SilentlyContinue).Count
+        # Split-Brain: Ada bangkai Server di CSR Providers padahal tidak ada koneksi printer sama sekali di HKCU
+        $csrKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Providers\Servers"
+        $csrSrvCount = if (Test-Path $csrKey) { @(Get-ChildItem -Path $csrKey -ErrorAction SilentlyContinue).Count } else { 0 }
+        if ($csrSrvCount -gt 0 -and $activeConns.Count -eq 0) {
+            $brokenHandleCount += $csrSrvCount
         }
     } catch {}
-    if ($staleConnCount -eq 0) {
-        $lineStr = ("  [OK]      {0,-40} = Clean (0 stale handles)" -f "Network Printer Handles (0x06)")
+    if ($brokenHandleCount -eq 0) {
+        $lineStr = ("  [OK]      {0,-40} = Clean (0 corrupted/split-brain handles)" -f "Network Printer Handles (0x06)")
         Write-Host $lineStr -ForegroundColor Green
         $details += $lineStr
         $ok++
     } else {
-        $lineStr = ("  [FAIL]    {0,-40} = {1} stale handle(s) (0x06 risk)" -f "Network Printer Handles (0x06)", $staleConnCount)
+        $lineStr = ("  [FAIL]    {0,-40} = {1} corrupted/split-brain handle(s) (0x06 risk)" -f "Network Printer Handles (0x06)", $brokenHandleCount)
         Write-Host $lineStr -ForegroundColor Red
         $details += $lineStr
         $fail++
     }
 
     # V3 UNIDRVUI.DLL Driver Check (Win10 vs Win11 Regression)
-    $isWin10 = ([Environment]::OSVersion.Version.Major -eq 10 -and [Environment]::OSVersion.Version.Build -lt 22000)
+    $isWin10 = ($script:buildNumber -lt 22000)
     $v3DllPath = Join-Path $env:WINDIR "System32\spool\drivers\x64\3\UNIDRVUI.DLL"
     if ($isWin10 -and (Test-Path $v3DllPath)) {
         $dllBuild = 0
-        try { $dllBuild = (Get-ItemProperty $v3DllPath -ErrorAction SilentlyContinue).VersionInfo.ProductBuildPart } catch {}
+        try { $dllBuild = (Get-Item $v3DllPath -ErrorAction SilentlyContinue).VersionInfo.FileBuildPart } catch {}
         if ($dllBuild -ge 22000) {
             $lineStr = ("  [FAIL]    {0,-40} = Win11 Build {1} on Win10 (0x06 risk)" -f "V3 Framework DLL Compatibility", $dllBuild)
             Write-Host $lineStr -ForegroundColor Red
@@ -6035,13 +6046,31 @@ function Invoke-AnalyzeMode {
     # 3. Handle & Driver Framework Subsystem (Error 0x00000006)
     $handleDrift = @()
     try {
-        $staleConn = @(Get-ChildItem "HKCU:\Printers\Connections" -ErrorAction SilentlyContinue).Count
-        if ($staleConn -gt 0) { $handleDrift += "$staleConn stale network printer connection handle(s) in HKCU (causes ERROR_INVALID_HANDLE 0x00000006)" }
-        $isWin10 = ([Environment]::OSVersion.Version.Major -eq 10 -and [Environment]::OSVersion.Version.Build -lt 22000)
+        $brokenHandleCount = 0
+        $connKey = "HKCU:\Printers\Connections"
+        $activeConns = if (Test-Path $connKey) { @(Get-ChildItem -Path $connKey -ErrorAction SilentlyContinue) } else { @() }
+        foreach ($ac in $activeConns) {
+            $acProps = Get-ItemProperty -Path $ac.PSPath -ErrorAction SilentlyContinue
+            if (-not $acProps -or (-not $acProps.Server) -or (-not $acProps.Provider)) {
+                $brokenHandleCount++
+            }
+        }
+        $csrKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Providers\Servers"
+        $csrSrvCount = if (Test-Path $csrKey) { @(Get-ChildItem -Path $csrKey -ErrorAction SilentlyContinue).Count } else { 0 }
+        if ($csrSrvCount -gt 0 -and $activeConns.Count -eq 0) {
+            $brokenHandleCount += $csrSrvCount
+        }
+        if ($brokenHandleCount -gt 0) {
+            $handleDrift += "$brokenHandleCount corrupted/split-brain network printer handle(s) (causes ERROR_INVALID_HANDLE 0x00000006)"
+        }
+        $isWin10 = ($script:buildNumber -lt 22000)
         $v3Dll = Join-Path $env:WINDIR "System32\spool\drivers\x64\3\UNIDRVUI.DLL"
         if ($isWin10 -and (Test-Path $v3Dll)) {
-            $dllBuild = (Get-ItemProperty $v3Dll -ErrorAction SilentlyContinue).VersionInfo.ProductBuildPart
-            if ($dllBuild -ge 22000) { $handleDrift += "Win11 UNIDRVUI.DLL (Build $dllBuild) detected on Win10 (calls non-existent RtlLogUnexpectedCodepath -> 0x06 / splwow64 crash)" }
+            $dllBuild = 0
+            try { $dllBuild = (Get-Item $v3Dll -ErrorAction SilentlyContinue).VersionInfo.FileBuildPart } catch {}
+            if ($dllBuild -ge 22000) {
+                $handleDrift += "Win11 UNIDRVUI.DLL (Build $dllBuild) detected on Win10 (calls non-existent RtlLogUnexpectedCodepath -> 0x06 / splwow64 crash)"
+            }
         }
     } catch {}
     if ($handleDrift.Count -gt 0) {
