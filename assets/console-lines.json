@@ -220,7 +220,7 @@
                   {
                       "Segments":  [
                                        {
-                                           "Text":  "  [Shortcut Tips]: Enter menu (1-9), press [L] to switch language, or type classic",
+                                           "Text":  "  [Shortcut Tips]: Enter menu (1-9), press [L] to switch language, module codes (1-95),",
                                            "Color":  "Gray"
                                        }
                                    ]
@@ -228,7 +228,7 @@
                   {
                       "Segments":  [
                                        {
-                                           "Text":  "                   codes directly like 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC).",
+                                           "Text":  "                   or direct mode: plan, analyze, audit, verify, debug, or classic codes.",
                                            "Color":  "Gray"
                                        }
                                    ]

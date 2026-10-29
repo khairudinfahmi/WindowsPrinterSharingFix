@@ -62,8 +62,8 @@
   <text x="24" y="454" class="term-font"><tspan fill="#64748b">  [0] Keluar dari Aplikasi</tspan></text>
   <text x="24" y="474" class="term-font"><tspan fill="#94a3b8"></tspan></text>
   <text x="24" y="494" class="term-font"><tspan fill="#38bdf8">--------------------------------------------------------------------------------------</tspan></text>
-  <text x="24" y="514" class="term-font"><tspan fill="#94a3b8">  [Tips Pintasan]: Ketik nomor menu (1-9), tekan [L] ganti bahasa, atau ketik langsung</tspan></text>
-  <text x="24" y="534" class="term-font"><tspan fill="#94a3b8">                   kode modul seperti 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC).</tspan></text>
+  <text x="24" y="514" class="term-font"><tspan fill="#94a3b8">  [Tips Pintasan]: Ketik nomor menu (1-9), [L] ganti bahasa, kode modul (1-95),</tspan></text>
+  <text x="24" y="534" class="term-font"><tspan fill="#94a3b8">                   atau ketik langsung mode: plan, analyze, audit, verify, debug.</tspan></text>
   <text x="24" y="554" class="term-font"><tspan fill="#38bdf8">--------------------------------------------------------------------------------------</tspan></text>
   <text x="24" y="574" class="term-font"><tspan fill="#facc15">Pilih nomor menu: </tspan><tspan fill="#facc15" class="cursor">&#x2588;</tspan></text>
 </svg>

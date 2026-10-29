@@ -115,8 +115,8 @@
     <text x="14" y="402" class="term-text"><tspan fill="#64748b">  [0] Exit Application</tspan></text>
     <text x="14" y="419.5" class="term-text"><tspan fill="#94a3b8"></tspan></text>
     <text x="14" y="437" class="term-text"><tspan fill="#38bdf8">--------------------------------------------------------------------------------------</tspan></text>
-    <text x="14" y="454.5" class="term-text"><tspan fill="#94a3b8">  [Shortcut Tips]: Enter menu (1-9), press [L] to switch language, or type classic</tspan></text>
-    <text x="14" y="472" class="term-text"><tspan fill="#94a3b8">                   codes directly like 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC).</tspan></text>
+    <text x="14" y="454.5" class="term-text"><tspan fill="#94a3b8">  [Shortcut Tips]: Enter menu (1-9), press [L] to switch language, module codes (1-95),</tspan></text>
+    <text x="14" y="472" class="term-text"><tspan fill="#94a3b8">                   or direct mode: plan, analyze, audit, verify, debug, or classic codes.</tspan></text>
     <text x="14" y="489.5" class="term-text"><tspan fill="#38bdf8">--------------------------------------------------------------------------------------</tspan></text>
     <text x="14" y="507" class="term-text"><tspan fill="#facc15">Select option: </tspan><tspan class="cursor">&#x2588;</tspan></text>
   </g>

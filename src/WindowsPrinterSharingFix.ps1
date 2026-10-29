@@ -29,11 +29,11 @@ param(
     [switch]$ExtremePath,
     [switch]$Diagnose,
     [string]$Language,
-    [switch]$Debug,
-    [switch]$Analyze,
-    [switch]$Audit,
-    [switch]$Plan,
-    [switch]$Verify,
+    [Alias('VerboseMode')][switch]$Debug,
+    [Alias('Analisis', 'DriftCheck')][switch]$Analyze,
+    [Alias('AuditReport', 'ExportAudit')][switch]$Audit,
+    [Alias('Planning', 'DryRun', 'Simulation')][switch]$Plan,
+    [Alias('Check', 'VerifyFixes')][switch]$Verify,
     [switch]$NoPause
 )
 
@@ -482,6 +482,9 @@ function Repair-Deep0x00000006AndV3Driver {
 
     try {
         # --- LAYER 1: Terminate Spooler & Handle-Holding Helper Processes ---
+        if ($script:IsDebugMode) {
+            Write-Host "  [DEBUG] Stopping spooler & terminating handle-locking helper processes..." -ForegroundColor DarkCyan
+        }
         try {
             Stop-Service -Name spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
             Get-Process -Name "splwow64", "PrintIsolationHost", "printfilterpipelinesvc" -ErrorAction SilentlyContinue |
@@ -4893,12 +4896,16 @@ function Show-Submenu1 {
             Write-Host "      (For technicians/unattended deployment - WARNING: PC reboots immediately!)" -ForegroundColor Gray
             Write-Host "  [6] Manage Windows Updates & Block Printer-Breaking Patches" -ForegroundColor White
             Write-Host "      (Pause updates 35 days, uninstall bad patches, prevent setting reverts)" -ForegroundColor Gray
+            Write-Host "  [7] Run ALLFIX in Debug Mode (Verbose Registry & Service Verification)" -ForegroundColor White
+            Write-Host "      (Runs AllFix with live readback checks and unsuppressed error traces)" -ForegroundColor Gray
+            Write-Host "  [8] Simulate ALLFIX in Plan Mode (100% Read-Only Dry-Run Simulation)" -ForegroundColor Cyan
+            Write-Host "      (Inspect what AllFix will change before committing any modifications)" -ForegroundColor Gray
             Write-Host ""
             Write-Host "  [L] Switch Language / Ganti Bahasa" -ForegroundColor DarkCyan
             Write-Host "  [B] Back to Main Menu" -ForegroundColor Cyan
             Write-Host ""
             Write-Host ("-" * 86) -ForegroundColor Cyan
-            Write-Host "Select option [1-6], L, or B: " -NoNewline -ForegroundColor Yellow
+            Write-Host "Select option [1-8], L, or B: " -NoNewline -ForegroundColor Yellow
         } else {
             Write-Host "  [1] ALLFIX - Jalankan 50 Perbaikan Otomatis Sekaligus" -ForegroundColor Green
             Write-Host "      (Solusi paling ampuh untuk hampir seluruh masalah sharing printer kantor)" -ForegroundColor Gray
@@ -4912,12 +4919,16 @@ function Show-Submenu1 {
             Write-Host "      (Cocok untuk teknisi/unattended - PERINGATAN: PC langsung restart!)" -ForegroundColor Gray
             Write-Host "  [6] Kelola Pembaruan Windows & Blokir Update Perusak Printer" -ForegroundColor White
             Write-Host "      (Jeda update 35 hari, hapus update bermasalah, atau cegah update reset setting)" -ForegroundColor Gray
+            Write-Host "  [7] Jalankan ALLFIX dalam Mode Debug (Pemeriksaan Detail Registri & Layanan)" -ForegroundColor White
+            Write-Host "      (Menjalankan AllFix dengan readback verification dan pelacakan error lengkap)" -ForegroundColor Gray
+            Write-Host "  [8] Simulasi ALLFIX dalam Mode Plan (100% Read-Only / Dry-Run)" -ForegroundColor Cyan
+            Write-Host "      (Periksa apa saja yang akan diubah oleh AllFix tanpa memodifikasi sistem)" -ForegroundColor Gray
             Write-Host ""
             Write-Host "  [L] Ganti Bahasa / Switch to English" -ForegroundColor DarkCyan
             Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
             Write-Host ""
             Write-Host ("-" * 86) -ForegroundColor Cyan
-            Write-Host "Pilih nomor [1-6], L, atau B: " -NoNewline -ForegroundColor Yellow
+            Write-Host "Pilih nomor [1-8], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
         if ($null -eq $sub) { return }
@@ -4932,10 +4943,14 @@ function Show-Submenu1 {
             '4'  { Fix-ClientWorkstationRole; Pause-User }
             '5'  { $script:silentNuke = $true; AllFix-Core }
             '6'  { Manage-WindowsUpdate; Pause-User }
+            '7'  { $script:IsDebugMode = $true; AllFix-Core; Pause-User }
+            '8'  { Invoke-PlanMode; Pause-User }
             '84' { AllFix-Core; Pause-User }
             '83' { Extreme-25H2; Pause-User }
             '85' { $script:silentNuke = $true; AllFix-Core }
             '69' { Manage-WindowsUpdate; Pause-User }
+            '95' { $script:IsDebugMode = $true; AllFix-Core; Pause-User }
+            '94' { Invoke-PlanMode; Pause-User }
             default { Write-Host $(if ($isEN) { "  [-] Invalid choice." } else { "  [-] Pilihan tidak valid." }) -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
         }
     } while ($true)
@@ -5121,7 +5136,7 @@ function Show-Submenu4 {
             Write-Host "  [B] Back to Main Menu" -ForegroundColor Cyan
             Write-Host ""
             Write-Host ("-" * 86) -ForegroundColor Cyan
-            Write-Host "Select option [1-6], L, or B: " -NoNewline -ForegroundColor Yellow
+            Write-Host "Select option [1-8], L, or B: " -NoNewline -ForegroundColor Yellow
         } else {
             Write-Host "  [1] Reset Bersih Spooler & Hapus Berkas Antrean Cetak yang Nyangkut" -ForegroundColor Green
             Write-Host "      (Hentikan spooler, bersihkan antrean .spl/.shd, dan restart layanan)" -ForegroundColor Gray
@@ -5139,7 +5154,7 @@ function Show-Submenu4 {
             Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
             Write-Host ""
             Write-Host ("-" * 86) -ForegroundColor Cyan
-            Write-Host "Pilih nomor [1-6], L, atau B: " -NoNewline -ForegroundColor Yellow
+            Write-Host "Pilih nomor [1-8], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
         if ($null -eq $sub) { return }
@@ -5401,12 +5416,16 @@ function Show-Submenu8 {
             Write-Host "  [11] Open Windows Services Console (services.msc)" -ForegroundColor White
             Write-Host "  [12] Open Repair Execution Log File (Log Manager)" -ForegroundColor White
             Write-Host "  [13] Quick System Diagnostics Audit" -ForegroundColor White
+            Write-Host "  [14] Verify Mode - Quick Verification of All 48 Fix Values (Read-Only)" -ForegroundColor Cyan
+            Write-Host "  [15] Analyze Mode - Drift & Root-Cause Forensic Analysis (Read-Only)" -ForegroundColor Cyan
+            Write-Host "  [16] Audit Mode - Full System Audit & Export Report (Read-Only)" -ForegroundColor Cyan
+            Write-Host "  [17] Plan Mode - Dry-Run Simulation of AllFix Changes (Read-Only)" -ForegroundColor Cyan
             Write-Host ""
             Write-Host "  [L] Switch Language / Ganti Bahasa" -ForegroundColor DarkCyan
             Write-Host "  [B] Back to Main Menu" -ForegroundColor Cyan
             Write-Host ""
             Write-Host ("-" * 86) -ForegroundColor Cyan
-            Write-Host "Select option [1-13], L, or B: " -NoNewline -ForegroundColor Yellow
+            Write-Host "Select option [1-17], L, or B: " -NoNewline -ForegroundColor Yellow
         } else {
             Write-Host "  [1] Cadangkan Registri Printer & Jaringan (Backup Registry Sebelum Perbaikan)" -ForegroundColor Green
             Write-Host "  [2] Pulihkan Registri dari Cadangan Sebelumnya (Rollback Registry)" -ForegroundColor White
@@ -5421,12 +5440,16 @@ function Show-Submenu8 {
             Write-Host "  [11] Buka Jendela Layanan Windows (Services.msc)" -ForegroundColor White
             Write-Host "  [12] Buka Catatan Log Eksekusi Perbaikan (Log Manager)" -ForegroundColor White
             Write-Host "  [13] Audit Ringkas Kesehatan Sistem (System Diagnostics Audit)" -ForegroundColor White
+            Write-Host "  [14] Mode Verify - Pemeriksaan Cepat 48 Titik Registri & Layanan (Read-Only)" -ForegroundColor Cyan
+            Write-Host "  [15] Mode Analyze - Analisis Akar Masalah & Penyimpangan Sistem (Read-Only)" -ForegroundColor Cyan
+            Write-Host "  [16] Mode Audit - Audit Sistem Menyeluruh & Ekspor Berkas Laporan (Read-Only)" -ForegroundColor Cyan
+            Write-Host "  [17] Mode Plan - Simulasi Rencana Perubahan ALLFIX (Read-Only / Dry-Run)" -ForegroundColor Cyan
             Write-Host ""
             Write-Host "  [L] Ganti Bahasa / Switch to English" -ForegroundColor DarkCyan
             Write-Host "  [B] Kembali ke Menu Utama" -ForegroundColor Cyan
             Write-Host ""
             Write-Host ("-" * 86) -ForegroundColor Cyan
-            Write-Host "Pilih nomor [1-13], L, atau B: " -NoNewline -ForegroundColor Yellow
+            Write-Host "Pilih nomor [1-17], L, atau B: " -NoNewline -ForegroundColor Yellow
         }
         $sub = Read-Host
         if ($null -eq $sub) { return }
@@ -5452,6 +5475,14 @@ function Show-Submenu8 {
             '11' { Open-Services; Pause-User }
             '12' { Log-Manager; Pause-User }
             '13' { Run-QuickDiagnostics; Pause-User }
+            '14' { Invoke-VerifyMode; Pause-User }
+            '15' { Invoke-AnalyzeMode; Pause-User }
+            '16' { Invoke-AuditMode; Pause-User }
+            '17' { Invoke-PlanMode; Pause-User }
+            '91' { Invoke-VerifyMode; Pause-User }
+            '92' { Invoke-AnalyzeMode; Pause-User }
+            '93' { Invoke-AuditMode; Pause-User }
+            '94' { Invoke-PlanMode; Pause-User }
             default { Write-Host $(if ($isEN) { "  [-] Invalid choice." } else { "  [-] Pilihan tidak valid." }) -ForegroundColor Red; Start-Sleep -Milliseconds 1200 }
         }
     } while ($true)
@@ -5536,8 +5567,8 @@ function Show-MainMenu {
         Write-Host "  [0] Exit Application" -ForegroundColor DarkGray
         Write-Host ""
         Write-Host ("-" * 86) -ForegroundColor Cyan
-        Write-Host "  [Shortcut Tips]: Enter menu (1-9), press [L] to switch language, or type classic" -ForegroundColor Gray
-        Write-Host "                   codes directly like 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC)." -ForegroundColor Gray
+        Write-Host "  [Shortcut Tips]: Enter menu (1-9), press [L] to switch language, module codes (1-95)," -ForegroundColor Gray
+        Write-Host "                   or direct mode: plan, analyze, audit, verify, debug, or classic codes." -ForegroundColor Gray
         Write-Host ("-" * 86) -ForegroundColor Cyan
         Write-Host "Select option: " -NoNewline -ForegroundColor Yellow
     }
@@ -5559,8 +5590,8 @@ function Show-MainMenu {
         Write-Host "  [0] Keluar dari Aplikasi" -ForegroundColor DarkGray
         Write-Host ""
         Write-Host ("-" * 86) -ForegroundColor Cyan
-        Write-Host "  [Tips Pintasan]: Ketik nomor menu (1-9), tekan [L] ganti bahasa, atau ketik langsung" -ForegroundColor Gray
-        Write-Host "                   kode modul seperti 84 (AllFix), 83 (Extreme), 64 (Backup), 86 (UNC)." -ForegroundColor Gray
+        Write-Host "  [Tips Pintasan]: Ketik nomor menu (1-9), [L] ganti bahasa, kode modul (1-95)," -ForegroundColor Gray
+        Write-Host "                   atau ketik langsung mode: plan, analyze, audit, verify, debug." -ForegroundColor Gray
         Write-Host ("-" * 86) -ForegroundColor Cyan
         Write-Host "Pilih nomor menu: " -NoNewline -ForegroundColor Yellow
     }
@@ -5669,7 +5700,12 @@ function Invoke-Module {
         '88' { Restart-PC }
         '89' { Write-Log $(if ($isEN) { "Application terminated." } else { "Aplikasi Dihentikan." }) -Type "INFO"; exit }
         '90' { Remove-SpoolerWatchdog }
-        default { Write-Host $(if ($isEN) { "  [-] Module [$Code] not found. Enter valid code (1-90)." } else { "  [-] Modul [$Code] tidak ditemukan. Masukkan kode modul yang valid (1-90)." }) -ForegroundColor Red }
+        '91' { Invoke-VerifyMode; Pause-User }
+        '92' { Invoke-AnalyzeMode; Pause-User }
+        '93' { Invoke-AuditMode; Pause-User }
+        '94' { Invoke-PlanMode; Pause-User }
+        '95' { $script:IsDebugMode = $true; AllFix-Core; Pause-User }
+        default { Write-Host $(if ($isEN) { "  [-] Module [$Code] not found. Enter valid code (1-95)." } else { "  [-] Modul [$Code] tidak ditemukan. Masukkan kode modul yang valid (1-95)." }) -ForegroundColor Red }
     }
 }
 
@@ -5958,23 +5994,92 @@ function Invoke-AuditMode {
 
 function Invoke-AnalyzeMode {
     Write-Host "`n  ======================================================================" -ForegroundColor Cyan
-    Write-Host "        ANALYZE MODE - Drift analysis with recommendations (READ-ONLY)" -ForegroundColor Yellow
+    Write-Host "        ANALYZE MODE - In-Depth Forensic Drift Analysis (READ-ONLY)" -ForegroundColor Yellow
     Write-Host "  ======================================================================" -ForegroundColor Cyan
-    Write-Host "  No changes will be made.`n" -ForegroundColor Gray
+    Write-Host "  Evaluating system drift across 5 core printer sharing subsystems...`n" -ForegroundColor Gray
     $result = Invoke-VerifyMode -SuppressHeader
-    Write-Host "`n  --- ROOT-CAUSE ANALYSIS & RECOMMENDATIONS ---" -ForegroundColor Cyan
-    if ($result.FAIL + $result.MISSING -eq 0) {
-        Write-Host "  [+] All fix values and protocols are correctly applied. System is healthy." -ForegroundColor Green
+
+    Write-Host "`n  --- FORENSIC SUBSYSTEM FINDINGS ---" -ForegroundColor Cyan
+
+    # 1. Spooler Core & RPC Subsystem
+    $rpcFail = $false
+    try {
+        $p11b = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name RpcAuthnLevelPrivacyEnabled -ErrorAction SilentlyContinue).RpcAuthnLevelPrivacyEnabled
+        $pPipe = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC" -Name RpcUseNamedPipeProtocol -ErrorAction SilentlyContinue).RpcUseNamedPipeProtocol
+        if ($p11b -ne 0 -or $pPipe -ne 1) { $rpcFail = $true }
+    } catch {}
+    if ($rpcFail) {
+        Write-Host "  [!] Core Spooler RPC: DRIFT DETECTED - 0x0000011b Auth Privacy or Named Pipe protocols unaligned." -ForegroundColor Yellow
     } else {
-        $execCmd = if ($script:isExe) { ".\WindowsPrinterSharingFix.exe" } else { ".\WindowsPrinterSharingFix.ps1" }
-        $recs = @()
-        if ($result.FAIL -gt 0)    { $recs += "Run AllFix ($execCmd -AllFix or Menu 1 -> 1) to repair $($result.FAIL) drifted registry value(s)." }
-        if ($result.MISSING -gt 0) { $recs += "Run AllFix ($execCmd -AllFix or Menu 1 -> 1) to apply $($result.MISSING) missing registry value(s)." }
-        $recs += "If Error 0x00000006 persists on Windows 10 client: run Menu 1 -> 4 (Client Workstation Role) to restore clean V3 DLLs & purge stale DEVMODEs."
-        $recs += "If Error 0x00000709 persists: run Menu 7 -> 1 (Map Local Port UNC) for 100% permanent bypass."
-        $recs += "Ensure Menu 1 -> 3 (Host Server Role) is applied on the printer HOST PC."
-        $recs += "After fixes: reboot, then run -Verify again to confirm persistence."
-        $recs | ForEach-Object { Write-Host "  -> $_" -ForegroundColor Yellow }
+        Write-Host "  [+] Core Spooler RPC: Optimal (0x11b bypassed, Named Pipes & TCP active)." -ForegroundColor Green
+    }
+
+    # 2. Point & Print Policy Subsystem
+    $papDrift = @()
+    try {
+        $papKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"
+        $inForest = (Get-ItemProperty $papKey -Name InForest -ErrorAction SilentlyContinue).InForest
+        $trusted = (Get-ItemProperty $papKey -Name TrustedServers -ErrorAction SilentlyContinue).TrustedServers
+        $pkgOnly = (Get-ItemProperty $papKey -Name PackagePointAndPrintOnly -ErrorAction SilentlyContinue).PackagePointAndPrintOnly
+        if ($inForest -eq 1) { $papDrift += "InForest=1 (restricts Point & Print to AD Forest; BLOCKS Workgroups with 0x00000006/0x57)" }
+        if ($trusted -eq 1)  { $papDrift += "TrustedServers=1 (wildcard *.* causes win32spl.dll parse exception 0x00000006)" }
+        if ($pkgOnly -eq 1)  { $papDrift += "PackagePointAndPrintOnly=1 (blocks Type 3 V3 print drivers like Epson LX-310)" }
+    } catch {}
+    if ($papDrift.Count -gt 0) {
+        Write-Host "  [!] Point & Print Policies: RESTRICTIVE LOCK DETECTED" -ForegroundColor Yellow
+        $papDrift | ForEach-Object { Write-Host "      - $_" -ForegroundColor Red }
+    } else {
+        Write-Host "  [+] Point & Print Policies: Optimal (Workgroup & V3 drivers enabled, zero elevation prompts)." -ForegroundColor Green
+    }
+
+    # 3. Handle & Driver Framework Subsystem (Error 0x00000006)
+    $handleDrift = @()
+    try {
+        $staleConn = @(Get-ChildItem "HKCU:\Printers\Connections" -ErrorAction SilentlyContinue).Count
+        if ($staleConn -gt 0) { $handleDrift += "$staleConn stale network printer connection handle(s) in HKCU (causes ERROR_INVALID_HANDLE 0x00000006)" }
+        $isWin10 = ([Environment]::OSVersion.Version.Major -eq 10 -and [Environment]::OSVersion.Version.Build -lt 22000)
+        $v3Dll = Join-Path $env:WINDIR "System32\spool\drivers\x64\3\UNIDRVUI.DLL"
+        if ($isWin10 -and (Test-Path $v3Dll)) {
+            $dllBuild = (Get-ItemProperty $v3Dll -ErrorAction SilentlyContinue).VersionInfo.ProductBuildPart
+            if ($dllBuild -ge 22000) { $handleDrift += "Win11 UNIDRVUI.DLL (Build $dllBuild) detected on Win10 (calls non-existent RtlLogUnexpectedCodepath -> 0x06 / splwow64 crash)" }
+        }
+    } catch {}
+    if ($handleDrift.Count -gt 0) {
+        Write-Host "  [!] Handle & Driver Framework: REGRESSION / GHOST HANDLES DETECTED" -ForegroundColor Yellow
+        $handleDrift | ForEach-Object { Write-Host "      - $_" -ForegroundColor Red }
+    } else {
+        Write-Host "  [+] Handle & Driver Framework: Healthy (Zero stale ghost handles, V3 framework DLLs aligned)." -ForegroundColor Green
+    }
+
+    # 4. SMB & Network Security Subsystem
+    $smbDrift = @()
+    try {
+        $clientSign = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireSecuritySignature -ErrorAction SilentlyContinue).RequireSecuritySignature
+        $guestAuth = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name AllowInsecureGuestAuth -ErrorAction SilentlyContinue).AllowInsecureGuestAuth
+        $pubNets = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' }).Count
+        if ($clientSign -eq 1) { $smbDrift += "SMB Client Signing is required (blocks Win 11 connection to NAS / legacy print hosts)" }
+        if ($guestAuth -eq 0)  { $smbDrift += "Insecure Guest Auth is disabled (blocks guest print sharing)" }
+        if ($pubNets -gt 0)    { $smbDrift += "$pubNets network profile(s) set to Public (Firewall blocks incoming printer discovery)" }
+    } catch {}
+    if ($smbDrift.Count -gt 0) {
+        Write-Host "  [!] Network & SMB Security: CONNECTIVITY BLOCKERS DETECTED" -ForegroundColor Yellow
+        $smbDrift | ForEach-Object { Write-Host "      - $_" -ForegroundColor Red }
+    } else {
+        Write-Host "  [+] Network & SMB Security: Optimal (SMB Signing off, Guest allowed, Private profile active)." -ForegroundColor Green
+    }
+
+    Write-Host "`n  --- TARGETED ACTION PLAN ---" -ForegroundColor Cyan
+    $execCmd = if ($script:isExe) { ".\WindowsPrinterSharingFix.exe" } else { ".\WindowsPrinterSharingFix.ps1" }
+    if ($result.FAIL + $result.MISSING -eq 0) {
+        Write-Host "  [+] All fix values and protocols are correctly applied. System is fully operational." -ForegroundColor Green
+    } else {
+        Write-Host "  [->] Primary Fix: Run AllFix ($execCmd -AllFix or Menu [1] -> [1]) to resolve all $($result.FAIL + $result.MISSING) drift items." -ForegroundColor Yellow
+        if ($handleDrift.Count -gt 0) {
+            Write-Host "  [->] 0x00000006 Fix: Run Menu [1] -> [4] (Client Workstation Role) to restore clean V3 DLLs & purge stale DEVMODEs." -ForegroundColor Yellow
+        }
+        Write-Host "  [->] Permanent Bypass: If 0x709 or 0x06 recurs, run Menu [7] -> [1] (Map Local Port UNC)." -ForegroundColor Yellow
+        Write-Host "  [->] Host Requirement: Ensure Menu [1] -> [3] (Host Server Role) is executed on the printer HOST PC." -ForegroundColor Yellow
+        Write-Host "  [->] Verification: Reboot after repairs, then run $execCmd -Verify to confirm persistence." -ForegroundColor Cyan
     }
     return $result
 }
@@ -6132,6 +6237,39 @@ if ($script:skipInteractiveLoop -ne $true) {
             Write-Log $(if ($script:lang -eq "EN") { "Application Terminated by User." } else { "Aplikasi Dihentikan oleh Pengguna." }) -Type "INFO"
             Write-Host $(if ($script:lang -eq "EN") { "`n  [*] Thank you for using Windows Printer Sharing Fix.`n" } else { "`n  [*] Terima kasih telah menggunakan Windows Printer Sharing Fix.`n" }) -ForegroundColor Green
             exit
+        }
+
+        # Direct Mode triggers from Main Menu
+        if ($choice -match '^(verify|check|test|91)$') {
+            Invoke-VerifyMode
+            Write-Host ""
+            Pause-User
+            continue
+        }
+        if ($choice -match '^(analyze|analisis|diag|92)$') {
+            Invoke-AnalyzeMode
+            Write-Host ""
+            Pause-User
+            continue
+        }
+        if ($choice -match '^(audit|93)$') {
+            Invoke-AuditMode
+            Write-Host ""
+            Pause-User
+            continue
+        }
+        if ($choice -match '^(plan|planning|dryrun|sim|simulasi|94)$') {
+            Invoke-PlanMode
+            Write-Host ""
+            Pause-User
+            continue
+        }
+        if ($choice -match '^(debug|verbose|95)$') {
+            $script:IsDebugMode = $true
+            AllFix-Core
+            Write-Host ""
+            Pause-User
+            continue
         }
 
         switch ($choice) {
