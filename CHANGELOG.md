@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3] - 2026-10-29
+
+### Fixed
+
+- **10-Layer Error 0x00000006 (`ERROR_INVALID_HANDLE`) & V3 Driver Framework Repair**:
+  - Resolved regression where Windows 10 clients connecting to Windows 11 hosts fail with 0x00000006 or `splwow64.exe` entry point errors due to updated Windows 11 Type 3 (v3) core driver DLLs (`UNIDRVUI.DLL`, `UNIDRV.DLL`, `UNIRES.DLL`, `PS5UI.DLL`, `PSCRIPT5.DLL`) importing `ntdll!RtlLogUnexpectedCodepath` which does not exist in Windows 10. Added automated detection and clean restoration of native Windows 10 V3 DLLs from DriverStore (`ntprint.inf_*`).
+  - Added process isolation termination for handle-holding processes (`splwow64`, `PrintIsolationHost`, `printfilterpipelinesvc`) before applying registry or file modifications.
+  - Implemented multi-hive purge of stale split-brain handles across HKLM Client Side Rendering, LanMan Print Services, PackageInstallation, HKCU Printers Connections, and stale `DevModes2` / `DevModePerUser` binary structs (resolving remote handle crashes on dot-matrix/receipt hardware like Epson LX-310).
+- **Inverted Point & Print Policy Architecture**:
+  - Aligned Point & Print policies for workgroup environments: inverted `InForest = 0` (unblocking non-domain peer-to-peer sharing), `TrustedServers = 0` (eliminating wildcard `*.*` parse failures in `win32spl.dll`), `Restricted = 0`, and `PackagePointAndPrintOnly = 0` (permitting legacy and V3 drivers).
+  - Removed invalid wildcard strings `ServerList` and `ListofServers` that cause `win32spl.dll` parsing exceptions.
+- **Universal Print Processor & Dot-Matrix Optimization**:
+  - Enforced standard `winprint` processor and `RAW` datatype for shared dot-matrix, POS, and receipt printers on the host, preventing remote RPC bi-directional query failures.
+- **Dual User and SYSTEM Credential Injection**:
+  - Upgraded `Add-Credential` (Module 23) to inject credentials into both the interactive user Windows Vault and `NT AUTHORITY\SYSTEM` vault, ensuring background Spooler services authenticate seamlessly when printing via Local Port UNC.
+- **Diagnostic Modes & Engine Hardening**:
+  - Enhanced `Invoke-VerifyMode` (`-Verify`) with deep checks for Point & Print policies, `winprint`, split-brain handles, and V3 driver compatibility.
+  - Upgraded `Invoke-PlanMode` (`-Plan`) to execute live dry-run simulations comparing current state against target state (`[PLAN-CHANGE]` vs `[PLAN-OK]`) with zero mutations.
+  - Enforced WOW64 64-bit redirection protection (`Sysnative`) and CLI `-Debug` direct AllFix execution.
+
 ## [2.4.2] - 2026-10-27
 
 ### Fixed

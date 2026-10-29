@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Windows Printer Sharing Fix - v2.4.2
+    Windows Printer Sharing Fix - v2.4.3
     @KHAIRUDINFAHMI
 
 .PARAMETER nuke
@@ -37,7 +37,32 @@ param(
     [switch]$NoPause
 )
 
-$script:version    = "2.4.2"
+$DebugPreference = 'SilentlyContinue'
+
+# WOW64 Guard: If running in 32-bit PowerShell on 64-bit OS, relaunch via 64-bit PowerShell (Sysnative)
+# Prevents HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print from being silently redirected to Wow6432Node
+if ([Environment]::Is64BitOperatingSystem -and (-not [Environment]::Is64BitProcess) -and (-not $script:isExe)) {
+    $sysNativePs = Join-Path $env:WINDIR "Sysnative\WindowsPowerShell\v1.0\powershell.exe"
+    if (Test-Path $sysNativePs) {
+        $myPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
+        if ($myPath) {
+            $relaunchArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$myPath`"")
+            foreach ($kvp in $PSBoundParameters.GetEnumerator()) {
+                if ($kvp.Value -is [switch]) {
+                    if ($kvp.Value.IsPresent) { $relaunchArgs += "-$($kvp.Key)" }
+                } else {
+                    $relaunchArgs += "-$($kvp.Key)"
+                    $relaunchArgs += "`"$($kvp.Value)`""
+                }
+            }
+            Start-Process -FilePath $sysNativePs -ArgumentList ($relaunchArgs -join " ") -Wait -NoNewWindow
+            exit $LASTEXITCODE
+        }
+    }
+}
+
+
+$script:version    = "2.4.3"
 $script:backupDir  = "C:\WindowsPrinterSharingFixBackup"
 $script:silentNuke = $nuke
 $script:NoPause    = [bool]$NoPause
@@ -76,12 +101,14 @@ $candidateLogs = @(
     "$env:TEMP\WindowsPrinterSharingFixLog.txt",
     "$env:USERPROFILE\Desktop\WindowsPrinterSharingFixLog.txt"
 )
-foreach ($cl in $candidateLogs) {
-    try {
-        Add-Content -Path $cl -Value "" -Encoding UTF8 -ErrorAction Stop
-        $script:logFile = $cl
-        break
-    } catch { }
+if (-not $script:IsReadOnlyMode) {
+    foreach ($cl in $candidateLogs) {
+        try {
+            Add-Content -Path $cl -Value "" -Encoding UTF8 -ErrorAction Stop
+            $script:logFile = $cl
+            break
+        } catch { }
+    }
 }
 if (-not $script:logFile) {
     $script:logFile = "$env:TEMP\WindowsPrinterSharingFixLog.txt"
@@ -160,67 +187,85 @@ function Write-Log {
     }
 }
 
+function Clear-Screen {
+    # Preserve console logs during -Debug or Read-Only inspection modes
+    if ($script:IsDebugMode -or $script:IsReadOnlyMode) { return }
+    try { [System.Console]::Clear() } catch { try { Clear-Host } catch {} }
+}
+
 function Set-SafeReg {
     [CmdletBinding()]
     [OutputType([void])]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSProvideOutputTypeAttribute', '')]
     param(
-        [Parameter(Position=0, Mandatory=$true)]
-        [string]$Path,
-
-        [Parameter(Position=1, Mandatory=$true)]
-        [string]$Name,
-
-        [Parameter(Position=2)]
-        $Value,
-
+        [Parameter(Position=0, Mandatory=$true)][string]$Path,
+        [Parameter(Position=1, Mandatory=$true)][string]$Name,
+        [Parameter(Position=2)]$Value,
         [string]$Type,
-
         [switch]$Force,
-
         [switch]$Silent
     )
-    $useForce = if ($PSBoundParameters.ContainsKey('Force')) { [bool]$Force } else { $true }
+    $useForce = if ($PSBoundParameters.ContainsKey('Force')) { $Force.IsPresent } else { $true }
     if ([string]::IsNullOrWhiteSpace($Type)) {
-        if ($Value -is [string[]] -or $Value -is [System.Array]) {
-            $Type = "MultiString"
-        } elseif ($Value -is [int] -or $Value -is [long] -or $Value -is [uint32] -or $Value -is [uint64]) {
+        if ($null -eq $Value) {
+            $Type = "String"
+        } elseif ($Value -is [int] -or $Value -is [long] -or $Value -is [byte]) {
             $Type = "DWord"
+        } elseif ($Value -is [System.Array] -or $Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+            $Type = "MultiString"
         } else {
             $Type = "String"
         }
     }
-
     $full = "$Path\$Name"
-    $expDisplay = if ($Value -is [System.Array]) { ($Value -join ",") } else { "$Value" }
+    $curObj = Microsoft.PowerShell.Management\Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
+    $current = if ($null -ne $curObj) { $curObj.$Name } else { $null }
+    $curDisplay = if ($null -eq $current) { "<null>" } elseif ($current -is [System.Array]) { ($current -join ",") } else { "$current" }
+    $expDisplay = if ($null -eq $Value) { "<null>" } elseif ($Value -is [System.Array]) { ($Value -join ",") } else { "$Value" }
 
+    # Plan mode tracking (zero mutations)
     if ($script:IsPlanMode) {
-        Write-Host "  [PLAN] $full = $expDisplay ($Type)" -ForegroundColor DarkGray
-        return
-    }
-    if ($script:IsReadOnlyMode) {
-        if (-not $Silent -and $ErrorActionPreference -ne 'SilentlyContinue') {
-            Write-Host "  [READ-ONLY] Would set $full = $expDisplay ($Type)" -ForegroundColor DarkGray
+        $matchesPlan = $false
+        if ($null -ne $current) {
+            if ($Type -eq "MultiString" -or $Value -is [System.Array] -or $current -is [System.Array]) {
+                $matchesPlan = ((@($Value | ForEach-Object { "$_" }) -join "|") -eq (@($current | ForEach-Object { "$_" }) -join "|"))
+            } elseif ($Type -match '^(DWord|QWord)$') {
+                try {
+                    $matchesPlan = (([int64]$current -band 0xFFFFFFFFL) -eq ([int64]$Value -band 0xFFFFFFFFL))
+                } catch {
+                    $matchesPlan = ("$current" -eq "$Value")
+                }
+            } else {
+                $matchesPlan = ("$current" -eq "$Value")
+            }
+        }
+        if ($matchesPlan) {
+            $script:PlanOkCount++
+            Write-Host "  [PLAN-OK]      $full = $expDisplay" -ForegroundColor DarkGray
+        } else {
+            $script:PlanChangeCount++
+            Write-Host "  [PLAN-CHANGE]  $full = $curDisplay -> $expDisplay" -ForegroundColor Yellow
         }
         return
     }
+
+    if ($script:IsReadOnlyMode) { return }
+
     try {
         if (-not (Microsoft.PowerShell.Management\Test-Path -Path $Path)) {
-            Microsoft.PowerShell.Management\New-Item -Path $Path -Force:$useForce -ErrorAction SilentlyContinue | Out-Null
+            Microsoft.PowerShell.Management\New-Item -Path $Path -Force:$useForce -ErrorAction Stop | Out-Null
         }
         Microsoft.PowerShell.Management\Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type $Type -Force:$useForce -ErrorAction Stop
         if ($script:IsDebugMode) {
             $actualObj = Microsoft.PowerShell.Management\Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
             $actual = if ($null -ne $actualObj) { $actualObj.$Name } else { $null }
             $isMatch = $false
-            if ($Value -is [System.Array] -or $actual -is [System.Array] -or $Type -eq "MultiString") {
-                $expArr = @($Value | ForEach-Object { "$_" }) -join "|"
-                $actArr = @($actual | ForEach-Object { "$_" }) -join "|"
-                $isMatch = ($expArr -eq $actArr)
+            if ($Type -eq "MultiString" -or $Value -is [System.Array] -or $actual -is [System.Array]) {
+                $isMatch = ((@($Value | ForEach-Object { "$_" }) -join "|") -eq (@($actual | ForEach-Object { "$_" }) -join "|"))
             } elseif ($Type -match '^(DWord|QWord)$') {
                 try {
-                    $isMatch = (([int64]$actual -eq [int64]$Value) -or ([uint32]($actual -band 0xFFFFFFFF) -eq [uint32]($Value -band 0xFFFFFFFF)))
+                    $isMatch = (([int64]$actual -band 0xFFFFFFFFL) -eq ([int64]$Value -band 0xFFFFFFFFL))
                 } catch {
                     $isMatch = ("$actual" -eq "$Value")
                 }
@@ -230,27 +275,72 @@ function Set-SafeReg {
 
             $actDisplay = if ($actual -is [System.Array]) { ($actual -join ",") } else { "$actual" }
             if (-not $isMatch) {
-                Write-Host "  [DEBUG][MISMATCH] $full expected=$expDisplay actual=$actDisplay" -ForegroundColor Red
-                Write-Log "DEBUG MISMATCH: $full expected=$expDisplay actual=$actDisplay" -Type "WARNING" -NoConsole
-                return
+                Write-Host "  [DEBUG][MISMATCH] $full expected=$expDisplay actual=$actDisplay (was=$curDisplay)" -ForegroundColor Red
+                Write-Log "DEBUG MISMATCH: $full expected=$expDisplay actual=$actDisplay (was=$curDisplay)" -Type "WARNING" -NoConsole
             } else {
-                Write-Host "  [DEBUG][OK] $full = $actDisplay" -ForegroundColor DarkGreen
+                Write-Host "  [DEBUG][OK] $full = $actDisplay (was=$curDisplay)" -ForegroundColor DarkGreen
+                Write-Log "DEBUG OK: $full = $actDisplay (was=$curDisplay)" -Type "INFO" -NoConsole
             }
         }
-        return
     } catch {
-        if (-not $Silent -and $ErrorActionPreference -ne 'SilentlyContinue') {
-            if ($script:IsDebugMode) {
-                Write-Host "  [DEBUG][FAIL] $full : $($_.Exception.Message)" -ForegroundColor Red
-            }
+        if ($script:IsDebugMode) {
+            Write-Host "  [DEBUG][FAIL] $full : $($_.Exception.Message)" -ForegroundColor Red
+            Write-Log "DEBUG FAIL: $full : $($_.Exception.Message)" -Type "ERROR" -NoConsole
+        } elseif (-not $Silent) {
             Write-Log "Set-SafeReg failed: $full : $($_.Exception.Message)" -Type "ERROR" -NoConsole
         }
-        return
     }
 }
 
-function Clear-Screen {
-    try { [System.Console]::Clear() } catch { try { Clear-Host } catch {} }
+function Remove-SafeReg {
+    param(
+        [Parameter(Mandatory=$true)][string]$Path,
+        [string]$Name = "",
+        [switch]$RecurseChildrenOnly
+    )
+    if (-not (Test-Path $Path)) { return }
+    if ($Name) {
+        $cur = Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
+        if ($null -eq $cur) { return }
+        if ($script:IsPlanMode) {
+            $script:PlanChangeCount++
+            Write-Host "  [PLAN-REMOVE] Value: $Path\$Name" -ForegroundColor Yellow
+            return
+        }
+        if ($script:IsReadOnlyMode) { return }
+        Remove-ItemProperty -Path $Path -Name $Name -Force -ErrorAction SilentlyContinue
+        if ($script:IsDebugMode) {
+            Write-Host "  [DEBUG][PURGED-VAL] $Path\$Name" -ForegroundColor DarkGreen
+            Write-Log "DEBUG PURGED-VAL: $Path\$Name" -Type "INFO" -NoConsole
+        }
+    } elseif ($RecurseChildrenOnly) {
+        $children = @(Get-ChildItem -Path $Path -ErrorAction SilentlyContinue)
+        if ($children.Count -eq 0) { return }
+        if ($script:IsPlanMode) {
+            $script:PlanChangeCount += $children.Count
+            Write-Host "  [PLAN-PURGE] $($children.Count) subkey(s) under $Path" -ForegroundColor Yellow
+            return
+        }
+        if ($script:IsReadOnlyMode) { return }
+        $children | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        if ($script:IsDebugMode) {
+            $rem = @(Get-ChildItem -Path $Path -ErrorAction SilentlyContinue).Count
+            Write-Host "  [DEBUG][PURGED-SUBKEYS] $Path (Removed: $($children.Count), Remaining: $rem)" -ForegroundColor $(if ($rem -eq 0) { "DarkGreen" } else { "Red" })
+            Write-Log "DEBUG PURGED-SUBKEYS: $Path (Removed: $($children.Count), Remaining: $rem)" -Type "INFO" -NoConsole
+        }
+    } else {
+        if ($script:IsPlanMode) {
+            $script:PlanChangeCount++
+            Write-Host "  [PLAN-REMOVE] Key: $Path" -ForegroundColor Yellow
+            return
+        }
+        if ($script:IsReadOnlyMode) { return }
+        Remove-Item -Path $Path -Recurse -Force -ErrorAction SilentlyContinue
+        if ($script:IsDebugMode) {
+            $exists = Test-Path $Path
+            Write-Host "  [DEBUG][PURGED-KEY] $Path (Deleted=$(-not $exists))" -ForegroundColor $(if (-not $exists) { "DarkGreen" } else { "Red" })
+        }
+    }
 }
 
 function Pause-User {
@@ -312,6 +402,7 @@ function Restart-Elevated {
 
 function Initialize-Log {
     $script:sessionStartTime = Get-Date
+    if ($script:IsReadOnlyMode) { return }
     if (-not (Test-Path $script:backupDir)) {
         New-Item -ItemType Directory -Path $script:backupDir -Force | Out-Null
     }
@@ -350,10 +441,189 @@ function Fix-RpcAuthn0x0000011b {
     }
 }
 
-function Fix-Deep0x00000709 {
-    Write-Log "Deep fix 0x00000709 -- applying all RPC layers..." -Type "INFO" -NoConsole
+function Optimize-HostPrinters {
+    <#
+    .SYNOPSIS
+        Audits and optimizes shared printers on the Host PC:
+        Enforces standard 'winprint' processor and 'RAW' datatype for shared/dot-matrix printers.
+    #>
+    Write-Log "Auditing and optimizing host shared printers (PrintProcessor / RAW)..." -Type "INFO" -NoConsole
     try {
+        $printers = Get-CimInstance Win32_Printer -ErrorAction SilentlyContinue
+        foreach ($prn in $printers) {
+            if ($prn.Shared -or $prn.DriverName -match '(?i)(Epson|LX|LQ|FX|Dot|Generic|Receipt|POS|Matrix|Oki|Citizen)') {
+                if ($prn.PrintProcessor -ne "winprint") {
+                    try {
+                        Set-Printer -Name $prn.Name -PrintProcessor "winprint" -ErrorAction SilentlyContinue
+                        Write-Log "Printer '$($prn.Name)' updated to PrintProcessor: winprint." -Type "SUCCESS" -NoConsole
+                    } catch {}
+                }
+            }
+        }
+    } catch {}
+}
 
+function Repair-Deep0x00000006AndV3Driver {
+    <#
+    .SYNOPSIS
+        Deep 10-Layer Repair for Error 0x00000006 (ERROR_INVALID_HANDLE),
+        Point & Print policy locks, and V3 Unidrv framework driver mismatches.
+    #>
+    [CmdletBinding()]
+    param([switch]$Silent)
+
+    $isEN = ($script:lang -eq "EN")
+    Write-Log "Initiating Deep 10-Layer Repair for Error 0x00000006 & V3 Drivers..." -Type "INFO" -NoConsole
+
+    if ($script:IsPlanMode) {
+        Write-Host "  [PLAN] Would execute 10-layer 0x00000006 handle & V3 driver remediation." -ForegroundColor Cyan
+        return
+    }
+
+    try {
+        # --- LAYER 1: Terminate Spooler & Handle-Holding Helper Processes ---
+        try {
+            Stop-Service -Name spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+            Get-Process -Name "splwow64", "PrintIsolationHost", "printfilterpipelinesvc" -ErrorAction SilentlyContinue |
+                Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 600
+        } catch {}
+
+        # --- LAYER 2: Purge HKLM Stale Remote Server / Connection Keys ---
+        $hklmPurgePaths = @(
+            "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider\Servers",
+            "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\LanMan Print Services\Servers",
+            "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Connections",
+            "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\V4 Connections"
+        )
+        foreach ($p in $hklmPurgePaths) {
+            Remove-SafeReg -Path $p -RecurseChildrenOnly
+        }
+
+        # --- LAYER 3: Purge Stale Connections, DEVMODEs & Device Keys Across User Profiles ---
+        $hkcuPrinters = "HKCU:\Printers"
+        if (Test-Path $hkcuPrinters) {
+            Remove-SafeReg -Path "$hkcuPrinters\Connections" -RecurseChildrenOnly
+            Remove-SafeReg -Path "$hkcuPrinters\DevModes2" -RecurseChildrenOnly
+            Remove-SafeReg -Path "$hkcuPrinters\DevModePerUser" -RecurseChildrenOnly
+            Remove-SafeReg -Path "$hkcuPrinters\Settings" -RecurseChildrenOnly
+        }
+
+        $hkcuWin = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows"
+        Remove-SafeReg -Path "$hkcuWin\SessionDefaultDevices"
+        Remove-SafeReg -Path $hkcuWin -Name "Device"
+
+        foreach ($devKey in @("HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Devices", "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\PrinterPorts")) {
+            if (Test-Path $devKey) {
+                $prop = Get-ItemProperty -Path $devKey -ErrorAction SilentlyContinue
+                if ($prop) {
+                    $prop.PSObject.Properties | Where-Object { $_.Name -like "\\*" } | ForEach-Object {
+                        Remove-SafeReg -Path $devKey -Name $_.Name
+                    }
+                }
+            }
+        }
+
+        $userSids = Get-ChildItem "Registry::HKEY_USERS" -ErrorAction SilentlyContinue |
+            Where-Object { $_.PSChildName -match '^S-1-5-21-' -and $_.PSChildName -notmatch '_Classes$' }
+        foreach ($u in $userSids) {
+            $uSid = $u.PSChildName
+            $uPrinters = "Registry::HKEY_USERS\$uSid\Printers"
+            if (Test-Path $uPrinters) {
+                Remove-SafeReg -Path "$uPrinters\Connections" -RecurseChildrenOnly
+                Remove-SafeReg -Path "$uPrinters\DevModes2" -RecurseChildrenOnly
+                Remove-SafeReg -Path "$uPrinters\DevModePerUser" -RecurseChildrenOnly
+                Remove-SafeReg -Path "$uPrinters\Settings" -RecurseChildrenOnly
+            }
+            $uWin = "Registry::HKEY_USERS\$uSid\Software\Microsoft\Windows NT\CurrentVersion\Windows"
+            Remove-SafeReg -Path "$uWin\SessionDefaultDevices"
+            Remove-SafeReg -Path $uWin -Name "Device"
+        }
+
+        # --- LAYER 4: Clear Corrupted Point & Print Package Cache (PCC) ---
+        $pccDir = Join-Path $env:WINDIR "System32\spool\drivers\x64\PCC"
+        if (Test-Path $pccDir) {
+            try {
+                Get-ChildItem -Path $pccDir -Recurse -Force -ErrorAction SilentlyContinue |
+                    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            } catch {}
+        }
+        $pkgServersKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\PackageInstallation\Servers"
+        Remove-SafeReg -Path $pkgServersKey -RecurseChildrenOnly
+
+        # --- LAYER 5: Enforce Universal Print Processor 'winprint' & RAW Datatype ---
+        $proc64 = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Print Processors\winprint"
+        Set-SafeReg -Path $proc64 -Name "Driver" -Value "winprint.dll" -Type String -Force
+        $proc32 = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows NT x86\Print Processors\winprint"
+        Set-SafeReg -Path $proc32 -Name "Driver" -Value "winprint.dll" -Type String -Force
+
+        # --- LAYER 6: V3 Driver Framework Integrity Check & Self-Healing ---
+        $isWin10Client = ([Environment]::OSVersion.Version.Major -eq 10 -and [Environment]::OSVersion.Version.Build -lt 22000)
+        $spoolV3Dir = Join-Path $env:WINDIR "System32\spool\drivers\x64\3"
+        if (Test-Path $spoolV3Dir) {
+            Get-ChildItem -Path $spoolV3Dir -File -ErrorAction SilentlyContinue | Where-Object { $_.Length -eq 0 } |
+                Remove-Item -Force -ErrorAction SilentlyContinue
+
+            if ($isWin10Client) {
+                $driverStore = Join-Path $env:WINDIR "System32\DriverStore\FileRepository"
+                if (Test-Path $driverStore) {
+                    $ntprintDirs = Get-ChildItem -Path $driverStore -Directory -Filter "ntprint.inf_amd64_*" -ErrorAction SilentlyContinue |
+                        Sort-Object LastWriteTime -Descending
+                    if ($ntprintDirs -and $ntprintDirs.Count -gt 0) {
+                        $goodSource = $ntprintDirs[0].FullName
+                        $v3Files = @("UNIDRV.DLL", "UNIDRVUI.DLL", "UNIRES.DLL", "PSCRIPT5.DLL", "PS5UI.DLL")
+                        foreach ($vf in $v3Files) {
+                            $srcFile = Join-Path $goodSource $vf
+                            $dstFile = Join-Path $spoolV3Dir $vf
+                            if ((Test-Path $srcFile) -and (Test-Path $dstFile)) {
+                                try {
+                                    $dstBuild = (Get-ItemProperty $dstFile -ErrorAction SilentlyContinue).VersionInfo.ProductBuildPart
+                                    if ($dstBuild -ge 22000) {
+                                        Copy-Item -Path $srcFile -Destination $dstFile -Force -ErrorAction SilentlyContinue
+                                        Write-Log "Restored native Win10 V3 driver: $vf from DriverStore (was build $dstBuild)." -Type "SUCCESS" -NoConsole
+                                    }
+                                } catch {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        # --- LAYER 7: Point and Print Policy Alignment ---
+        Fix-AdvancedPointAndPrint
+
+        # --- LAYER 8: Client-Side Rendering (CSR) & EMF Despooling ---
+        $polPrinters = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
+        Set-SafeReg -Path $polPrinters -Name ForceCSREMFDespooling -Value 0 -Type DWord -Force
+        Remove-SafeReg -Path $polPrinters -Name DisableClientSideRendering
+        $csrProv = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider"
+        Set-SafeReg -Path $csrProv -Name CSRDisabled -Value 0 -Type DWord -Force
+
+        # --- LAYER 9: SMB Session & Kerberos Flush ---
+        try { & net.exe use * /delete /y > $null 2>&1 } catch {}
+        try { & klist.exe purge > $null 2>&1 } catch {}
+
+        # --- LAYER 10: Clean Spooler Restart & State Validation ---
+        Start-Service -Name spooler -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 600
+        $spState = (Get-Service -Name spooler -ErrorAction SilentlyContinue).Status
+        if ($spState -ne 'Running') {
+            Start-Service -Name spooler -ErrorAction SilentlyContinue
+        }
+
+        Write-Log "Deep 10-Layer Repair for Error 0x00000006 & V3 Drivers successfully executed." -Type "SUCCESS" -NoConsole
+        if (-not $Silent) {
+            Write-Host $(if ($isEN) { "  [+] Error 0x00000006 & V3 Driver 10-layer remediation applied successfully." } else { "  [+] Remediasi 10-lapisan Error 0x00000006 & Driver V3 berhasil diterapkan." }) -ForegroundColor Green
+        }
+    } catch {
+        Write-Log "Repair-Deep0x00000006AndV3Driver exception: $($_.Exception.Message)" -Type "ERROR" -NoConsole
+    }
+}
+
+function Fix-Deep0x00000709 {
+    Write-Log "Deep fix 0x00000709 / 0x00000006 -- applying all RPC layers..." -Type "INFO" -NoConsole
+    try {
         $rpcPath = "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC"
         if (-not (Test-Path $rpcPath)) { New-Item -Path $rpcPath -Force | Out-Null }
         Set-SafeReg -Path $rpcPath -Name RpcUseNamedPipeProtocol -Value 1 -Type DWord -Force
@@ -377,33 +647,11 @@ function Fix-Deep0x00000709 {
         $lanPath = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
         Set-SafeReg -Path $lanPath -Name DisableStrictNameChecking -Value 1 -Type DWord -Force
 
+        # Apply Point & Print and 10-layer 0x00000006 remediation
+        Fix-AdvancedPointAndPrint
+        Repair-Deep0x00000006AndV3Driver -Silent
+
         $deviceKey = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows"
-        $deviceVal = (Get-ItemProperty $deviceKey -ErrorAction SilentlyContinue).Device
-        if ($deviceVal) {
-            Write-Host "  [!] Purging legacy Device key: $deviceVal" -ForegroundColor Yellow
-            Remove-ItemProperty -Path $deviceKey -Name "Device" -ErrorAction SilentlyContinue
-            Write-Log "HKCU Device key purged: $deviceVal" -Type "SUCCESS" -NoConsole
-        }
-
-        # Purge volatile SessionDefaultDevices subkey (prevents cold-boot 0x709 recreated default devices)
-        $sessionSubKey = Join-Path $deviceKey "SessionDefaultDevices"
-        if (Test-Path $sessionSubKey) {
-            Write-Host "  [!] Purging volatile SessionDefaultDevices subkey..." -ForegroundColor Yellow
-            Remove-Item -Path $sessionSubKey -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Log "SessionDefaultDevices subkey removed." -Type "SUCCESS" -NoConsole
-        }
-
-        # Purge stale network printer connection ghost handles (resolves Error 0x00000006 ERROR_INVALID_HANDLE)
-        $connKey = "HKCU:\Printers\Connections"
-        if (Test-Path $connKey) {
-            Write-Host "  [!] Purging stale network printer connection handles in HKCU\Printers\Connections..." -ForegroundColor Yellow
-            Remove-Item -Path "$connKey\*" -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Log "HKCU Printers Connections ghost handles purged (0x00000006 fix)." -Type "SUCCESS" -NoConsole
-        }
-
-        # Disconnect any hanging or stale SMB sessions
-        try { & net.exe use * /delete /y > $null 2>&1 } catch {}
-
         Set-SafeReg -Path $deviceKey -Name LegacyDefaultPrinterMode -Value 1 -Type DWord -Force
         Set-SafeReg -Path $deviceKey -Name UserSelectedDefault -Value 1 -Type DWord -Force
 
@@ -415,10 +663,8 @@ function Fix-Deep0x00000709 {
         Set-SafeReg -Path $lsaMSV -Name NtlmMinClientSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
         Set-SafeReg -Path $lsaMSV -Name NtlmMinServerSec -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
 
-        Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
-
         Write-Log "Fix-Deep0x00000709 complete. MUST also be executed on the HOST machine." -Type "SUCCESS" -NoConsole
-        Write-Host "  [+] All 0x00000709 layers applied." -ForegroundColor Green
+        Write-Host "  [+] All 0x00000709 and 0x00000006 layers applied." -ForegroundColor Green
         Write-Host "  [!] IMPORTANT: Run this script on the HOST PC (the one connected to the printer)!" -ForegroundColor Red
     }
     catch {
@@ -503,35 +749,57 @@ Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Na
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Name RpcAuthenticationLevel -Value 0 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Name ForceKerberosForRpc -Value 0 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\RPC" -Name RpcProtocols -Value 7 -Type DWord -Force -EA SilentlyContinue
+
 if (-not (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers")) { New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers" -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers" -Name ForceCSREMFDespooling -Value 0 -Type DWord -Force -EA SilentlyContinue
+Remove-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers" -Name DisableClientSideRendering -Force -EA SilentlyContinue
+
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name RpcAuthnLevelPrivacyEnabled -Value 0 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name DnsOnWire -Value 1 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name CopyFilesPolicy -Value 1 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name RpcOverNamedPipes -Value 1 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name RpcOverTcp -Value 1 -Type DWord -Force -EA SilentlyContinue
+
 if (-not (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP")) { New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP" -Name Enabled -Value 0 -Type DWord -Force -EA SilentlyContinue
+
 if (-not (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")) { New-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord -Force -EA SilentlyContinue
 
-# 2. Point & Print Policy (Bypass PrintNightmare driver elevation lock on update)
+# 2. Point & Print Policy (Bypass PrintNightmare and Invert restrictions)
 if (-not (Test-Path "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint")) { New-Item "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Force -EA SilentlyContinue | Out-Null }
+Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name InForest -Value 0 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name TrustedServers -Value 0 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name Restricted -Value 0 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name PackagePointAndPrintOnly -Value 0 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name RestrictDriverInstallationToAdministrators -Value 0 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name NoWarningNoElevationOnInstall -Value 1 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name NoWarningNoElevationOnUpdate -Value 1 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name UpdatePromptSettings -Value 2 -Type DWord -Force -EA SilentlyContinue
+Remove-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint" -Name ServerList -Force -EA SilentlyContinue
 
-# 3. Disable SMB Signing & Allow Guest Access (Persists after cumulative updates)
+if (-not (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint")) { New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint" -Force -EA SilentlyContinue | Out-Null }
+Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint" -Name PackagePointAndPrintServerList -Value 0 -Type DWord -Force -EA SilentlyContinue
+Remove-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint" -Name ListofServers -Force -EA SilentlyContinue
+
+# 3. Disable SMB Signing & Allow Guest Access
 if (-not (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters")) { New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name EnableSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name KeepConn -Value 65535 -Type DWord -Force -EA SilentlyContinue
+
 if (-not (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation")) { New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation" -Name AllowInsecureGuestAuth -Value 1 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
+
 if (-not (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters")) { New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Force -EA SilentlyContinue | Out-Null }
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name RequireSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name EnableSecuritySignature -Value 0 -Type DWord -Force -EA SilentlyContinue
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name DisableStrictNameChecking -Value 1 -Type DWord -Force -EA SilentlyContinue
 
-# 4. Disable Fast Startup (Prevents stale socket hibernation and next-day connection drops)
+# 4. Disable Fast Startup
 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name "HiberbootEnabled" -Value 0 -Type DWord -Force -EA SilentlyContinue
 
 # 5. Ensure Discovery Services are Running
@@ -540,17 +808,17 @@ Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" 
     if ($svc -and $svc.Status -ne 'Running') { Start-Service $_ -EA SilentlyContinue }
 }
 
-# 6. Non-Destructive Spooler Validation & Native SCM Recovery (2s instant crash restart)
+# 6. Spooler SCM Recovery
 & sc.exe failure spooler reset= 86400 actions= restart/2000/restart/5000/restart/10000 > $null 2>&1
 & sc.exe failureflag spooler 1 > $null 2>&1
 
-# 7. Ensure Network Profiles are Private with Polling (Catches Wi-Fi/DHCP initialization up to 30s)
+# 7. Private Network category enforcement
 for ($i = 0; $i -lt 6; $i++) {
     Get-NetConnectionProfile -EA SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -EA SilentlyContinue
     if ($i -lt 5) { Start-Sleep -Seconds 5 }
 }
 
-# 8. Reapply HKCU fixes for every local user profile safely (preserves active Device & Printers\Connections)
+# 8. Reapply HKCU fixes for every local user profile safely
 $profiles = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -EA SilentlyContinue | Where-Object { $_.PSChildName -match '^S-1-5-21-' }
 foreach ($prof in $profiles) {
     $sid = $prof.PSChildName
@@ -589,9 +857,7 @@ foreach ($prof in $profiles) {
     }
 }
 
-# 9. Force Spooler Restart so boot-applied RPC and printer registry policies take effect immediately
-Restart-Service spooler -Force -EA SilentlyContinue
-Start-Sleep -Seconds 2
+# 9. Ensure Spooler service is running cleanly
 $spState = Get-Service spooler -EA SilentlyContinue
 if ($spState -and $spState.Status -ne 'Running') { Start-Service spooler -EA SilentlyContinue }
 '@
@@ -603,20 +869,19 @@ if ($spState -and $spState.Status -ne 'Running') { Start-Service spooler -EA Sil
         & schtasks.exe /create /tn "PrinterFixPostUpdate" /tr $cmd /sc onstart /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
         if ($LASTEXITCODE -ne 0) { throw "schtasks ONSTART returned exit code $LASTEXITCODE" }
 
-        # Clean up legacy disruptive daily 10 AM task if present
+        # Clean up legacy daily 10 AM task if present
         & schtasks.exe /delete /tn "PrinterFixDaily" /f > $null 2>&1
 
-        # Configure ONSTART task to run on battery power (disables 0x800710E0 error on laptops)
         try {
             $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
             Set-ScheduledTask -TaskName "PrinterFixPostUpdate" -Settings $settings -ErrorAction SilentlyContinue | Out-Null
         } catch {}
 
-        # --- 2. Logon Reconnect Script (Runs at user login to resolve Cold-Boot Race Condition) ---
+        # --- 2. Logon Reconnect Script (Non-destructive, ensures spooler runs) ---
         $logonScriptPath = Join-Path $script:backupDir "PrinterFixLogon.ps1"
         $logonScript = @'
 # PrinterFixLogon.ps1 - Runs at user login (ONLOGON)
-# Resolves Cold-Boot Race Condition (Spooler starts before Wi-Fi/LAN is connected)
+# Resolves Cold-Boot Race Condition without dropping active printer connections
 
 # 1. Wait up to 16s for network stack readiness
 for ($i = 0; $i -lt 8; $i++) {
@@ -628,7 +893,7 @@ for ($i = 0; $i -lt 8; $i++) {
 # 2. Re-enforce Private network category
 Get-NetConnectionProfile -EA SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -EA SilentlyContinue
 
-# 3. Clean volatile HKCU SessionDefaultDevices & Enforce LegacyDefaultPrinterMode (Preserving Device & Printers\Connections)
+# 3. Clean volatile HKCU SessionDefaultDevices & Enforce LegacyDefaultPrinterMode
 $winKey = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows"
 if (Test-Path $winKey) {
     Remove-Item -Path (Join-Path $winKey "SessionDefaultDevices") -Recurse -Force -EA SilentlyContinue
@@ -636,11 +901,11 @@ if (Test-Path $winKey) {
     Set-ItemProperty -Path $winKey -Name UserSelectedDefault -Value 1 -Type DWord -Force -EA SilentlyContinue
 }
 
-# 4. If system just booted (uptime under 300s), refresh Spooler so network printer RPC binds cleanly
+# 4. Check Spooler status - start ONLY if stopped (DO NOT force restart active spooler)
 try {
-    $uptime = (Get-CimInstance Win32_OperatingSystem -EA SilentlyContinue).LastBootUpTime
-    if ($uptime -and ((Get-Date) - $uptime).TotalSeconds -lt 300) {
-        Restart-Service spooler -Force -EA SilentlyContinue
+    $spState = Get-Service spooler -EA SilentlyContinue
+    if ($spState -and $spState.Status -ne 'Running') {
+        Start-Service spooler -EA SilentlyContinue
     }
 } catch {}
 '@
@@ -655,7 +920,7 @@ try {
             } catch {}
         }
 
-        # --- 3. Periodic Watchdog Task with /du 9999:59 to prevent 24h task expiration ---
+        # --- 3. Periodic Watchdog Task ---
         $watchdogCmd = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -Command `"Get-NetConnectionProfile -EA SilentlyContinue | Where-Object { `$_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -EA SilentlyContinue`""
         & schtasks.exe /create /tn "PrinterFixNetworkWatchdog" /tr $watchdogCmd /sc minute /mo 15 /du 9999:59 /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
         if ($LASTEXITCODE -eq 0) {
@@ -667,10 +932,9 @@ try {
 
         Write-Log "Post-Windows-Update and Logon Reconnect tasks deployed successfully." -Type "SUCCESS" -NoConsole
         Write-Host "  [+] Lifecycle tasks deployed: Fixes & Private Network will re-apply cleanly on boot and logon." -ForegroundColor Green
-        Write-Host "  [+] Tasks: 'PrinterFixPostUpdate' (Boot), 'PrinterFixLogonReconnect' (Logon), & 'PrinterFixNetworkWatchdog' (15m) are active." -ForegroundColor Cyan
     }
     catch {
-        Write-Log "Failed to deploy lifecycle tasks: $($_.Exception.Message)" -Type "ERROR"
+        Write-Log "Set-PostPatchTuesdayTask failed: $($_.Exception.Message)" -Type "ERROR"
     }
 }
 
@@ -718,13 +982,20 @@ function Fix-CSR {
         $path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
         if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
 
-        Set-SafeReg -Path $path -Name DisableClientSideRendering -Value 1 -Type DWord -Force -ErrorAction Stop
-        Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
-        Write-Log "CSR successfully disabled." -Type "SUCCESS" -NoConsole
-        Write-Host $(if ($script:lang -eq "EN") { "  [+] Client-Side Rendering disabled; Host will process print jobs." } else { "  [+] Client-Side Rendering dinonaktifkan; Komputer host akan memproses pekerjaan cetak." }) -ForegroundColor Green
+        Set-SafeReg -Path $path -Name ForceCSREMFDespooling -Value 0 -Type DWord -Force
+        Remove-SafeReg -Path $path -Name DisableClientSideRendering
+
+        $csrProv = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider"
+        Set-SafeReg -Path $csrProv -Name CSRDisabled -Value 0 -Type DWord -Force
+
+        if (-not $script:IsReadOnlyMode) {
+            Restart-Service spooler -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 3>$null
+        }
+        Write-Log "CSR successfully configured." -Type "SUCCESS" -NoConsole
+        Write-Host $(if ($script:lang -eq "EN") { "  [+] Client-Side Rendering configured; Host and Client rendering aligned." } else { "  [+] Client-Side Rendering dikonfigurasi; Rendering Host dan Klien diselaraskan." }) -ForegroundColor Green
     }
     catch {
-        Write-Log "Failed to disable CSR: $($_.Exception.Message)" -Type "ERROR"
+        Write-Log "Failed to configure CSR: $($_.Exception.Message)" -Type "ERROR"
     }
 }
 
@@ -1066,7 +1337,7 @@ function Manage-SMB1 {
 }
 
 function Add-Credential {
-    Write-Host "`n  INJECT WINDOWS CREDENTIALS"
+    Write-Host "`n  INJECT WINDOWS CREDENTIALS (USER & SYSTEM VAULT)"
     $ip = Read-Host "  [?] Target IP/Hostname (e.g., 192.168.1.10)"
     if ($null -ne $ip) { $ip = $ip.Trim() }
     $usr = Read-Host "  [?] Username on Target Host"
@@ -1079,14 +1350,37 @@ function Add-Credential {
     }
 
     try {
-        $proc = Start-Process -FilePath "cmdkey.exe" -ArgumentList "/add:$ip", "/user:$usr", "/pass:`"$pass`"" -WindowStyle Hidden -Wait -PassThru
-        if ($proc.ExitCode -eq 0) {
-            Write-Log "Credential for $ip injected." -Type "SUCCESS" -NoConsole
-            Write-Host "  [+] Credentials successfully committed to Windows Vault." -ForegroundColor Green
-        } else {
-            Write-Log "cmdkey returned exit code $($proc.ExitCode) for $ip." -Type "ERROR"
-            Write-Host "  [-] Credential injection failed (exit code $($proc.ExitCode))." -ForegroundColor Red
+        # 1. Commit to current user Windows Vault
+        $targets = @($ip)
+        try {
+            if ($ip -match '^\d+\.\d+\.\d+\.\d+$') {
+                $resolvedHost = [System.Net.Dns]::GetHostEntry($ip).HostName
+                if ($resolvedHost -and ($resolvedHost -notin $targets)) { $targets += $resolvedHost }
+            } else {
+                $resolvedIp = [System.Net.Dns]::GetHostAddresses($ip) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -First 1 -ExpandProperty IPAddressToString
+                if ($resolvedIp -and ($resolvedIp -notin $targets)) { $targets += $resolvedIp }
+            }
+        } catch {}
+
+        foreach ($t in $targets) {
+            Start-Process -FilePath "cmdkey.exe" -ArgumentList "/add:$t", "/user:$usr", "/pass:`"$pass`"" -WindowStyle Hidden -Wait | Out-Null
         }
+        Write-Host "  [+] Credentials committed to Current User Vault ($($targets -join ', '))." -ForegroundColor Green
+
+        # 2. Commit to NT AUTHORITY\SYSTEM Vault (Crucial for Local Port UNC Spooler printing)
+        foreach ($t in $targets) {
+            $taskName = "TempCmdKeySystemInject_$([System.IO.Path]::GetRandomFileName().Substring(0,6))"
+            $escapedPass = $pass -replace '"', '"'
+            $taskCmd = "cmdkey.exe /add:$t /user:$usr /pass:`"$escapedPass`""
+            & schtasks.exe /create /tn $taskName /tr $taskCmd /sc once /st 00:00 /ru "SYSTEM" /rl HIGHEST /f > $null 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                & schtasks.exe /run /tn $taskName > $null 2>&1
+                Start-Sleep -Milliseconds 600
+                & schtasks.exe /delete /tn $taskName /f > $null 2>&1
+            }
+        }
+        Write-Host "  [+] Credentials committed to NT AUTHORITY\SYSTEM Vault for Print Spooler." -ForegroundColor Green
+        Write-Log "Credentials injected for $($targets -join ', ') into User and SYSTEM vaults." -Type "SUCCESS" -NoConsole
         Start-Sleep -Seconds 1
     }
     catch {
@@ -1922,23 +2216,33 @@ function Fix-AdvancedPointAndPrint {
     try {
         $path = "HKLM:\Software\Policies\Microsoft\Windows NT\Printers\PointAndPrint"
         if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
-        Set-SafeReg -Path $path -Name InForest -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-SafeReg -Path $path -Name TrustedServers -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-SafeReg -Path $path -Name ServerList -Value "*.*" -Type String -Force -ErrorAction Stop
 
-        Set-SafeReg -Path $path -Name RestrictDriverInstallationToAdministrators -Value 0 -Type DWord -Force -ErrorAction Stop
-        Set-SafeReg -Path $path -Name NoWarningNoElevationOnInstall -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-SafeReg -Path $path -Name NoWarningNoElevationOnUpdate -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-SafeReg -Path $path -Name UpdatePromptSettings -Value 2 -Type DWord -Force -ErrorAction Stop
+        # InForest=0: Fixes Workgroup 0x00000006 / 0x00000057 (allows non-domain / workgroup Point & Print)
+        Set-SafeReg -Path $path -Name InForest -Value 0 -Type DWord -Force
+        # TrustedServers=0: Fixes wildcard *.* parse failure in win32spl.dll
+        Set-SafeReg -Path $path -Name TrustedServers -Value 0 -Type DWord -Force
+        # Restricted=0: Allows unrestricted Point and Print
+        Set-SafeReg -Path $path -Name Restricted -Value 0 -Type DWord -Force
+        # PackagePointAndPrintOnly=0: Allows V3 / non-packaged drivers (e.g. Epson LX-310)
+        Set-SafeReg -Path $path -Name PackagePointAndPrintOnly -Value 0 -Type DWord -Force
+
+        # Elevation bypass
+        Set-SafeReg -Path $path -Name RestrictDriverInstallationToAdministrators -Value 0 -Type DWord -Force
+        Set-SafeReg -Path $path -Name NoWarningNoElevationOnInstall -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $path -Name NoWarningNoElevationOnUpdate -Value 1 -Type DWord -Force
+        Set-SafeReg -Path $path -Name UpdatePromptSettings -Value 2 -Type DWord -Force
+
+        # Remove invalid wildcard strings that break win32spl.dll
+        Remove-SafeReg -Path $path -Name ServerList
 
         $pkgPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint"
         if (-not (Test-Path $pkgPath)) { New-Item -Path $pkgPath -Force | Out-Null }
-        Set-SafeReg -Path $pkgPath -Name PackagePointAndPrintServerList -Value 1 -Type DWord -Force -ErrorAction Stop
-        Set-SafeReg -Path $pkgPath -Name PackagePointAndPrintGlobalPolicy -Value 2 -Type DWord -Force -ErrorAction SilentlyContinue
-        Set-SafeReg -Path $pkgPath -Name ListofServers -Value "*.*" -Type String -Force -ErrorAction SilentlyContinue
+        Set-SafeReg -Path $pkgPath -Name PackagePointAndPrintServerList -Value 0 -Type DWord -Force
+        Remove-SafeReg -Path $pkgPath -Name ListofServers
+        Remove-SafeReg -Path $pkgPath -Name PackagePointAndPrintGlobalPolicy
 
-        Write-Log "Point & Print constraints & PrintNightmare entirely bypassed." -Type "SUCCESS" -NoConsole
-        Write-Host "  [+] PrintNightmare Elevation Restrictions and Point & Print fully neutralized." -ForegroundColor Green
+        Write-Log "Point & Print policies aligned (Workgroups enabled, V3 drivers permitted)." -Type "SUCCESS" -NoConsole
+        Write-Host "  [+] Point & Print Policies fully aligned (Workgroup & V3 drivers enabled)." -ForegroundColor Green
     }
     catch {
         Write-Log "Fix-AdvancedPointAndPrint failed: $($_.Exception.Message)" -Type "ERROR"
@@ -3561,35 +3865,41 @@ function Fix-HostServerRole {
     Write-Host "  ===================================================================================================`n" -ForegroundColor Cyan
     Write-Log "Running Host/Print Server Optimization (LANG=$script:lang)" -Type "INFO" -NoConsole
 
-    Write-Host $(if ($isEN) { "  [*] [1/8] Securing Registry Backup..." } else { "  [*] [1/8] Mengamankan Cadangan Registri (Backup)..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [1/10] Securing Registry Backup..." } else { "  [*] [1/10] Mengamankan Cadangan Registri (Backup)..." }) -ForegroundColor Cyan
     Backup-Registry
 
-    Write-Host $(if ($isEN) { "  [*] [2/8] Enforcing Spooler Remote RPC Endpoint (Accepting Client Connections)..." } else { "  [*] [2/8] Mengizinkan Spooler Menerima Koneksi RPC Klien Jaringan..." }) -ForegroundColor Cyan
-    try {
-        $polPrint = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"
-        if (-not (Test-Path $polPrint)) { New-Item -Path $polPrint -Force | Out-Null }
-        Set-SafeReg -Path $polPrint -Name RegisterSpoolerRemoteRpcEndPoint -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-    } catch {}
+    Write-Host $(if ($isEN) { "  [*] [2/10] Neutralizing RPC Auth Privacy 0x11b & Activating Remote RPC Endpoint..." } else { "  [*] [2/10] Membuka RPC Auth 0x11b & Mengizinkan Remote RPC Endpoint..." }) -ForegroundColor Cyan
+    Fix-RpcAuthn0x0000011b
+    Fix-RemoteSpoolerRpcEndpoint
+    Fix-NamedPipes
 
-    Write-Host $(if ($isEN) { "  [*] [3/8] Enforcing Network Connection Profile to Private..." } else { "  [*] [3/8] Mengubah Profil Jaringan ke Mode Private..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [3/10] Aligning Multi-Layer RPC & Named Pipes (0x00000709 / 0x00000006)..." } else { "  [*] [3/10] Menyelaraskan Jalur RPC & Named Pipes (0x00000709 / 0x00000006)..." }) -ForegroundColor Cyan
+    Fix-Deep0x00000709
+    Fix-NullSessionPipes
+    Fix-UACTokenFilter
+
+    Write-Host $(if ($isEN) { "  [*] [4/10] Auditing & Optimizing Shared Dot-Matrix / USB Printers (winprint / RAW)..." } else { "  [*] [4/10] Optimasi Printer Sharing Dot-Matrix / USB (winprint / RAW)..." }) -ForegroundColor Cyan
+    Optimize-HostPrinters
+
+    Write-Host $(if ($isEN) { "  [*] [5/10] Enforcing Network Connection Profile to Private..." } else { "  [*] [5/10] Mengubah Profil Jaringan ke Mode Private..." }) -ForegroundColor Cyan
     Set-NetworkPrivate
     Disable-FastStartup
 
-    Write-Host $(if ($isEN) { "  [*] [4/8] Opening Passwordless Sharing & Guest Access Permissions..." } else { "  [*] [4/8] Membuka Akses Berbagi Tanpa Sandi & Izin Guest..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [6/10] Opening Passwordless Sharing & Guest Access Permissions..." } else { "  [*] [6/10] Membuka Akses Berbagi Tanpa Sandi & Izin Guest..." }) -ForegroundColor Cyan
     Disable-PasswordSharing
     Enable-SMBGuest
 
-    Write-Host $(if ($isEN) { "  [*] [5/8] Opening Windows Firewall for File & Printer Sharing and WSD Discovery..." } else { "  [*] [5/8] Membuka Akses Firewall untuk Printer & Penemuan WSD..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [7/10] Opening Windows Firewall for File & Printer Sharing and WSD Discovery..." } else { "  [*] [7/10] Membuka Akses Firewall untuk Printer & Penemuan WSD..." }) -ForegroundColor Cyan
     Open-Firewall
     Fix-WSDFirewall
 
-    Write-Host $(if ($isEN) { "  [*] [6/8] Disabling SMB Server Security Signing Enforcement..." } else { "  [*] [6/8] Mematikan Wajib SMB Server Signing..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [8/10] Disabling SMB Server Security Signing Enforcement..." } else { "  [*] [8/10] Mematikan Wajib SMB Server Signing..." }) -ForegroundColor Cyan
     Fix-SMBSigning
 
-    Write-Host $(if ($isEN) { "  [*] [7/8] Sanitizing Printer Share Names (Removing illegal characters & spaces)..." } else { "  [*] [7/8] Merapikan Nama Share Printer dari Spasi & Karakter Ilegal..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [9/10] Sanitizing Printer Share Names (Removing illegal characters & spaces)..." } else { "  [*] [9/10] Merapikan Nama Share Printer dari Spasi & Karakter Ilegal..." }) -ForegroundColor Cyan
     Sanitize-PrinterShareName -NoBanner
 
-    Write-Host $(if ($isEN) { "  [*] [8/8] Configuring Native Spooler Crash Recovery (2s SCM) & Restarting Spooler..." } else { "  [*] [8/8] Memasang Pemulihan Otomatis Crash Spooler (2s SCM) & Restart Spooler..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [10/10] Configuring Native Spooler Crash Recovery (2s SCM) & Restarting Spooler..." } else { "  [*] [10/10] Memasang Pemulihan Otomatis Crash Spooler (2s SCM) & Restart Spooler..." }) -ForegroundColor Cyan
     Set-SpoolerRecovery
     Reset-Spooler
 
@@ -3608,42 +3918,46 @@ function Fix-ClientWorkstationRole {
     Write-Host "  ===================================================================================================`n" -ForegroundColor Cyan
     Write-Log "Running Client Workstation Optimization (LANG=$script:lang)" -Type "INFO" -NoConsole
 
-    Write-Host $(if ($isEN) { "  [*] [1/7] Securing Registry Backup..." } else { "  [*] [1/7] Mengamankan Cadangan Registri (Backup)..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [1/10] Securing Registry Backup..." } else { "  [*] [1/10] Mengamankan Cadangan Registri (Backup)..." }) -ForegroundColor Cyan
     Backup-Registry
 
-    Write-Host $(if ($isEN) { "  [*] [2/7] Activating RPC Named Pipes & TCP Protocol Pathways..." } else { "  [*] [2/7] Mengaktifkan Jalur Protokol RPC Named Pipes & TCP..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [2/10] Activating RPC Named Pipes, TCP Protocols & Remote Spooler Endpoint..." } else { "  [*] [2/10] Mengaktifkan Jalur Protokol RPC Named Pipes, TCP & Remote Endpoint..." }) -ForegroundColor Cyan
+    Fix-RpcAuthn0x0000011b
     Fix-NamedPipes
+    Fix-RemoteSpoolerRpcEndpoint
 
-    Write-Host $(if ($isEN) { "  [*] [3/7] Applying Point & Print Driver Elevation Bypass (PrintNightmare Override)..." } else { "  [*] [3/7] Menerapkan Bypass Elevasi Point and Print (Driver Install)..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [3/10] Aligning Point & Print Driver Elevation Bypass (InForest=0, Trusted=0)..." } else { "  [*] [3/10] Menyelaraskan Kebijakan Point and Print (InForest=0, Trusted=0)..." }) -ForegroundColor Cyan
     Fix-AdvancedPointAndPrint
 
-    Write-Host $(if ($isEN) { "  [*] [4/7] Disabling SMB Client Signing Enforcement (Resolving 24H2/25H2 block)..." } else { "  [*] [4/7] Mematikan Wajib SMB Client Signing (Atasi Blokir Win 11)..." }) -ForegroundColor Cyan
-    Fix-SMBSigning
+    Write-Host $(if ($isEN) { "  [*] [4/10] Executing Deep 10-Layer Error 0x00000006 & V3 Driver Remediations..." } else { "  [*] [4/10] Menjalankan Remediasi 10-Lapisan Error 0x00000006 & Driver V3..." }) -ForegroundColor Cyan
+    Repair-Deep0x00000006AndV3Driver
 
-    Write-Host $(if ($isEN) { "  [*] [5/7] Fixing HKCU Printer Registry Key Permissions..." } else { "  [*] [5/7] Memperbaiki Izin Kunci Registri Printer HKCU..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [5/10] Disabling SMB Client Signing & Allowing Insecure Guest Auth..." } else { "  [*] [5/10] Mematikan SMB Signing & Mengizinkan Akses Guest..." }) -ForegroundColor Cyan
+    Fix-SMBSigning
+    Enable-SMBGuest
+
+    Write-Host $(if ($isEN) { "  [*] [6/10] Optimizing SMB KeepConn (0x40), Driver Copy (0x02) & RPC Bitness (0x7e)..." } else { "  [*] [6/10] Optimasi SMB KeepConn (0x40), Salin Driver (0x02) & Bitness RPC (0x7e)..." }) -ForegroundColor Cyan
+    Fix-Network0x00000040
+    Fix-DriverCopy0x00000002
+    Fix-RpcBitness0x0000007e
+
+    Write-Host $(if ($isEN) { "  [*] [7/10] Fixing HKCU Printer Registry Key Permissions..." } else { "  [*] [7/10] Memperbaiki Izin Kunci Registri Printer HKCU..." }) -ForegroundColor Cyan
     Fix-HKCU-PrinterKeyPerms
 
-    Write-Host $(if ($isEN) { "  [*] [6/7] Enabling Network Discovery Services (mDNS, LLMNR, SSDP)..." } else { "  [*] [6/7] Mengaktifkan Layanan Penemuan Perangkat Jaringan (mDNS, WSD)..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [8/10] Enabling Network Discovery Services (mDNS, LLMNR, SSDP)..." } else { "  [*] [8/10] Mengaktifkan Layanan Penemuan Perangkat Jaringan (mDNS, WSD)..." }) -ForegroundColor Cyan
     Fix-mDNS
     Fix-NetworkServices
 
-    Write-Host $(if ($isEN) { "  [*] [7/7] Opening Firewall Rules & Flushing DNS Cache..." } else { "  [*] [7/7] Membuka Port Firewall & Menyegarkan Cache DNS..." }) -ForegroundColor Cyan
+    Write-Host $(if ($isEN) { "  [*] [9/10] Opening Firewall Rules & Flushing DNS Cache..." } else { "  [*] [9/10] Membuka Port Firewall & Menyegarkan Cache DNS..." }) -ForegroundColor Cyan
     Open-Firewall
     Set-NetworkPrivate
     Disable-FastStartup
     try { $LASTEXITCODE = 0; ipconfig /flushdns > $null 2>&1 } catch {}
 
-    # Purge stale network printer connection ghost handles (0x00000006 fix) & hanging SMB sessions
-    $connKey = "HKCU:\Printers\Connections"
-    if (Test-Path $connKey) {
-        Remove-Item -Path "$connKey\*" -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    $winKey = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows"
-    if (Test-Path $winKey) {
-        Remove-Item -Path (Join-Path $winKey "SessionDefaultDevices") -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-ItemProperty -Path $winKey -Name "Device" -ErrorAction SilentlyContinue
-    }
+    Write-Host $(if ($isEN) { "  [*] [10/10] Flushing Stale SMB Sessions & Verifying Spooler..." } else { "  [*] [10/10] Membersihkan Sesi SMB Usang & Memeriksa Spooler..." }) -ForegroundColor Cyan
     try { & net.exe use * /delete /y > $null 2>&1 } catch {}
+    $spState = (Get-Service spooler -EA SilentlyContinue).Status
+    if ($spState -ne 'Running') { Start-Service spooler -EA SilentlyContinue }
 
     Write-Log "Client Workstation Optimization concluded." -Type "SUCCESS" -NoConsole
     Write-Host ""
@@ -3651,18 +3965,6 @@ function Fix-ClientWorkstationRole {
     Write-Host $(if ($isEN) { "  [i] Try connecting to the shared printer now (e.g. \\ComputerName\PrinterName)." } else { "  [i] Silakan coba sambungkan kembali printer sharing sekarang (contoh: \\NamaKomputer\NamaPrinter)." }) -ForegroundColor Cyan
     Write-Host $(if ($isEN) { "  [i] If still prompted for password, save credentials via Menu 6 -> 1." } else { "  [i] Jika masih meminta sandi, simpan kredensial via Menu 6 -> 1." }) -ForegroundColor Yellow
     Write-Host $(if ($isEN) { "  [i] If error 0x709 or 0x00000006 persists, use Local Port UNC Mapping via Menu 7 -> 1." } else { "  [i] Jika masih muncul error 0x709 atau 0x00000006, gunakan Pemetaan Port UNC via Menu 7 -> 1." }) -ForegroundColor Yellow
-}
-
-if (-not ($Language -and $Language -match '^(EN|ID)$')) {
-    if (-not $script:lang) { $script:lang = "ID" }
-    try {
-        $savedLang = (Microsoft.PowerShell.Management\Get-ItemProperty -Path "HKCU:\Software\WindowsPrinterSharingFix" -Name "Language" -ErrorAction SilentlyContinue).Language
-        if ($savedLang -in @("ID", "EN")) {
-            $script:lang = $savedLang
-        }
-    } catch {}
-} else {
-    $script:lang = $Language.ToUpper()
 }
 
 function Set-AppLanguage {
@@ -5408,12 +5710,17 @@ function Invoke-VerifyMode {
         @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"; N="LsaCfgFlags"; E=0; L="Credential Guard Bypassed" },
         @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"; N="NtlmMinClientSec"; E=0; L="NTLM Min Client Sec" },
         @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"; N="NtlmMinServerSec"; E=0; L="NTLM Min Server Sec" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="InForest"; E=0; L="P&P InForest (Workgroup Allowed)" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="TrustedServers"; E=0; L="P&P TrustedServers Disabled" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="Restricted"; E=0; L="P&P Restricted Disabled" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="PackagePointAndPrintOnly"; E=0; L="P&P V3 Drivers Permitted" },
         @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="RestrictDriverInstallationToAdministrators"; E=0; L="Point & Print Admin Bypass" },
         @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="NoWarningNoElevationOnInstall"; E=1; L="P&P Elevation Install" },
         @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="NoWarningNoElevationOnUpdate"; E=1; L="P&P Elevation Update" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint"; N="PackagePointAndPrintServerList"; E=0; L="P&P Package Server List Off" },
         @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP"; N="Enabled"; E=0; L="WPP Disabled" },
         @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"; N="RegisterSpoolerRemoteRpcEndPoint"; E=1; L="Remote RPC Endpoint" },
-        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"; N="DisableClientSideRendering"; E=1; L="CSR Disabled" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"; N="ForceCSREMFDespooling"; E=0; L="CSR EMF Despooling Allowed" },
         @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Print"; N="DnsOnWire"; E=1; L="DNS on Wire" },
         @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Print"; N="CopyFilesPolicy"; E=1; L="Copy Files Policy" },
         @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power"; N="HiberbootEnabled"; E=0; L="Fast Startup Off" },
@@ -5458,6 +5765,65 @@ function Invoke-VerifyMode {
         $fail++
     }
 
+    # Universal Print Processor check
+    $proc64Key = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Print Processors\winprint"
+    $procDriver = $null
+    try { $procDriver = (Get-ItemProperty -Path $proc64Key -Name Driver -ErrorAction Stop).Driver } catch { $procDriver = $null }
+    if ($procDriver -eq "winprint.dll") {
+        $lineStr = ("  [OK]      {0,-40} = localspl.dll" -f "winprint Print Processor Driver")
+        Write-Host $lineStr -ForegroundColor Green
+        $details += $lineStr
+        $ok++
+    } else {
+        $lineStr = ("  [FAIL]    {0,-40} = {1} (expected winprint.dll)" -f "winprint Print Processor Driver", $procDriver)
+        Write-Host $lineStr -ForegroundColor Red
+        $details += $lineStr
+        $fail++
+    }
+
+    # Deep Handle Check (Error 0x00000006 Split-Brain Handles)
+    $staleConnCount = 0
+    try {
+        $connKey = "HKCU:\Printers\Connections"
+        if (Test-Path $connKey) {
+            $staleConnCount += @(Get-ChildItem -Path $connKey -ErrorAction SilentlyContinue).Count
+        }
+        $csrKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider\Servers"
+        if (Test-Path $csrKey) {
+            $staleConnCount += @(Get-ChildItem -Path $csrKey -ErrorAction SilentlyContinue).Count
+        }
+    } catch {}
+    if ($staleConnCount -eq 0) {
+        $lineStr = ("  [OK]      {0,-40} = Clean (0 stale handles)" -f "Network Printer Handles (0x06)")
+        Write-Host $lineStr -ForegroundColor Green
+        $details += $lineStr
+        $ok++
+    } else {
+        $lineStr = ("  [FAIL]    {0,-40} = {1} stale handle(s) (0x06 risk)" -f "Network Printer Handles (0x06)", $staleConnCount)
+        Write-Host $lineStr -ForegroundColor Red
+        $details += $lineStr
+        $fail++
+    }
+
+    # V3 UNIDRVUI.DLL Driver Check (Win10 vs Win11 Regression)
+    $isWin10 = ([Environment]::OSVersion.Version.Major -eq 10 -and [Environment]::OSVersion.Version.Build -lt 22000)
+    $v3DllPath = Join-Path $env:WINDIR "System32\spool\drivers\x64\3\UNIDRVUI.DLL"
+    if ($isWin10 -and (Test-Path $v3DllPath)) {
+        $dllBuild = 0
+        try { $dllBuild = (Get-ItemProperty $v3DllPath -ErrorAction SilentlyContinue).VersionInfo.ProductBuildPart } catch {}
+        if ($dllBuild -ge 22000) {
+            $lineStr = ("  [FAIL]    {0,-40} = Win11 Build {1} on Win10 (0x06 risk)" -f "V3 Framework DLL Compatibility", $dllBuild)
+            Write-Host $lineStr -ForegroundColor Red
+            $details += $lineStr
+            $fail++
+        } else {
+            $lineStr = ("  [OK]      {0,-40} = Build {1} (Native Win10)" -f "V3 Framework DLL Compatibility", $dllBuild)
+            Write-Host $lineStr -ForegroundColor Green
+            $details += $lineStr
+            $ok++
+        }
+    }
+
     # Services
     foreach ($svc in @("spooler","RpcSs","DcomLaunch","LanmanWorkstation","LanmanServer")) {
         $state = (Get-Service $svc -ErrorAction SilentlyContinue).Status
@@ -5475,51 +5841,45 @@ function Invoke-VerifyMode {
     }
 
     # Network profile
-    $pubProfile = Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' }
-    if (-not $pubProfile) {
-        $lineStr = ("  [OK]      {0,-40} = Private" -f "Network Profile")
+    $publicProfiles = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' })
+    if ($publicProfiles.Count -eq 0) {
+        $lineStr = ("  [OK]      {0,-40} = All Private / Domain" -f "Network Profile Category")
         Write-Host $lineStr -ForegroundColor Green
         $details += $lineStr
         $ok++
     } else {
-        $lineStr = ("  [FAIL]    {0,-40} = Public ({1})" -f "Network Profile", ($pubProfile.InterfaceAlias -join ','))
+        $lineStr = ("  [FAIL]    {0,-40} = {1} Public network(s)" -f "Network Profile Category", $publicProfiles.Count)
         Write-Host $lineStr -ForegroundColor Red
         $details += $lineStr
         $fail++
     }
 
-    # Tasks
-    foreach ($taskName in @("PrinterFixPostUpdate","PrinterFixLogonReconnect","PrinterFixNetworkWatchdog")) {
-        $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-        if ($task) {
-            $lineStr = ("  [OK]      {0,-40} = {1}" -f "Task: $taskName", $task.State)
+    # Scheduled Tasks
+    foreach ($tn in @("PrinterFixPostUpdate","PrinterFixLogonReconnect","PrinterFixNetworkWatchdog")) {
+        $task = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
+        if ($task -and $task.State -ne 'Disabled') {
+            $lineStr = ("  [OK]      {0,-40} = Active" -f "Task: $tn")
             Write-Host $lineStr -ForegroundColor Green
             $details += $lineStr
             $ok++
-        }
-        else {
-            # If standard non-elevated user: verify if task exists under SYSTEM account (returns Access is denied)
-            $rawQuery = (& schtasks.exe /query /tn $taskName 2>&1) | Out-String
-            if ($rawQuery -match 'Access is denied|Akses ditolak') {
-                $lineStr = ("  [OK]      {0,-40} = Active (SYSTEM)" -f "Task: $taskName")
-                Write-Host $lineStr -ForegroundColor Green
-                $details += $lineStr
-                $ok++
-            }
-            else {
-                $lineStr = ("  [MISSING] {0,-40} (not deployed)" -f "Task: $taskName")
-                Write-Host $lineStr -ForegroundColor Yellow
-                $details += $lineStr
-                $missing++
-            }
+        } else {
+            $lineStr = ("  [MISSING] {0,-40} (not installed or disabled)" -f "Task: $tn")
+            Write-Host ("  [MISSING] {0,-40} (not installed)" -f "Task: $tn") -ForegroundColor Yellow
+            $details += $lineStr
+            $missing++
         }
     }
 
-    Write-Host ""
-    Write-Host "  ======================================================================" -ForegroundColor Cyan
-    Write-Host ("  RESULT: {0} OK, {1} FAILED, {2} MISSING" -f $ok, $fail, $missing) -ForegroundColor $(if ($fail + $missing -gt 0) { "Yellow" } else { "Green" })
-    Write-Host "  ======================================================================" -ForegroundColor Cyan
-    return @{ OK = $ok; FAIL = $fail; MISSING = $missing; Details = $details }
+    Write-Host "`n  ----------------------------------------------------------------------" -ForegroundColor Cyan
+    Write-Host ("  RESULT: {0} OK, {1} FAILED, {2} MISSING" -f $ok, $fail, $missing) -ForegroundColor $(if ($fail + $missing -eq 0) { "Green" } else { "Yellow" })
+    Write-Host "  ----------------------------------------------------------------------" -ForegroundColor Cyan
+
+    return [PSCustomObject]@{
+        OK      = $ok
+        FAIL    = $fail
+        MISSING = $missing
+        Details = $details
+    }
 }
 
 function Invoke-AuditMode {
@@ -5535,7 +5895,7 @@ function Invoke-AuditMode {
             "Windows Printer Sharing Fix v$script:version - Audit Report",
             "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')",
             "Computer: $env:COMPUTERNAME",
-            "OS: $script:productName Build $script:buildNumber",
+            "OS: $script:productName Build $script:buildNumber (Bitness: $(if ([Environment]::Is64BitOperatingSystem) { '64-bit' } else { '32-bit' }))",
             "Result: $($result.OK) OK, $($result.FAIL) FAILED, $($result.MISSING) MISSING",
             "",
             "--- Registry & Service Snapshot ---"
@@ -5550,6 +5910,41 @@ function Invoke-AuditMode {
         $lines += "OK = $($result.OK)"
         $lines += "FAIL = $($result.FAIL)"
         $lines += "MISSING = $($result.MISSING)"
+        $lines += ""
+        $lines += "--- Installed Printers ---"
+        $printers = Get-CimInstance Win32_Printer -ErrorAction SilentlyContinue
+        if ($printers) {
+            foreach ($p in $printers) {
+                $lines += "Printer: $($p.Name) | Port: $($p.PortName) | Driver: $($p.DriverName) | Processor: $($p.PrintProcessor) | Shared: $($p.Shared) | ShareName: $($p.ShareName)"
+            }
+        } else {
+            $lines += "No local printers detected."
+        }
+        $lines += ""
+        $lines += "--- V3 Driver Framework Files in Spool ---"
+        $v3Dir = Join-Path $env:WINDIR "System32\spool\drivers\x64\3"
+        if (Test-Path $v3Dir) {
+            $files = Get-ChildItem -Path $v3Dir -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -match '^(dll|exe)$' }
+            foreach ($f in $files) {
+                $ver = (Get-ItemProperty $f.FullName -ErrorAction SilentlyContinue).VersionInfo.FileVersion
+                $lines += "$($f.Name) [Size: $($f.Length) bytes, Version: $ver]"
+            }
+        }
+        $lines += ""
+        $lines += "--- Recent PrintService Event Log Errors ---"
+        try {
+            $evts = Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-PrintService/Admin'; Level=2} -MaxEvents 5 -ErrorAction SilentlyContinue
+            if ($evts) {
+                foreach ($e in $evts) {
+                    $lines += "[$($e.TimeCreated.ToString('yyyy-MM-dd HH:mm:ss'))] EventID $($e.Id): $($e.Message -replace '`r`n',' ')"
+                }
+            } else {
+                $lines += "No recent error events found in Microsoft-Windows-PrintService/Admin."
+            }
+        } catch {
+            $lines += "PrintService/Admin event log unavailable."
+        }
+
         $lines | Out-File -FilePath $auditFile -Encoding UTF8
         Write-Host "`n  [+] Audit report saved to: $auditFile" -ForegroundColor Green
         Write-Host "  [i] Open the file to view detailed audit log." -ForegroundColor Cyan
@@ -5567,16 +5962,17 @@ function Invoke-AnalyzeMode {
     Write-Host "  ======================================================================" -ForegroundColor Cyan
     Write-Host "  No changes will be made.`n" -ForegroundColor Gray
     $result = Invoke-VerifyMode -SuppressHeader
-    Write-Host "`n  --- RECOMMENDATIONS ---" -ForegroundColor Cyan
+    Write-Host "`n  --- ROOT-CAUSE ANALYSIS & RECOMMENDATIONS ---" -ForegroundColor Cyan
     if ($result.FAIL + $result.MISSING -eq 0) {
-        Write-Host "  [+] All fix values are correctly applied. System is healthy." -ForegroundColor Green
+        Write-Host "  [+] All fix values and protocols are correctly applied. System is healthy." -ForegroundColor Green
     } else {
         $execCmd = if ($script:isExe) { ".\WindowsPrinterSharingFix.exe" } else { ".\WindowsPrinterSharingFix.ps1" }
         $recs = @()
         if ($result.FAIL -gt 0)    { $recs += "Run AllFix ($execCmd -AllFix or Menu 1 -> 1) to repair $($result.FAIL) drifted registry value(s)." }
         if ($result.MISSING -gt 0) { $recs += "Run AllFix ($execCmd -AllFix or Menu 1 -> 1) to apply $($result.MISSING) missing registry value(s)." }
-        $recs += "If 0x709 keeps recurring: run Menu 7 -> 1 (Map Local Port UNC) for permanent bypass."
-        $recs += "Ensure Menu 1 -> 3 (Host Server Role) is also applied on the printer HOST PC."
+        $recs += "If Error 0x00000006 persists on Windows 10 client: run Menu 1 -> 4 (Client Workstation Role) to restore clean V3 DLLs & purge stale DEVMODEs."
+        $recs += "If Error 0x00000709 persists: run Menu 7 -> 1 (Map Local Port UNC) for 100% permanent bypass."
+        $recs += "Ensure Menu 1 -> 3 (Host Server Role) is applied on the printer HOST PC."
         $recs += "After fixes: reboot, then run -Verify again to confirm persistence."
         $recs | ForEach-Object { Write-Host "  -> $_" -ForegroundColor Yellow }
     }
@@ -5585,69 +5981,76 @@ function Invoke-AnalyzeMode {
 
 function Invoke-PlanMode {
     Write-Host "`n  ======================================================================" -ForegroundColor Cyan
-    Write-Host "        PLAN MODE - Dry-run of AllFix 50 steps (NO CHANGES WILL BE MADE)" -ForegroundColor Yellow
+    Write-Host "        PLAN MODE - Dry-run simulation of AllFix (NO CHANGES WILL BE MADE)" -ForegroundColor Yellow
     Write-Host "  ======================================================================" -ForegroundColor Cyan
-    Write-Host ""
-    $steps = @(
-        "[1/50]  Detect OS & Build info",
-        "[2/50]  Backup Registry to $script:backupDir",
-        "[3/50]  Refresh Group Policy cache (gpupdate /force)",
-        "[4/50]  Audit & initialize RPC/DCOM services",
-        "[5/50]  Patch Error 0x0000011b (RpcAuthnLevelPrivacy=0)",
-        "[6/50]  Deep Fix 0x00000709 / 0x00000006 (RPC multi-layer + Point&Print)",
-        "[7/50]  Align KB5089549 driver policy + HKCU permissions",
-        "[8/50]  Bypass 0x00000bc4 (RPC Named Pipes for discovery)",
-        "[9/50]  Fix 0x00000040 (KeepConn + SessTimeout + NetBIOS + Power Saving)",
-        "[10/50] Fix 0x00000002 (CopyFilesPolicy)",
-        "[11/50] Fix 0x0000007e (RPC Bitness 32/64)",
-        "[12/50] Enable DnsOnWire, StrictNameChecking, UAC Token Filter",
-        "[13/50] Disable SMB Signing requirement",
-        "[14/50] Enforce Modern SMB2/SMB3 + Provider Order",
-        "[15/50] Enforce RPC Named Pipes + TCP",
-        "[16/50] Disable Client-Side Rendering (CSR)",
-        "[17/50] Disable Driver Isolation policy",
-        "[18/50] Start Discovery services (mDNS, WSD, NetBIOS)",
-        "[19/50] Open Firewall for File & Printer Sharing + WSD ports",
-        "[20/50] Enable SMB Guest + Anonymous access",
-        "[21/50] Disable Password-Protected Sharing",
-        "[22/50] Align LSA Protection + NTLMv2 + Credential Guard",
-        "[23/50] Bypass Smart App Control (SAC)",
-        "[24/50] Initialize IPP & Mopria Printing Foundation",
-        "[25/50] Disable WPP (legacy driver compatibility)",
-        "[26/50] Configure RDP Printer Redirection + LPD protocols",
-        "[27/50] Force Network Profiles to Private + disable Fast Startup",
-        "[28/50] Deprioritize Hyper-V/WSL virtual adapters",
-        "[29/50] Flush DNS + NetBIOS + ARP caches",
-        "[30/50] Stop Print Spooler",
-        "[31/50] Configure Spooler auto-restart on crash",
-        "[32/50] Reset Spooler dependencies (RPCSS, http)",
-        "[33/50] Reset PRINTERS folder ACL permissions",
-        "[34/50] Purge stale spooler queue + splwow64 handles",
-        "[35/50] Bypass AppContainer Loopback (Edge, UWP)",
-        "[36/50] Apply Advanced Point & Print elevation overrides",
-        "[37/50] Audit Spooler auto-recovery config",
-        "[38/50] Restart BITS service",
-        "[39/50] Verify Spooler is running",
-        "[40/50] Purge Kerberos ticket cache",
-        "[41/50] Validate WdiSystemHost service",
-        "[42/50] Register mDNS",
-        "[43/50] Create System Restore Point",
-        "[44/50] Scan & repair V4 Print Class Drivers",
-        "[45/50] Configure NullSessionPipes (spoolss)",
-        "[46/50] Flush ARP cache + NetBIOS tables",
-        "[47/50] Enforce RegisterSpoolerRemoteRpcEndPoint=1 + restart Spooler",
-        "[48/50] Sanitize printer share names",
-        "[49/50] Deploy Lifecycle scheduled tasks (Boot reapply, Logon reconnect, Watchdog 15m)",
-        "[50/50] Parse PrintService Event Log + final Spooler validation"
+    Write-Host "  Simulating AllFix registry configurations & policy alignment...`n" -ForegroundColor Gray
+
+    $script:PlanOkCount = 0
+    $script:PlanChangeCount = 0
+
+    # Simulate Core Registry Keys
+    $planKeys = @(
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Print"; N="RpcAuthnLevelPrivacyEnabled"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC"; N="RpcUseNamedPipeProtocol"; V=1; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC"; N="RpcTcpEnable"; V=1; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC"; N="RpcProtocols"; V=7; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC"; N="ForceKerberosForRpc"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC"; N="RpcAuthenticationLevel"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"; N="RequireSecuritySignature"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"; N="AllowInsecureGuestAuth"; V=1; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"; N="KeepConn"; V=65535; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"; N="RequireSecuritySignature"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"; N="EnableSecuritySignature"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"; N="restrictnullsessaccess"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"; N="DisableStrictNameChecking"; V=1; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"; N="RunAsPPL"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"; N="LmCompatibilityLevel"; V=3; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"; N="LimitBlankPasswordUse"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"; N="everyoneincludesanonymous"; V=1; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"; N="LsaCfgFlags"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"; N="NtlmMinClientSec"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"; N="NtlmMinServerSec"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="InForest"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="TrustedServers"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="Restricted"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="PackagePointAndPrintOnly"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="RestrictDriverInstallationToAdministrators"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="NoWarningNoElevationOnInstall"; V=1; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="NoWarningNoElevationOnUpdate"; V=1; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint"; N="PackagePointAndPrintServerList"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\WPP"; N="Enabled"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"; N="RegisterSpoolerRemoteRpcEndPoint"; V=1; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"; N="ForceCSREMFDespooling"; V=0; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Print"; N="DnsOnWire"; V=1; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Print"; N="CopyFilesPolicy"; V=1; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power"; N="HiberbootEnabled"; V=0; T="DWord" },
+        @{ P="HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"; N="LocalAccountTokenFilterPolicy"; V=1; T="DWord" },
+        @{ P="HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config"; N="VulnerableDriverBlocklistEnable"; V=0; T="DWord" }
     )
-    $steps | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
-    Write-Host ""
+
+    foreach ($k in $planKeys) {
+        Set-SafeReg -Path $k.P -Name $k.N -Value $k.V -Type $k.T
+    }
+
+    # Stale registry keys simulation
+    $planRemovals = @(
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint"; N="ServerList" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PackagePointAndPrint"; N="ListofServers" },
+        @{ P="HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers"; N="DisableClientSideRendering" }
+    )
+    foreach ($r in $planRemovals) {
+        Remove-SafeReg -Path $r.P -Name $r.N
+    }
+
+    Write-Host "`n  ----------------------------------------------------------------------" -ForegroundColor Cyan
+    Write-Host ("  PLAN SUMMARY: {0} compliant items, {1} planned modifications" -f $script:PlanOkCount, $script:PlanChangeCount) -ForegroundColor $(if ($script:PlanChangeCount -eq 0) { "Green" } else { "Yellow" })
+    Write-Host "  (Zero modifications were made to this system - Plan is 100% read-only)" -ForegroundColor Gray
+    Write-Host "  ----------------------------------------------------------------------" -ForegroundColor Cyan
+
     $execCmd = if ($script:isExe) { ".\WindowsPrinterSharingFix.exe" } else { ".\WindowsPrinterSharingFix.ps1" }
-    Write-Host "  ======================================================================" -ForegroundColor Cyan
-    Write-Host "  [i] To execute this plan, run: $execCmd -Debug" -ForegroundColor Cyan
+    Write-Host "`n  [i] To execute this plan, run: $execCmd -Debug" -ForegroundColor Cyan
     Write-Host "  [i] Or unattended: $execCmd -AllFix" -ForegroundColor Cyan
-    Write-Host "  [i] Or from the menu: [1] -> [1] (AllFix Core)" -ForegroundColor Cyan
-    Write-Host "  ======================================================================" -ForegroundColor Cyan
+    Write-Host "  [i] Or from the menu: [1] -> [1] (AllFix Core)`n" -ForegroundColor Cyan
 }
 
 # ============================================================
@@ -5679,6 +6082,12 @@ if ($script:IsPlanMode) {
     Invoke-PlanMode
     Write-Host ""
     if (-not $script:NoPause) { Pause-User }
+    exit 0
+}
+
+# If -Debug is passed from CLI without interactive menu, run AllFix with full debug readbacks
+if ($script:IsDebugMode -and (-not $ExtremePath) -and (-not $Diagnose)) {
+    AllFix-Core
     exit 0
 }
 

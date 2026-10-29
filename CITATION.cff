@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use or reference this software in technical articles, documentation, or tools, please cite it as below."
 title: "Windows Printer Sharing Fix: Automated Diagnostic and Remediation Suite for Windows Network Printing"
-version: 2.4.2
+version: 2.4.3
 date-released: 2026-10-27
 url: "https://github.com/khairudinfahmi/WindowsPrinterSharingFix"
 repository-code: "https://github.com/khairudinfahmi/WindowsPrinterSharingFix"
